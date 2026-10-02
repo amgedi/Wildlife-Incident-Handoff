@@ -63,15 +63,20 @@ async function clickFinder(cdp, finderJs, label) {
   throw new Error("element not found: " + label);
 }
 async function typeInto(cdp, finderJs, text) {
-  const pos = await centerOf(cdp, finderJs);
-  if (!pos) throw new Error("input not found");
-  await cdp.send("Input.dispatchMouseEvent", { type: "mousePressed", x: pos.x, y: pos.y, button: "left", clickCount: 1 });
-  await cdp.send("Input.dispatchMouseEvent", { type: "mouseReleased", x: pos.x, y: pos.y, button: "left", clickCount: 1 });
-  await sleep(200);
-  for (const ch of text) {
-    await cdp.send("Input.dispatchKeyEvent", { type: "char", text: ch });
-  }
-  await sleep(250);
+  // Use the native value setter + input event: robust against CDP key-event
+  // flakiness and works for both <input> and <textarea> targets.
+  const ok = await evalJs(cdp, `(() => {
+    const el = ${finderJs};
+    if (!el) return false;
+    const proto = el.tagName === "TEXTAREA" ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+    const setter = Object.getOwnPropertyDescriptor(proto, "value").set;
+    setter.call(el, ${JSON.stringify(text)});
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.focus();
+    return true;
+  })()`);
+  if (!ok) throw new Error("input not found");
+  await sleep(300);
 }
 
 async function main() {
@@ -121,9 +126,10 @@ async function main() {
   console.log("INCIDENT_REF=" + ref);
 
   console.log("phase: about");
-  await clickFinder(cdp, `document.querySelector('a[href="/settings"]')`, "Settings");
-  await clickFinder(cdp, `Array.from(document.querySelectorAll('nav[aria-label="Settings sections"] button')).find(b => b.textContent.includes('About'))`, "About");
-  await sleep(500);
+  await evalJs(cdp, `(() => { const a = document.querySelector('a[href="/settings"]'); if (!a) return false; a.click(); return true; })()`);
+  await sleep(900);
+  await evalJs(cdp, `(() => { const b = Array.from(document.querySelectorAll('nav[aria-label="Settings sections"] button')).find(b => b.textContent.trim() === 'About'); if (!b) return false; b.click(); return true; })()`);
+  await sleep(800);
   const about = await evalJs(cdp, `document.querySelector('main')?.textContent || ''`);
   const expectedVersion = JSON.parse(readFileSync("package.json", "utf-8")).version;
   record("About: version " + expectedVersion, about.includes(expectedVersion));

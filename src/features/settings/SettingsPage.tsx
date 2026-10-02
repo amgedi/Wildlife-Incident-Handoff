@@ -17,15 +17,15 @@ import { useTranslation } from "react-i18next";
 import type { DetailLevel, ExperienceMode, MotionPreference, ThemeName } from "../../types/settings";
 
 const SECTIONS = [
-  { id: "appearance", label: "Appearance", icon: Icons.eye, keywords: "theme appearance dark light density motion" },
-  { id: "experience", label: "Experience", icon: Icons.compass, keywords: "experience mode detail level profile" },
-  { id: "accessibility", label: "Accessibility", icon: Icons.heart, keywords: "accessibility motion reduced contrast keyboard" },
-  { id: "defaults", label: "Incident defaults", icon: Icons.list, keywords: "incident defaults location precision name" },
-  { id: "privacy", label: "Privacy", icon: Icons.shield, keywords: "privacy location contacts shareable" },
-  { id: "storage", label: "Storage & backups", icon: Icons.archive, keywords: "backup storage import export where is my data" },
-  { id: "notifications", label: "Notifications", icon: Icons.info, keywords: "notifications toasts" },
-  { id: "advanced", label: "Advanced", icon: Icons.settings, keywords: "advanced language" },
-  { id: "about", label: "About", icon: Icons.book, keywords: "about version license" },
+  { id: "appearance", labelKey: "appearance", icon: Icons.eye, keywords: "theme appearance dark light density motion" },
+  { id: "experience", labelKey: "experience", icon: Icons.compass, keywords: "experience mode detail level profile workspace" },
+  { id: "accessibility", labelKey: "accessibility", icon: Icons.heart, keywords: "accessibility motion reduced contrast keyboard" },
+  { id: "defaults", labelKey: "defaults", icon: Icons.list, keywords: "incident defaults location precision name" },
+  { id: "privacy", labelKey: "privacy", icon: Icons.shield, keywords: "privacy location contacts shareable" },
+  { id: "storage", labelKey: "storage", icon: Icons.archive, keywords: "backup storage import export where is my data" },
+  { id: "notifications", labelKey: "notifications", icon: Icons.info, keywords: "notifications toasts" },
+  { id: "advanced", labelKey: "advanced", icon: Icons.settings, keywords: "advanced language region units" },
+  { id: "about", labelKey: "about", icon: Icons.book, keywords: "about version license" },
 ] as const;
 
 type SectionId = (typeof SECTIONS)[number]["id"];
@@ -37,10 +37,11 @@ export function SettingsPage() {
   const filtered = useMemo(() => {
     if (!query.trim()) return SECTIONS;
     const q = query.toLowerCase();
-    return SECTIONS.filter((s) => s.label.toLowerCase().includes(q) || s.keywords.includes(q));
+    return SECTIONS.filter((s) => s.labelKey.includes(q) || s.keywords.includes(q));
   }, [query]);
 
   const activeMeta = SECTIONS.find((s) => s.id === section)!;
+  const ts = useTranslation("settings").t;
 
   return (
     <main className="content" id="main-content" style={{ maxWidth: 1080 }}>
@@ -74,7 +75,7 @@ export function SettingsPage() {
                   }}
                 >
                   <s.icon size={17} />
-                  {s.label}
+                  {ts(s.labelKey)}
                 </button>
               </li>
             ))}
@@ -82,7 +83,7 @@ export function SettingsPage() {
         </nav>
 
         <div className="fade-in" key={section}>
-          <h2>{activeMeta.label}</h2>
+          <h2>{ts(activeMeta.labelKey)}</h2>
           {section === "appearance" && <AppearanceSection />}
           {section === "experience" && <ExperienceSection />}
           {section === "accessibility" && <AccessibilitySection />}
@@ -484,6 +485,7 @@ function AdvancedSection() {
   const { settings, updateSettings } = useApp();
   const { t } = useTranslation();
   const complete = LANGUAGE_CATALOG.filter((l) => l.completeness === "complete");
+  void complete;
   const beta = LANGUAGE_CATALOG.filter((l) => l.completeness === "beta");
   return (
     <div className="stack">
