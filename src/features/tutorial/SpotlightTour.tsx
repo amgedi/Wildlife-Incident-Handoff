@@ -29,7 +29,7 @@ const PAD = 8;
 
 function useTargetRect(step: TourStepV2 | undefined, index: number): RectState | null {
   const [state, setState] = useState<RectState | null>(null);
-  const nav = useNavigate();
+  const nav = useNavigate(); // SPA navigation keeps the tour mounted across steps
   const currentStepRef = useRef<string>("");
   currentStepRef.current = step ? `${index}:${step.tourId}:${step.route ?? ""}` : "";
 
@@ -105,6 +105,7 @@ function useTargetRect(step: TourStepV2 | undefined, index: number): RectState |
 
 export function SpotlightTour({ steps, startIndex = 0, onFinish }: SpotlightProps) {
   const [index, setIndex] = useState(startIndex);
+  const nav = useNavigate();
   const step = steps[index];
   const rect = useTargetRect(step, index);
   const calloutRef = useRef<HTMLDivElement>(null);
@@ -187,7 +188,7 @@ export function SpotlightTour({ steps, startIndex = 0, onFinish }: SpotlightProp
             <button
               className="btn btn-secondary btn-sm"
               onClick={() => {
-                step.action!.run();
+                if (step.action!.to) nav(step.action!.to);
                 if (step.action!.advance) setIndex((i) => Math.min(steps.length - 1, i + 1));
                 else onFinish();
               }}

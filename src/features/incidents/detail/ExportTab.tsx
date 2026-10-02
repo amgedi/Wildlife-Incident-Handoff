@@ -11,8 +11,12 @@ import {
 
 export function ExportTab({ incident }: { incident: Incident }) {
   const { showToast } = useApp();
-  const [mode, setMode] = useState<"shareable" | "internal">("shareable");
-  const [opts, setOpts] = useState<ExportOptions>({ ...SHAREABLE_EXPORT });
+  // Respect the sharing profile chosen at creation, when present.
+  const initialMode: "shareable" | "internal" = incident.shareProfile === "responder" ? "internal" : "shareable";
+  const [mode, setMode] = useState<"shareable" | "internal">(initialMode);
+  const [opts, setOpts] = useState<ExportOptions>(
+    initialMode === "internal" ? { ...INTERNAL_EXPORT } : { ...SHAREABLE_EXPORT }
+  );
 
   function chooseMode(m: "shareable" | "internal") {
     setMode(m);

@@ -42,6 +42,11 @@ export function IncidentDetailPage() {
   const [tab, setTab] = useState<TabId>(
     (TABS.some((t) => t.id === initialTab) ? initialTab : "overview") as TabId
   );
+  // Keep the tab in sync with deep links (e.g. the product tour navigating to ?tab=timeline).
+  useEffect(() => {
+    const urlTab = search.get("tab") as TabId | null;
+    if (urlTab && TABS.some((t) => t.id === urlTab) && urlTab !== tab) setTab(urlTab);
+  }, [search, tab]);
   const [statusDialog, setStatusDialog] = useState(false);
   const [newStatus, setNewStatus] = useState<IncidentStatus | null>(null);
   const [statusNote, setStatusNote] = useState("");

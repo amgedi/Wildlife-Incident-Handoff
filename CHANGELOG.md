@@ -2,6 +2,27 @@
 
 All notable changes to Wildlife Incident Handoff are documented here. Format based on [Keep a Changelog](https://keepachangelog.com/); versioning follows [SemVer](https://semver.org/).
 
+## 0.2.0-dev.1 — in development
+
+### Added
+- Real spotlight tour: SVG-mask cutout, per-step navigation (incidents list, incident Timeline / People / Export tabs), scroll-into-view, resize/scroll repositioning, guided actions.
+- Guide Me: deterministic step-by-step coaching on the creation wizard with exit-anytime.
+- "Use my current location": permission-gated geolocation with accuracy capture and timestamp; graceful denial fallback.
+- Reporter contact choice: anonymous by default; optional remembering of contact details (off by default, clearable in Settings → Privacy).
+- Report-inclusion review: explicit "Information included in this report" section and sharing profiles (Private record / Responder report / Public) that set export defaults.
+- Response network local preview: service area, grouped feed, accept action, duplicate-candidate detection, map-provider abstraction; architecture documented in docs/NETWORK_ARCHITECTURE.md.
+- Region & language settings: country, metric/imperial units, neutral emergency language.
+- Ambient theme layer per theme with a separate ambience control; frosted surfaces with solid fallbacks.
+- Pinned incidents; build identity (version/build id/data schema) on the About screen.
+- Tauri 2 desktop scaffold and build documentation.
+
+### Changed
+- Canonical bear-paw brand mark across app, favicon, PWA icons and social preview; brand block alignment.
+- Default motion remains Full, honoring prefers-reduced-motion at the OS level; ambience never animates under reduced motion.
+
+### Compatibility
+- Data format unchanged (schemaVersion 1); all v0.1.0 records load without migration. New fields are additive and optional.
+
 ## 0.1.0 — 2026-10-01
 
 First public release. A complete, local-first tool for recording wildlife incidents and handing them off without losing context.

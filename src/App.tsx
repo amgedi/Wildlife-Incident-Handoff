@@ -29,6 +29,7 @@ const NAV_ITEMS = [
 export function App() {
   const { settings, updateSettings, storageReady } = useApp();
   const [tourOpen, setTourOpen] = useState(false);
+  const [tourSteps, setTourSteps] = useState<TourStepV2[] | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -55,7 +56,6 @@ export function App() {
     );
   }
 
-  const [tourSteps, setTourSteps] = useState<TourStepV2[] | null>(null);
   const runTour = () => {
     void buildMainTourSteps().then((steps) => {
       navigate("/");
@@ -68,7 +68,7 @@ export function App() {
     <div className="app-shell">
       <a href="#main-content" className="sr-only">Skip to main content</a>
       <aside className="sidebar">
-        <NavLink to="/" className="brand" data-tour-id="nav-home">
+        <NavLink to="/" className="brand">
           <BrandMark size={30} />
           <span className="brand-name">
             Wildlife Incident
@@ -78,7 +78,7 @@ export function App() {
         </NavLink>
         <nav aria-label="Main navigation">
           {NAV_ITEMS.slice(0, 2).map((item) => (
-            <NavLink key={item.to} to={item.to} end={item.to === "/"} className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}>
+            <NavLink key={item.to} to={item.to} end={item.to === "/"} data-tour-id={item.tourId} className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}>
               <item.icon size={18} />
               {item.label}
             </NavLink>
@@ -88,7 +88,7 @@ export function App() {
             Create incident
           </NavLink>
           {NAV_ITEMS.slice(2).map((item) => (
-            <NavLink key={item.to} to={item.to} className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}>
+            <NavLink key={item.to} to={item.to} data-tour-id={item.tourId} className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}>
               <item.icon size={18} />
               {item.label}
             </NavLink>

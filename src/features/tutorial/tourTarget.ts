@@ -18,12 +18,18 @@ export interface TourTargetSpec {
  * to an explicit selector; never guesses.
  */
 export function findTourTarget(spec: TourTargetSpec): Element | null {
-  const byId = document.querySelector(`[data-tour-id="${spec.tourId}"]`);
-  if (byId) return byId;
+  const candidates = Array.from(document.querySelectorAll(`[data-tour-id="${spec.tourId}"]`));
+  // Prefer the first candidate that actually has layout (hidden duplicates
+  // such as the mobile bottom nav measure 0x0 on desktop).
+  const visible = candidates.find((el) => {
+    const r = el.getBoundingClientRect();
+    return r.width > 0 || r.height > 0;
+  });
+  if (visible) return visible;
   if (spec.selectorFallback) {
     return document.querySelector(spec.selectorFallback);
   }
-  return null;
+  return candidates[0] ?? null;
 }
 
 /** Pure geometry helper (unit-tested): keep the callout fully on-screen. */

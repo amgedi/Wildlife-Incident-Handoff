@@ -210,6 +210,11 @@ code { font-family: var(--font-mono); font-size: 0.85em; background: var(--c-sur
 .incident-card .ic-updates { font-size: 0.85rem; color: var(--c-ink-soft); margin-top: var(--space-1); }
 .card-list { display: grid; gap: var(--space-3); }
 
+/* List cards with inline actions keep clear of the buttons */
+@media (min-width: 861px) {
+  .list-card-with-actions .incident-card { padding-right: 150px; }
+}
+
 /* ---------- Timeline ---------- */
 .timeline { list-style: none; margin: 0; padding: 0; position: relative; }
 .timeline::before {

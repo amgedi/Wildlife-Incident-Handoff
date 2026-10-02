@@ -39,7 +39,7 @@ export async function buildMainTourSteps(): Promise<TourStepV2[]> {
       tourId: "nav-incidents",
       title: "Incidents",
       text: "This is where all your incidents live — active, closed and archived. Let's open it.",
-      action: { label: "Open Incidents", run: () => { window.location.assign("/incidents"); }, advance: true },
+      action: { label: "Open Incidents", to: "/incidents", advance: true },
       waitMs: 700,
     },
     {
@@ -54,7 +54,7 @@ export async function buildMainTourSteps(): Promise<TourStepV2[]> {
       text: "Narrow the list by status and incident type. Closed and archived cases stay searchable here instead of cluttering the home screen.",
     },
     {
-      tourId: "nav-timeline",
+      tourId: "tab-timeline",
       title: "Timeline",
       text: "Inside an incident, the Timeline keeps every update in chronological order — observations, photos, corrections. Nothing is overwritten. Opening a real example now…",
       route: `${detail}?tab=timeline`,

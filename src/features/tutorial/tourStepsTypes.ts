@@ -1,7 +1,8 @@
 export interface TourAction {
   label: string;
-  run: () => void;
-  /** Advance to the next step after running (the run performs navigation). */
+  /** In-app route to navigate to (SPA navigation, keeps the tour alive). */
+  to?: string;
+  /** Advance to the next step after running. */
   advance: boolean;
 }
 

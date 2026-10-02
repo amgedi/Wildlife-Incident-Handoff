@@ -164,7 +164,7 @@ export function IncidentListPage() {
       ) : (
         <div className="card-list">
           {filtered.map((i) => (
-            <div key={i.id} style={{ position: "relative" }}>
+            <div key={i.id} style={{ position: "relative" }} className="list-card-with-actions">
               <IncidentCardFull incident={i} />
               <div className="row" style={{ position: "absolute", top: 8, right: 8 }} role="group" aria-label={`Actions for ${i.humanReference}`}>
                 {view === "active" && (

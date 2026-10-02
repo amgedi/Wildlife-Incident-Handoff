@@ -28,6 +28,18 @@ This app records **what people actually observed** and supports **responsible ha
 
 Where relevant, the app encourages safe behavior: observe from a distance, avoid unnecessary handling, keep people and pets away, and contact an appropriate licensed wildlife professional.
 
+## Highlights (0.2.0-dev additions in *italics*)
+
+- *🧭 **Real spotlight tour*** — the tour navigates into the actual screens (incident list, timeline, handoff, export), dims everything except the target through an SVG-mask cutout, and follows the interface on resize.
+- *🐻 **Canonical bear-paw brand mark*** — one shape across app, favicon, PWA icons and social preview.
+- *📍 **Use my current location*** — optional, permission-gated geolocation with accuracy capture; denied permission never breaks the form.
+- *🙋 **Reporter contact by choice*** — anonymous by default; opt-in contact details with optional (off-by-default, clearable) remembering on this device; a review screen shows exactly what the report includes and a sharing profile (Private record / Responder report / Public).
+- *🤝 **Response network (local preview)** — a professional dashboard over local incidents: service area, grouped feed (new / active / transfer / closed), accept action, possible-duplicate detection, map-provider abstraction. Nothing is transmitted; see [docs/NETWORK_ARCHITECTURE.md](docs/NETWORK_ARCHITECTURE.md).
+- *🧭 **Guide me** — deterministic step-by-step coaching through a real report (no AI, no chatbot).
+- *🌍 **Region & language settings*** — country, metric/imperial, and deliberately neutral emergency language.
+- *🖥️ **Desktop (Tauri 2)** — scaffold + documented build for a native Windows app with no terminal and no localhost; see [src-tauri/README.md](src-tauri/README.md).
+- *✨ **Ambient themes*** — very slow per-theme background movement when motion is Full, with a separate ambience control and frosted surfaces with solid fallbacks.
+
 ## Highlights
 
 - 🪶 **Unknown is valid** — species, age, sex, cause: never required, never faked. Observations like *"right wing hangs lower than left"* are preferred over diagnoses like *"broken wing"*.
@@ -72,9 +84,15 @@ Where relevant, the app encourages safe behavior: observe from a distance, avoid
 - Exports never happen automatically. Shareable exports deliberately exclude sensitive information; precise wildlife locations can be marked *Sensitive* and are redacted by default.
 - Personal contact details are marked private and excluded from shareable exports unless explicitly included.
 
-## Development
+## Installing & running (normal users)
 
-Requirements: **Node.js 20+** and npm.
+**Web / PWA:** open the deployed site or serve the `dist/` folder with any static file server; install as a PWA from your browser menu. All data stays in your browser.
+
+**Windows desktop:** download `Wildlife-Incident-Handoff-Setup-x.y.z.exe` from Releases, install, and launch **Wildlife Incident Handoff** from the Start Menu — a native window, no terminal, no local server. Uninstalling does not delete your incident data without an explicit, warned choice. (The desktop build is prepared via Tauri 2 — see the release assets.)
+
+## Development (developers)
+
+Requirements: **Node.js 20+** and npm. The desktop build additionally requires the Rust toolchain.
 
 ```bash
 npm install        # install dependencies
