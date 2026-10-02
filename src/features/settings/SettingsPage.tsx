@@ -9,7 +9,8 @@ import { downloadBackup, importBackup } from "../../storage/backupService";
 import { getAllIncidents, getAllAttachmentBlobs, estimateStorage } from "../../storage/repositories";
 import { bytesToSize } from "../../utils/time";
 import { useEffect } from "react";
-import { APP_VERSION as appVersion } from "../../version";
+import { APP_VERSION as appVersion, BUILD_ID as buildId, DATA_SCHEMA_VERSION as dataSchemaVersion } from "../../version";
+import { defaultUnitsFor } from "../../utils/units";
 import type { DetailLevel, ExperienceMode, MotionPreference, ThemeName } from "../../types/settings";
 
 const SECTIONS = [
@@ -153,6 +154,17 @@ function AppearanceSection() {
           ]}
         />
         <p className="hint">Reduced and Off also respect your operating system's “reduce motion” preference. Animations never delay actions.</p>
+        <Segmented
+          label="Ambient theme effects"
+          value={settings.ambient}
+          onChange={(v) => updateSettings({ ambient: v })}
+          options={[
+            { value: "on", label: "On" },
+            { value: "reduced", label: "Reduced" },
+            { value: "off", label: "Off" },
+          ]}
+        />
+        <p className="hint">A very slow background ambience behind the interface — each theme has its own character. Functional transitions keep working even with ambience off, and the background never animates when your OS requests reduced motion.</p>
       </div>
     </div>
   );
@@ -202,6 +214,7 @@ function AccessibilitySection() {
         Full uses the app's normal subtle animations. Reduced keeps only the shortest transitions. Off removes all movement.
         The app also follows your system “prefers reduced motion” setting automatically.
       </p>
+      <p className="hint">Ambient background effects follow the Appearance → “Ambient theme effects” setting and are automatically calmed when your OS requests reduced motion.</p>
       <h3>Keyboard & screen readers</h3>
       <p style={{ color: "var(--c-ink-soft)", fontSize: "0.92rem" }}>
         All controls are reachable by keyboard; dialogs trap focus and restore it on close. Status is never conveyed by color
@@ -383,20 +396,67 @@ function NotificationsSection() {
   );
 }
 
+const COUNTRIES = [
+  { value: "", label: "Not set" },
+  { value: "CA", label: "Canada" },
+  { value: "US", label: "United States" },
+  { value: "GB", label: "United Kingdom" },
+  { value: "AU", label: "Australia" },
+  { value: "NZ", label: "New Zealand" },
+  { value: "IE", label: "Ireland" },
+  { value: "FR", label: "France" },
+  { value: "DE", label: "Germany" },
+  { value: "NL", label: "Netherlands" },
+  { value: "ES", label: "Spain" },
+  { value: "IT", label: "Italy" },
+  { value: "BR", label: "Brazil" },
+  { value: "MX", label: "Mexico" },
+  { value: "ZA", label: "South Africa" },
+  { value: "IN", label: "India" },
+  { value: "JP", label: "Japan" },
+  { value: "OTHER", label: "Other / not listed" },
+];
+
 function AdvancedSection() {
   const { settings, updateSettings } = useApp();
   return (
-    <div className="card">
-      <Select
-        label="Language"
-        value={settings.language}
-        options={[{ value: "en", label: "English" }]}
-        onChange={(v) => updateSettings({ language: v })}
-        hint="Additional languages are planned; the interface is built on localization keys so translations can be added without code changes."
-      />
-      <p style={{ color: "var(--c-ink-soft)", fontSize: "0.92rem" }}>
-        User observations, species names and incident references are never machine-translated.
-      </p>
+    <div className="stack">
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>Region & language</h3>
+        <Select
+          label="Country or region"
+          value={settings.country}
+          options={COUNTRIES}
+          onChange={(v) => updateSettings({ country: v, units: defaultUnitsFor(v) })}
+          hint="Used for regional defaults and, in future, for finding participating response organizations near you. Dates, times and numbers follow your browser's locale settings."
+        />
+        <Select
+          label="Measurement units"
+          value={settings.units}
+          options={[
+            { value: "metric", label: "Metric (km, kg, °C)" },
+            { value: "imperial", label: "Imperial (mi, lb, °F)" },
+          ]}
+          onChange={(v) => updateSettings({ units: v as "metric" })}
+        />
+        <Select
+          label="Language"
+          value={settings.language}
+          options={[{ value: "en", label: "English" }]}
+          onChange={(v) => updateSettings({ language: v })}
+          hint="English is the complete source locale. The interface is built on localization keys so additional languages can be added without code changes; no partial language is shipped as “complete”."
+        />
+        <p style={{ color: "var(--c-ink-soft)", fontSize: "0.92rem" }}>
+          User observations, species names, organization names and incident references are never translated.
+        </p>
+      </div>
+      <div className="notice">
+        <Icons.info size={18} />
+        <span>
+          If there is immediate danger to people, contact your local emergency service. Emergency numbers differ by
+          country — this app intentionally does not display a specific number.
+        </span>
+      </div>
     </div>
   );
 }
@@ -407,7 +467,8 @@ function AboutSection() {
       <h3 style={{ marginTop: 0 }}>Wildlife Incident Handoff</h3>
       <dl className="kv">
         <dt>Version</dt><dd>{appVersion}</dd>
-        <dt>Data format</dt><dd>v1 (schemaVersion)</dd>
+        <dt>Build</dt><dd><code>{buildId}</code></dd>
+        <dt>Data format</dt><dd>v{dataSchemaVersion} (schemaVersion)</dd>
         <dt>License</dt><dd>MIT</dd>
         <dt>Data location</dt><dd>This browser, this device</dd>
       </dl>

@@ -84,7 +84,12 @@ export function ExamplesPage() {
               <p className="ic-meta">{d.humanReference} · {d.summary}</p>
               <p className="ic-meta">Last update {relativeTime(d.updatedAt)}</p>
               <div className="row" style={{ marginTop: 10 }}>
-                <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/incidents/${d.id}`)}>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    void putIncident(d).then(() => navigate(`/incidents/${d.id}`));
+                  }}
+                >
                   Open example
                 </button>
                 <button className="btn btn-ghost btn-sm" onClick={() => void copyDemo(d)}>
@@ -109,8 +114,7 @@ export function ExamplesPage() {
 }
 
 const TOUR_STEPS = [
-  { tourId: "hero", title: "This is a demo incident", text: "Demo cases open in the same workspace as real incidents, but stay clearly labeled as fictional." },
-  { tourId: "incident-header", title: "Incident header", text: "Reference number, status, and the key handoff action live at the top." },
-  { tourId: "nav-timeline", title: "Timeline", text: "Every event is preserved in order — including corrections." },
-  { tourId: "nav-export", title: "Export", text: "Try a shareable export to see how privacy redaction works." },
+  { tourId: "incident-header", title: "This is a demo incident", text: "Demo cases open in the same workspace as real incidents, but stay clearly labeled as fictional. The header shows the reference, status and the handoff action." },
+  { tourId: "tab-timeline", title: "Timeline", text: "Every event is preserved in order — including corrections.", waitMs: 400 },
+  { tourId: "tab-export", title: "Export", text: "Try a shareable export to see how privacy redaction works.", waitMs: 400 },
 ];

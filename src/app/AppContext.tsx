@@ -65,6 +65,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     document.documentElement.dataset.theme = settings.theme;
     document.documentElement.dataset.density = settings.density;
     document.documentElement.dataset.motion = settings.motion;
+    document.documentElement.dataset.ambient = settings.ambient;
   }, [settings.theme, settings.density, settings.motion]);
 
   const updateSettings = useCallback((patch: Partial<AppSettings>) => {

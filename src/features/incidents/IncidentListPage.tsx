@@ -93,7 +93,7 @@ export function IncidentListPage() {
       </div>
 
       {view === "active" && (
-        <div className="card" style={{ padding: "var(--space-4)", marginBottom: "var(--space-4)" }}>
+        <div className="card" style={{ padding: "var(--space-4)", marginBottom: "var(--space-4)" }} data-tour-id="incident-filters">
           <div className="field" style={{ marginBottom: "var(--space-3)" }}>
             <label htmlFor="incident-search" style={{ fontWeight: 600, fontSize: "0.9rem" }}>Search</label>
             <div style={{ position: "relative" }}>
@@ -101,6 +101,7 @@ export function IncidentListPage() {
               <input
                 id="incident-search"
                 className="input"
+                data-tour-id="incident-search"
                 style={{ paddingLeft: 34 }}
                 placeholder="Search by reference, species, location, organization, notes…"
                 value={query}

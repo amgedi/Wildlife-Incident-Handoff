@@ -1,6 +1,6 @@
 /** Incident detail workspace: overview, timeline, observations, attachments, people & handoffs, details, export. */
 import { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useApp } from "../../app/AppContext";
 import { Icons } from "../../components/Icons";
 import { Dialog } from "../../components/Dialog";
@@ -34,10 +34,14 @@ type TabId = (typeof TABS)[number]["id"];
 export function IncidentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const search = useSearchParams()[0];
   const { showToast } = useApp();
   const [incident, setIncident] = useState<Incident | null>(null);
   const [notFound, setNotFound] = useState(false);
-  const [tab, setTab] = useState<TabId>("overview");
+  const initialTab = (search.get("tab") as TabId) ?? "overview";
+  const [tab, setTab] = useState<TabId>(
+    (TABS.some((t) => t.id === initialTab) ? initialTab : "overview") as TabId
+  );
   const [statusDialog, setStatusDialog] = useState(false);
   const [newStatus, setNewStatus] = useState<IncidentStatus | null>(null);
   const [statusNote, setStatusNote] = useState("");
@@ -140,9 +144,9 @@ export function IncidentDetailPage() {
         )}
       </header>
 
-      <div className="tab-bar" role="tablist" aria-label="Incident sections" style={{ marginTop: "var(--space-5)" }} data-tour-id="nav-timeline">
+      <div className="tab-bar" role="tablist" aria-label="Incident sections" style={{ marginTop: "var(--space-5)" }}>
         {TABS.map((t) => (
-          <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}>
+          <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)} data-tour-id={`tab-${t.id}`}>
             {t.label}
           </button>
         ))}

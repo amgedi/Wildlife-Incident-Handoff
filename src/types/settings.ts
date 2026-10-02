@@ -5,6 +5,7 @@ export type { DetailLevel, ExperienceMode };
 export type ThemeName = "forest-dark" | "forest-light" | "midnight" | "warm-field";
 export type Density = "comfortable" | "compact";
 export type MotionPreference = "full" | "reduced" | "off";
+export type AmbientPreference = "on" | "reduced" | "off";
 
 export interface AppSettings {
   schemaVersion: number;
@@ -14,11 +15,15 @@ export interface AppSettings {
   theme: ThemeName;
   density: Density;
   motion: MotionPreference;
+  ambient: AmbientPreference;
   /** Display name used as the default "actor" on new events. */
   displayName: string;
   defaultLocationPrecision: "exact" | "approximate" | "sensitive";
   includeContactsInShareable: boolean;
   lastBackupAt: string | null;
+  country: string;
+  units: "metric" | "imperial";
+  savedReporterContact: { name: string; phone: string; email: string; preferred: string } | null;
   tourCompleted: boolean;
   language: string;
 }
@@ -31,10 +36,14 @@ export const DEFAULT_SETTINGS: AppSettings = {
   theme: "forest-dark",
   density: "comfortable",
   motion: "full",
+  ambient: "on",
   displayName: "",
   defaultLocationPrecision: "approximate",
   includeContactsInShareable: false,
   lastBackupAt: null,
+  country: "",
+  units: "metric",
+  savedReporterContact: null,
   tourCompleted: false,
   language: "en",
 };

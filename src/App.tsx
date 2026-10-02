@@ -12,7 +12,8 @@ import { ExamplesPage } from "./features/tutorial/ExamplesPage";
 import { SettingsPage } from "./features/settings/SettingsPage";
 import { TutorialPage } from "./features/tutorial/TutorialPage";
 import { SpotlightTour } from "./features/tutorial/SpotlightTour";
-import type { TourStep } from "./features/tutorial/SpotlightTour";
+import { buildMainTourSteps } from "./features/tutorial/tourSteps";
+import type { TourStepV2 } from "./features/tutorial/tourStepsTypes";
 
 const NAV_ITEMS = [
   { to: "/", label: "Home", icon: Icons.home, tourId: "nav-home" },
@@ -21,15 +22,7 @@ const NAV_ITEMS = [
   { to: "/settings", label: "Settings", icon: Icons.settings, tourId: "nav-settings" },
 ];
 
-const TOUR_STEPS: TourStep[] = [
-  { tourId: "nav-home", title: "Home", text: "Your starting point: resume open incidents and see what needs attention." },
-  { tourId: "nav-create", title: "Create incident", text: "A guided wizard walks you through recording what you observed, step by step. Unknown is always a valid answer." },
-  { tourId: "nav-incidents", title: "Incidents", text: "Search and filter all incidents. Closed and archived cases stay searchable here." },
-  { tourId: "nav-timeline", title: "Timeline", text: "Inside an incident, the Timeline keeps every update in chronological order. Nothing is ever overwritten." },
-  { tourId: "nav-handoff", title: "Handoff", text: "Record who took responsibility, when, and what was transferred — so the next person has full context." },
-  { tourId: "nav-export", title: "Export", text: "Generate a print-ready handoff summary, or a privacy-safe shareable version with location and contacts removed." },
-  { tourId: "nav-settings", title: "Settings", text: "Themes, motion, accessibility, privacy and backups all live here. Your data stays on this device." },
-];
+
 
 export function App() {
   const { settings, updateSettings, storageReady } = useApp();
@@ -60,9 +53,13 @@ export function App() {
     );
   }
 
+  const [tourSteps, setTourSteps] = useState<TourStepV2[] | null>(null);
   const runTour = () => {
-    navigate("/");
-    setTourOpen(true);
+    void buildMainTourSteps().then((steps) => {
+      navigate("/");
+      setTourSteps(steps);
+      setTourOpen(true);
+    });
   };
 
   return (
@@ -144,7 +141,7 @@ export function App() {
         </NavLink>
       </nav>
 
-      {tourOpen && <SpotlightTour steps={TOUR_STEPS} onFinish={() => { setTourOpen(false); updateSettings({ tourCompleted: true }); }} />}
+      {tourOpen && tourSteps && <SpotlightTour steps={tourSteps} onFinish={() => { setTourOpen(false); setTourSteps(null); updateSettings({ tourCompleted: true }); }} />}
     </div>
   );
 }

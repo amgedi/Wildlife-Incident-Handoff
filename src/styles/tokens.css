@@ -156,3 +156,125 @@
     --motion-slow: 100ms;
   }
 }
+
+/* ---------- Ambient theme layer ----------
+   Very slow background movement, only when motion is Full and ambient is On.
+   Each theme has its own palette; animation uses GPU-friendly transforms. */
+
+@keyframes wih-ambient-a {
+  0%   { transform: translate3d(-4%, -3%, 0) scale(1); }
+  50%  { transform: translate3d(4%, 3%, 0) scale(1.08); }
+  100% { transform: translate3d(-4%, -3%, 0) scale(1); }
+}
+@keyframes wih-ambient-b {
+  0%   { transform: translate3d(3%, 4%, 0) scale(1.05); }
+  50%  { transform: translate3d(-3%, -4%, 0) scale(1); }
+  100% { transform: translate3d(3%, 4%, 0) scale(1.05); }
+}
+
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: -25%;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 600ms ease;
+}
+
+/* Forest Dark (default): deep green / teal pools */
+body::before {
+  background:
+    radial-gradient(42% 38% at 30% 25%, rgb(47 93 63 / 0.34), transparent 70%),
+    radial-gradient(36% 34% at 75% 70%, rgb(28 78 66 / 0.30), transparent 70%);
+  animation: wih-ambient-a 90s ease-in-out infinite;
+}
+body::after {
+  background:
+    radial-gradient(40% 36% at 70% 20%, rgb(181 101 29 / 0.08), transparent 70%),
+    radial-gradient(44% 40% at 20% 80%, rgb(58 110 82 / 0.26), transparent 70%);
+  animation: wih-ambient-b 110s ease-in-out infinite;
+}
+
+/* Forest Light: warm natural light, cream/green */
+[data-theme="forest-light"] body::before {
+  background:
+    radial-gradient(42% 38% at 30% 25%, rgb(154 186 140 / 0.34), transparent 70%),
+    radial-gradient(36% 34% at 75% 70%, rgb(214 196 152 / 0.30), transparent 70%);
+}
+[data-theme="forest-light"] body::after {
+  background:
+    radial-gradient(40% 36% at 70% 20%, rgb(233 220 188 / 0.5), transparent 70%),
+    radial-gradient(44% 40% at 20% 80%, rgb(180 205 168 / 0.34), transparent 70%);
+}
+
+/* Midnight: cool aurora on deep blue-black */
+[data-theme="midnight"] body::before {
+  background:
+    radial-gradient(42% 38% at 28% 22%, rgb(38 84 116 / 0.4), transparent 70%),
+    radial-gradient(36% 34% at 76% 72%, rgb(64 60 120 / 0.34), transparent 70%);
+}
+[data-theme="midnight"] body::after {
+  background:
+    radial-gradient(40% 36% at 72% 18%, rgb(46 120 96 / 0.22), transparent 70%),
+    radial-gradient(44% 40% at 22% 82%, rgb(30 66 92 / 0.4), transparent 70%);
+}
+
+/* Warm Field: sunset/earth tones */
+[data-theme="warm-field"] body::before {
+  background:
+    radial-gradient(42% 38% at 30% 25%, rgb(196 145 84 / 0.22), transparent 70%),
+    radial-gradient(36% 34% at 75% 70%, rgb(148 116 72 / 0.2), transparent 70%);
+}
+[data-theme="warm-field"] body::after {
+  background:
+    radial-gradient(40% 36% at 70% 20%, rgb(228 190 138 / 0.3), transparent 70%),
+    radial-gradient(44% 40% at 20% 80%, rgb(168 138 92 / 0.22), transparent 70%);
+}
+
+/* Show ambient only when motion=full and ambient=on. */
+[data-motion="full"][data-ambient="on"] body::before,
+[data-motion="full"][data-ambient="on"] body::after { opacity: 1; }
+
+/* Ambient reduced: static gradient, no animation. */
+[data-ambient="reduced"] body::before,
+[data-ambient="reduced"] body::after {
+  opacity: 1;
+  animation: none;
+}
+/* Motion reduced: ambient reduced automatically. */
+[data-motion="reduced"][data-ambient="on"] body::before,
+[data-motion="reduced"][data-ambient="on"] body::after {
+  opacity: 1;
+  animation: none;
+}
+/* Ambient off / motion off: no ambient layer at all. */
+[data-ambient="off"] body::before,
+[data-ambient="off"] body::after,
+[data-motion="off"] body::before,
+[data-motion="off"] body::after {
+  opacity: 0 !important;
+  animation: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  body::before, body::after { animation: none !important; }
+}
+
+/* Pause ambient when the tab is hidden. */
+@media (prefers-reduced-motion: no-preference) {
+  body::before, body::after { will-change: transform; }
+}
+
+/* ---------- Frosted surfaces (ambient on only, with solid fallback) ---------- */
+@supports (backdrop-filter: blur(10px)) {
+  [data-ambient="on"][data-motion="full"] .card,
+  [data-ambient="on"][data-motion="full"] .dialog {
+    background: color-mix(in srgb, var(--c-surface) 88%, transparent);
+    backdrop-filter: blur(10px);
+  }
+  [data-theme="midnight"][data-ambient="on"][data-motion="full"] .card,
+  [data-theme="midnight"][data-ambient="on"][data-motion="full"] .dialog {
+    background: color-mix(in srgb, var(--c-surface) 92%, transparent);
+  }
+}

@@ -36,7 +36,7 @@ export function PeopleTab({ incident, onChanged }: { incident: Incident; onChang
       <div className="card">
         <div className="row between">
           <h3 style={{ margin: 0 }}>Transfers / handoffs</h3>
-          <button className="btn btn-primary btn-sm" onClick={() => setHandoffOpen(true)}>
+          <button className="btn btn-primary btn-sm" data-tour-id="handoff-button" onClick={() => setHandoffOpen(true)}>
             <Icons.handoff size={15} />
             Transfer / hand off incident
           </button>

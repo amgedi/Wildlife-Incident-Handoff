@@ -22,7 +22,7 @@ export function ExportTab({ incident }: { incident: Incident }) {
   const toggle = (key: keyof ExportOptions) => setOpts((o) => ({ ...o, [key]: !o[key] }));
 
   return (
-    <div className="stack" data-tour-id="nav-export">
+    <div className="stack">
       <div className="card">
         <SectionHeading help="Never assume every export should expose everything. Shareable exports leave out precise location, personal contacts and private notes by default.">
           Handoff summary
