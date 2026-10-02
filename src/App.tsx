@@ -10,6 +10,7 @@ import { CreateIncidentPage } from "./features/incidents/CreateIncidentPage";
 import { IncidentDetailPage } from "./features/incidents/IncidentDetailPage";
 import { ExamplesPage } from "./features/tutorial/ExamplesPage";
 import { SettingsPage } from "./features/settings/SettingsPage";
+import { NetworkPage } from "./features/network/NetworkPage";
 import { TutorialPage } from "./features/tutorial/TutorialPage";
 import { SpotlightTour } from "./features/tutorial/SpotlightTour";
 import { buildMainTourSteps } from "./features/tutorial/tourSteps";
@@ -18,6 +19,7 @@ import type { TourStepV2 } from "./features/tutorial/tourStepsTypes";
 const NAV_ITEMS = [
   { to: "/", label: "Home", icon: Icons.home, tourId: "nav-home" },
   { to: "/incidents", label: "Incidents", icon: Icons.list, tourId: "nav-incidents" },
+  { to: "/network", label: "Response network", icon: Icons.handoff, tourId: "nav-network" },
   { to: "/examples", label: "Examples & tutorial", icon: Icons.book, tourId: "nav-examples" },
   { to: "/settings", label: "Settings", icon: Icons.settings, tourId: "nav-settings" },
 ];
@@ -111,6 +113,7 @@ export function App() {
           <Route path="/incidents/:id" element={<IncidentDetailPage />} />
           <Route path="/examples" element={<ExamplesPage />} />
           <Route path="/tutorial" element={<TutorialPage />} />
+          <Route path="/network" element={<NetworkPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<HomePage onStartTour={runTour} />} />
         </Routes>

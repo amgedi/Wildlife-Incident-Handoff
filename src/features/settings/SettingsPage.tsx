@@ -6,7 +6,7 @@ import { Segmented, TextField } from "../../components/ui";
 import { Select } from "../../components/Select";
 import { Dialog } from "../../components/Dialog";
 import { downloadBackup, importBackup } from "../../storage/backupService";
-import { getAllIncidents, getAllAttachmentBlobs, estimateStorage } from "../../storage/repositories";
+import { getAllIncidents, getAllAttachmentBlobs, estimateStorage, setSetting } from "../../storage/repositories";
 import { bytesToSize } from "../../utils/time";
 import { useEffect } from "react";
 import { APP_VERSION as appVersion, BUILD_ID as buildId, DATA_SCHEMA_VERSION as dataSchemaVersion } from "../../version";
@@ -269,11 +269,50 @@ function PrivacySection() {
         </label>
         <p className="hint">Recommended off. Even with this on, each export shows exactly what's included before you save or print.</p>
       </div>
+      <SavedContactCard />
       <div className="notice">
         <Icons.shield size={18} />
         <span>Wildlife locations can be sensitive (e.g. protected species or private land). Use “Sensitive location” for
           anything that shouldn't be exposed precisely, and prefer shareable exports when sending records onward.</span>
       </div>
+    </div>
+  );
+}
+
+function SavedContactCard() {
+  const { settings, updateSettings, showToast } = useApp();
+  const saved = settings.savedReporterContact;
+  return (
+    <div className="card">
+      <h3 style={{ marginTop: 0 }}>Remembered contact details</h3>
+      {saved && (saved.name || saved.phone || saved.email) ? (
+        <>
+          <p style={{ color: "var(--c-ink-soft)", fontSize: "0.92rem" }}>
+            You asked the app to remember your contact details to prefill new reports. They are stored only in this
+            browser, shown before anything is saved or shared, and never added automatically.
+          </p>
+          <dl className="kv">
+            {saved.name && (<><dt>Name</dt><dd>{saved.name}</dd></>)}
+            {saved.phone && (<><dt>Phone</dt><dd>{saved.phone}</dd></>)}
+            {saved.email && (<><dt>Email</dt><dd>{saved.email}</dd></>)}
+          </dl>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => {
+              updateSettings({ savedReporterContact: null });
+              void setSetting("saved-reporter-contact", null);
+              showToast("Remembered contact details cleared");
+            }}
+          >
+            <Icons.trash size={14} /> Clear remembered details
+          </button>
+        </>
+      ) : (
+        <p style={{ color: "var(--c-ink-faint)", fontSize: "0.92rem", margin: 0 }}>
+          Nothing remembered. If you tick “Remember my contact details on this device” while creating a report, you can
+          review and clear them here.
+        </p>
+      )}
     </div>
   );
 }

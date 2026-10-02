@@ -131,6 +131,12 @@ export interface IncidentLocation {
   latitude: number | null;
   longitude: number | null;
   notes: string | null;
+  /** Device-reported GPS accuracy in metres (additive, v0.2). */
+  accuracyMeters?: number | null;
+  /** When the coordinates were captured (additive, v0.2). */
+  capturedAt?: string | null;
+  /** True when the user captured coordinates via device geolocation. */
+  fromDevice?: boolean;
 }
 
 export interface Observation {
@@ -240,6 +246,9 @@ export interface Handoff {
 
 export type NoteKind = "incident_record" | "private";
 
+/** Privacy preset chosen at creation; sets export defaults (v0.2). */
+export type ShareProfile = "private" | "responder" | "public";
+
 export interface IncidentNote {
   id: string;
   kind: NoteKind;
@@ -275,6 +284,12 @@ export interface Incident {
   archivedAt: string | null;
   deletedAt: string | null;
   isDemo: boolean;
+  /** Default privacy profile for exports (additive, v0.2). */
+  shareProfile?: ShareProfile | null;
+  /** Pinned to the top of the incidents list (additive, v0.2). */
+  pinnedAt?: string | null;
+  /** How the report was created: locally, or via the guided flow. */
+  createdVia?: "form" | "guide" | null;
   /** Free-text "what happened" summary from creation. */
   summary: string | null;
   /** Short "next step" line shown on the overview. */

@@ -89,6 +89,20 @@ export function HomePage({ onStartTour }: { onStartTour: () => void }) {
         </div>
       )}
 
+      <div className="card" style={{ marginTop: "var(--space-5)", display: "flex", gap: "var(--space-4)", alignItems: "center", flexWrap: "wrap" }}>
+        <Icons.help size={22} style={{ color: "var(--c-primary)", flexShrink: 0 }} />
+        <div style={{ flex: 1, minWidth: 220 }}>
+          <h3 style={{ margin: 0 }}>Not sure what to do?</h3>
+          <p style={{ margin: "4px 0 0", color: "var(--c-ink-soft)", fontSize: "0.92rem" }}>
+            Guide me walks you through a real report, one friendly step at a time.
+          </p>
+        </div>
+        <Link to="/incidents/new?guide=1" className="btn btn-primary">
+          <Icons.compass size={16} />
+          Guide me
+        </Link>
+      </div>
+
       <h2 className="section-label" style={{ marginTop: "var(--space-6)" }}>Continue working</h2>
       {active.length === 0 ? (
         <div className="card">

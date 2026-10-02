@@ -18,7 +18,7 @@ import type {
   AnimalGroup, AnimalLocation, AttachmentMeta, Hazard, IncidentType,
   LifeStage, LocationPrecision, ObservationCategory, ObservedUrgency, Sex,
 } from "../../types/incident";
-import { deleteDraft, getDraft, saveDraft, putAttachmentBlob } from "../../storage/repositories";
+import { deleteDraft, getDraft, saveDraft, putAttachmentBlob, getSetting, setSetting } from "../../storage/repositories";
 import { createIncident } from "../../storage/incidentService";
 import { isoToLocalInput, localInputToIso, nowIso } from "../../utils/time";
 import { uuid } from "../../utils/id";
@@ -60,6 +60,9 @@ interface DraftState {
     lat: string;
     lon: string;
     notes: string;
+    accuracyMeters: number | null;
+    capturedAt: string | null;
+    fromDevice: boolean;
   };
   urgency: ObservedUrgency | null;
   observations: { category: ObservationCategory; text: string }[];
@@ -72,6 +75,10 @@ interface DraftState {
   contacts: { role: string; name: string; organization: string; phone: string; email: string }[];
   photos: { meta: AttachmentMeta; blob: Blob }[];
   tags: string;
+  includeContact: boolean;
+  reporter: { name: string; phone: string; email: string; preferred: string };
+  rememberContact: boolean;
+  shareProfile: "private" | "responder" | "public";
 }
 
 function emptyDraft(): DraftState {
@@ -80,7 +87,7 @@ function emptyDraft(): DraftState {
     incidentType: null,
     summary: "",
     animal: { group: null, species: "", count: "", lifeStage: null, sex: null, description: "" },
-    location: { description: "", precision: "approximate", landmark: "", address: "", lat: "", lon: "", notes: "" },
+    location: { description: "", precision: "approximate", landmark: "", address: "", lat: "", lon: "", notes: "", accuracyMeters: null, capturedAt: null, fromDevice: false },
     urgency: null,
     observations: [],
     hazards: [],
@@ -92,6 +99,10 @@ function emptyDraft(): DraftState {
     contacts: [],
     photos: [],
     tags: "",
+    includeContact: false,
+    reporter: { name: "", phone: "", email: "", preferred: "phone" },
+    rememberContact: false,
+    shareProfile: "private",
   };
 }
 
@@ -115,12 +126,23 @@ export function CreateIncidentPage() {
   const { settings, showToast } = useApp();
   const { status: saveStatus, markSaving } = useSaveStatus();
   const [searchParams] = useSearchParams();
+  const guide = searchParams.get("guide") === "1";
   const [step, setStep] = useState(0);
   const [state, setState] = useState<DraftState>(emptyDraft);
   const [resumed, setResumed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const stateRef = useRef(state);
   stateRef.current = state;
+
+  // Prefill remembered reporter contact (only when the user asked to remember it).
+  useEffect(() => {
+    if (resumed) return;
+    getSetting<{ name: string; phone: string; email: string; preferred: string } | null>("saved-reporter-contact").then((saved) => {
+      if (saved && saved.name) {
+        setState((prev) => ({ ...prev, reporter: { ...prev.reporter, ...saved } }));
+      }
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load existing draft if resuming.
   useEffect(() => {
@@ -210,6 +232,9 @@ export function CreateIncidentPage() {
         latitude: s.location.lat ? parseFloat(s.location.lat) : null,
         longitude: s.location.lon ? parseFloat(s.location.lon) : null,
         notes: cleanText(s.location.notes) || null,
+        accuracyMeters: s.location.accuracyMeters ?? null,
+        capturedAt: s.location.capturedAt ?? null,
+        fromDevice: s.location.fromDevice,
       },
       observations: s.observations
         .filter((o) => cleanText(o.text))
@@ -223,7 +248,20 @@ export function CreateIncidentPage() {
         .concat(cleanText(s.actionNotes) ? [{ id: uuid(), text: cleanText(s.actionNotes), recordedAt: nowIso(), recordedBy: settings.displayName || null }] : []),
       animalNow: s.animalNow,
       animalNowDescription: cleanText(s.animalNowDescription) || null,
-      contacts: s.contacts
+      contacts: [
+        ...(s.includeContact && (cleanText(s.reporter.name) || cleanText(s.reporter.phone) || cleanText(s.reporter.email))
+          ? [{
+              id: uuid(),
+              role: "finder" as const,
+              name: cleanText(s.reporter.name) || null,
+              organization: null,
+              phone: cleanText(s.reporter.phone) || null,
+              email: cleanText(s.reporter.email) || null,
+              preferredContactMethod: (s.reporter.preferred as "phone") ?? null,
+              markedPrivate: true,
+            }]
+          : []),
+        ...s.contacts
         .filter((c) => cleanText(c.name) || cleanText(c.organization) || cleanText(c.phone) || cleanText(c.email))
         .map((c) => ({
           id: uuid(),
@@ -235,6 +273,7 @@ export function CreateIncidentPage() {
           preferredContactMethod: null,
           markedPrivate: true,
         })),
+      ],
       custody:
         s.animalNow === "with_finder" || s.animalNow === "with_responder" || s.animalNow === "rehab_facility" || s.animalNow === "vet_facility"
           ? [{
@@ -254,6 +293,8 @@ export function CreateIncidentPage() {
       archivedAt: null,
       deletedAt: null,
       isDemo: false,
+      shareProfile: s.shareProfile,
+      createdVia: (guide ? "guide" : "form") as "guide" | "form",
       actor: settings.displayName || null,
     };
 
@@ -263,6 +304,10 @@ export function CreateIncidentPage() {
         await putAttachmentBlob({ id: p.meta.id, incidentId: incident.id, fileName: p.meta.fileName, mimeType: p.meta.mimeType, byteSize: p.meta.byteSize, data: p.blob });
       }
       await deleteDraft("draft");
+      // Remember reporter contact only if the user opted in.
+      if (s.includeContact && s.rememberContact) {
+        await setSetting("saved-reporter-contact", s.reporter);
+      }
       showToast(`Incident ${incident.humanReference} created`);
       navigate(`/incidents/${incident.id}`);
     } catch (e) {
@@ -296,6 +341,7 @@ export function CreateIncidentPage() {
         ))}
       </div>
 
+      {guide && <GuideCoach step={step} onExit={() => navigate("/incidents/new")} />}
       <div className="card">
         {step === 0 && <StepWhatHappened state={state} update={update} />}
         {step === 1 && <StepAnimal state={state} update={update} detail={settings.detailLevel} />}
@@ -306,7 +352,7 @@ export function CreateIncidentPage() {
         {step === 6 && <StepAnimalNow state={state} update={update} />}
         {step === 7 && <StepContacts state={state} update={update} />}
         {step === 8 && <StepPhotos state={state} update={update} showToast={showToast} />}
-        {step === 9 && <StepReview state={state} />}
+        {step === 9 && <StepReview state={state} update={update} />}
         {error && <p className="error-text" role="alert">{error}</p>}
 
         {step < 3 && <div className="notice" style={{ marginTop: "var(--space-4)" }}><Icons.info size={18} /><span>{SAFETY_NOTE}</span></div>}
@@ -428,8 +474,63 @@ function StepAnimal({ state, update, detail }: StepProps & { detail: string }) {
 }
 
 function StepLocation({ state, update, defaultPrecision }: StepProps & { defaultPrecision: string }) {
+  const [geoStatus, setGeoStatus] = useState<"idle" | "locating" | "ok" | "denied" | "unavailable">("idle");
+
+  function useMyLocation() {
+    if (!navigator.geolocation) {
+      setGeoStatus("unavailable");
+      return;
+    }
+    setGeoStatus("locating");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        update("location", {
+          ...state.location,
+          lat: pos.coords.latitude.toFixed(6),
+          lon: pos.coords.longitude.toFixed(6),
+          accuracyMeters: pos.coords.accuracy != null ? Math.round(pos.coords.accuracy) : null,
+          capturedAt: nowIso(),
+          fromDevice: true,
+        });
+        setGeoStatus("ok");
+      },
+      (err) => {
+        // Permission denied or unavailable: the form stays fully usable with manual entry.
+        setGeoStatus(err.code === err.PERMISSION_DENIED ? "denied" : "unavailable");
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
+
   return (
     <div className="fade-in">
+      <div className="card" style={{ boxShadow: "none", padding: "var(--space-4)", marginBottom: "var(--space-4)" }}>
+        <h3 style={{ marginTop: 0 }}>Use my current location</h3>
+        <p style={{ color: "var(--c-ink-soft)", fontSize: "0.9rem", margin: "0 0 var(--space-3)" }}>
+          Optional. Your browser will ask for permission first — nothing is captured unless you allow it, and
+          coordinates are stored only in this report on your device.
+        </p>
+        <button type="button" className="btn btn-secondary" onClick={useMyLocation} disabled={geoStatus === "locating"}>
+          <Icons.compass size={16} />
+          {geoStatus === "locating" ? "Locating…" : "Use my current location"}
+        </button>
+        {geoStatus === "ok" && state.location.accuracyMeters != null && (
+          <p className="hint" style={{ marginTop: 8 }}>
+            Captured {new Date(state.location.capturedAt ?? Date.now()).toLocaleTimeString()} — accuracy about ±{state.location.accuracyMeters} m.
+            {state.location.accuracyMeters > 100 && " This accuracy is poor; treat the position as approximate."}
+          </p>
+        )}
+        {geoStatus === "denied" && (
+          <p className="error-text" style={{ marginTop: 8 }}>
+            Location permission was declined. No problem — enter the location manually below.
+          </p>
+        )}
+        {geoStatus === "unavailable" && (
+          <p className="error-text" style={{ marginTop: 8 }}>
+            Your device couldn't provide a location. Enter the location manually below.
+          </p>
+        )}
+      </div>
       <TextField
         label="Location description"
         value={state.location.description}
@@ -621,8 +722,53 @@ const CONTACT_ROLES = [
 function StepContacts({ state, update }: StepProps) {
   return (
     <div className="fade-in">
+      <h3>Would you like to include your contact information?</h3>
       <p style={{ color: "var(--c-ink-soft)" }}>
-        Every contact field is optional. Contact details are treated as <strong>private</strong> and are excluded from shareable exports unless you explicitly include them.
+        A responder may need to contact you for clarification or to locate the animal — but this is entirely optional.
+        Contact details are treated as <strong>private</strong> and are excluded from shareable exports unless you explicitly include them.
+      </p>
+      <div className="stack" role="radiogroup" aria-label="Include your contact information?">
+        <button className="chip" role="radio" aria-checked={!state.includeContact} style={{ display: "block", width: "100%", textAlign: "left", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)" }} onClick={() => update("includeContact", false)}>
+          <strong>No, keep this report anonymous</strong>
+          <div style={{ fontSize: "0.85rem", color: "var(--c-ink-faint)" }}>The record is still complete for anyone handling the case.</div>
+        </button>
+        <button className="chip" role="radio" aria-checked={state.includeContact} style={{ display: "block", width: "100%", textAlign: "left", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)" }} onClick={() => update("includeContact", true)}>
+          <strong>Yes, include my contact information</strong>
+          <div style={{ fontSize: "0.85rem", color: "var(--c-ink-faint)" }}>Only what you enter below is added, marked private.</div>
+        </button>
+      </div>
+      {state.includeContact && (
+        <div className="card" style={{ boxShadow: "none", padding: "var(--space-4)", marginTop: "var(--space-4)" }}>
+          <div className="grid-2">
+            <TextField label="Your name" value={state.reporter.name} onChange={(v) => update("reporter", { ...state.reporter, name: v })} optional />
+            <TextField label="Phone" type="tel" value={state.reporter.phone} onChange={(v) => update("reporter", { ...state.reporter, phone: v })} optional hint="International format welcome, e.g. +44 7700 900123" />
+            <TextField label="Email" type="email" value={state.reporter.email} onChange={(v) => update("reporter", { ...state.reporter, email: v })} optional />
+            <Select
+              label="Preferred contact method"
+              value={state.reporter.preferred}
+              options={[
+                { value: "phone", label: "Phone" },
+                { value: "email", label: "Email" },
+                { value: "in_person", label: "In person" },
+                { value: "other", label: "Other" },
+              ]}
+              onChange={(v) => update("reporter", { ...state.reporter, preferred: v })}
+              optional
+            />
+          </div>
+          <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: "0.9rem", cursor: "pointer" }}>
+            <input type="checkbox" checked={state.rememberContact} onChange={(e) => update("rememberContact", e.target.checked)} />
+            Remember my contact details on this device
+          </label>
+          <p className="hint">
+            Off by default. When on, they are stored only in this browser and prefilled for your next report — you'll always
+            see them before anything is saved or shared, and can clear them in Settings → Privacy.
+          </p>
+        </div>
+      )}
+      <h3 style={{ marginTop: "var(--space-5)" }}>Other contacts</h3>
+      <p style={{ color: "var(--c-ink-soft)", fontSize: "0.9rem" }}>
+        For example, a rescue line you called or the receiving organization. Every field is optional.
       </p>
       {state.contacts.map((c, i) => (
         <div key={i} className="card" style={{ padding: "var(--space-4)", marginBottom: "var(--space-3)", boxShadow: "none" }}>
@@ -712,6 +858,34 @@ function StepPhotos({ state, update, showToast }: StepProps & { showToast: (m: s
   );
 }
 
+const GUIDE_TEXTS: Record<number, { title: string; body: string }> = {
+  0: { title: "Let's start with what happened", body: "The date is already filled in — change it if the animal was found earlier. Pick the kind of incident if you can, or choose “Not sure”. Then describe what happened in your own words." },
+  1: { title: "What animal is it?", body: "Only if you know. “Not sure” is a completely normal answer here — a short description like “small brown bird” is more useful than a guessed species." },
+  2: { title: "Where is it?", body: "You can use your device location (with your permission) or just describe the place. “Roadside near the old mill” is a perfectly good location." },
+  3: { title: "What did you see?", body: "Describe what you can see — movement, bleeding, entanglement — rather than guessing an injury. Use the example chips if they help." },
+  4: { title: "Is anything dangerous right now?", body: "Think traffic, water, pets — for the animal and for you. Your safety comes first, always." },
+  5: { title: "What has already been done?", body: "Even “no action taken” is useful information for the next person. Don't feel you should handle the animal." },
+  6: { title: "Where is the animal now?", body: "Still there? Contained? With someone? This becomes the start of the custody story." },
+  7: { title: "Would you like to be contacted?", body: "Completely optional. Anonymous reports are fine — skip this if you prefer." },
+  8: { title: "Photos help a lot", body: "If you have them. A photo of the animal and its surroundings gives the next person real context. Skip if you don't." },
+  9: { title: "Almost done — review", body: "Check the summary. Anything you didn't know stays honestly marked as Unknown. Choose how the report should be shared, then create it." },
+};
+
+function GuideCoach({ step, onExit }: { step: number; onExit: () => void }) {
+  const g = GUIDE_TEXTS[step];
+  if (!g) return null;
+  return (
+    <div className="notice" style={{ marginBottom: "var(--space-4)", borderColor: "var(--c-primary)" }} data-testid="guide-coach">
+      <Icons.compass size={20} />
+      <div style={{ flex: 1 }}>
+        <strong>{g.title}</strong>
+        <p style={{ margin: "4px 0 0", color: "var(--c-ink-soft)" }}>{g.body}</p>
+      </div>
+      <button className="btn btn-quiet btn-sm" onClick={onExit}>Exit guide</button>
+    </div>
+  );
+}
+
 function ReviewRow({ label, value, unknown }: { label: string; value: React.ReactNode; unknown?: boolean }) {
   return (
     <div style={{ display: "flex", gap: 12, padding: "6px 0", borderBottom: "1px solid var(--c-border)", alignItems: "baseline" }}>
@@ -723,7 +897,13 @@ function ReviewRow({ label, value, unknown }: { label: string; value: React.Reac
   );
 }
 
-function StepReview({ state }: { state: DraftState }) {
+const PROFILE_INFO: Record<string, string> = {
+  private: "Keep personal and location information local. Share nothing unless you choose to later.",
+  responder: "Include useful response details (like coordinates and how to reach you) when you share this report with a responder.",
+  public: "Shareable exports will redact personal contact information and precise location by default.",
+};
+
+function StepReview({ state, update }: { state: DraftState; update: StepProps["update"] }) {
   const known = (v: string | null | undefined) => (cleanText(v ?? "") ? { text: cleanText(v!), unknown: false } : { text: "Not provided", unknown: true });
   const animalLine = state.animal.species || state.animal.description || (state.animal.group ? ANIMAL_GROUPS.find((g) => g.value === state.animal.group)?.label : null);
   return (
@@ -779,11 +959,51 @@ function StepReview({ state }: { state: DraftState }) {
         <div className="card" style={{ boxShadow: "none", padding: "var(--space-4)" }}>
           <h3>Contacts & attachments</h3>
           <p style={{ margin: "0 0 4px" }}>
-            <strong>Contacts:</strong> {state.contacts.length === 0 ? <span className="unknown-chip">None provided</span> : `${state.contacts.length} added (kept private by default)`}
+            <strong>Contacts:</strong>{" "}
+            {state.includeContact && (cleanText(state.reporter.name) || cleanText(state.reporter.phone) || cleanText(state.reporter.email))
+              ? "You — " + [state.reporter.name, state.reporter.phone, state.reporter.email].filter(Boolean).join(" · ") + " (kept private)"
+              : state.contacts.length > 0
+                ? state.contacts.length + " added (kept private by default)"
+                : <span className="unknown-chip">Anonymous — none provided</span>}
           </p>
           <p style={{ margin: 0 }}>
-            <strong>Photos:</strong> {state.photos.length === 0 ? <span className="unknown-chip">None</span> : `${state.photos.length} attached`}
+            <strong>Photos:</strong> {state.photos.length === 0 ? <span className="unknown-chip">None</span> : state.photos.length + " attached"}
           </p>
+        </div>
+
+        <div className="card" style={{ boxShadow: "none", padding: "var(--space-4)", borderColor: "var(--c-primary)" }}>
+          <h3>Information included in this report</h3>
+          <p style={{ color: "var(--c-ink-soft)", fontSize: "0.9rem" }}>
+            Everything below stays on this device either way. Choose what should be included when this report is shared
+            with someone — you can change this later in the Export tab.
+          </p>
+          <div className="stack">
+            <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: "0.92rem" }}>
+              <input type="checkbox" checked={state.includeContact} readOnly disabled />
+              {state.includeContact
+                ? "My contact details (" + [state.reporter.name && "name", state.reporter.phone && "phone", state.reporter.email && "email"].filter(Boolean).join(", ") + ")"
+                : "My contact details — not included (anonymous)"}
+            </label>
+            <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: "0.92rem" }}>
+              <input type="checkbox" checked={state.shareProfile !== "public" && !!state.location.lat} readOnly disabled />
+              {state.location.lat ? "Precise coordinates" : "Precise coordinates — not provided"}
+            </label>
+            <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: "0.92rem" }}>
+              <input type="checkbox" checked readOnly disabled />
+              Animal details, observations, hazards, photos and timeline
+            </label>
+          </div>
+          <Select
+            label="Default sharing profile"
+            value={state.shareProfile}
+            onChange={(v) => update("shareProfile", v as DraftState["shareProfile"])}
+            options={[
+              { value: "private", label: "Private record", hint: "Keep personal/location information local." },
+              { value: "responder", label: "Responder report", hint: "Include useful response details when sharing with responders." },
+              { value: "public", label: "Public / shareable", hint: "Redact personal contacts and precise location by default." },
+            ]}
+            hint={PROFILE_INFO[state.shareProfile]}
+          />
         </div>
       </div>
     </div>

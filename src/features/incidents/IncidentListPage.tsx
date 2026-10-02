@@ -7,6 +7,7 @@ import { EmptyState } from "../../components/ui";
 import { Dialog } from "../../components/Dialog";
 import { useIncidents, IncidentCardFull } from "./IncidentCard";
 import { moveToTrash, restoreFromTrash, permanentlyDelete, archiveIncident, unarchiveIncident } from "../../storage/incidentService";
+import { putIncident } from "../../storage/repositories";
 import { matchesSearch } from "../../utils/text";
 import { STATUS_LABELS_BY_KEY } from "./labels";
 import { INCIDENT_TYPES } from "./labels";
@@ -55,7 +56,7 @@ export function IncidentListPage() {
         )
       );
     }
-    return list.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    return list.sort((a, b) => (b.pinnedAt ?? "").localeCompare(a.pinnedAt ?? "") || b.updatedAt.localeCompare(a.updatedAt));
   }, [incidents, view, statusFilter, typeFilter, query]);
 
   async function handleTrash(incident: Incident) {
@@ -168,6 +169,14 @@ export function IncidentListPage() {
               <div className="row" style={{ position: "absolute", top: 8, right: 8 }} role="group" aria-label={`Actions for ${i.humanReference}`}>
                 {view === "active" && (
                   <>
+                    <button
+                      className="btn btn-quiet btn-sm"
+                      title={i.pinnedAt ? "Unpin" : "Pin to top"}
+                      aria-label={i.pinnedAt ? `Unpin ${i.humanReference}` : `Pin ${i.humanReference}`}
+                      onClick={() => void putIncident({ ...i, pinnedAt: i.pinnedAt ? null : new Date().toISOString() }).then(refresh)}
+                    >
+                      <Icons.pin size={15} style={{ opacity: i.pinnedAt ? 1 : 0.45 }} />
+                    </button>
                     <button className="btn btn-quiet btn-sm" title="Archive" aria-label={`Archive ${i.humanReference}`} onClick={() => void archiveIncident(i).then(refresh).then(() => showToast("Incident archived"))}>
                       <Icons.archive size={15} />
                     </button>
