@@ -35,6 +35,15 @@ const DB_VERSION = 1;
 
 let dbPromise: Promise<IDBPDatabase<WihDB>> | null = null;
 
+/** Test-only: close and forget the cached connection so a fresh IDB can be used. */
+export async function resetDbForTests(): Promise<void> {
+  if (dbPromise) {
+    const db = await dbPromise;
+    db.close();
+    dbPromise = null;
+  }
+}
+
 export function getDb(): Promise<IDBPDatabase<WihDB>> {
   if (!dbPromise) {
     dbPromise = openDB<WihDB>(DB_NAME, DB_VERSION, {
