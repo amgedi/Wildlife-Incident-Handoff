@@ -1,0 +1,289 @@
+/**
+ * Core data model for Wildlife Incident Handoff.
+ *
+ * Design principles:
+ * - Current state is stored on the incident; history is append-only events.
+ * - "Unknown" and "not recorded" are first-class, valid answers.
+ * - Observations are what the reporter saw, never a diagnosis.
+ */
+
+export const SCHEMA_VERSION = 1;
+
+/** How the user mainly uses the app. Presentation preset only — never permissions. */
+export type ExperienceMode =
+  | "reporter"
+  | "rescue"
+  | "rehab"
+  | "vet"
+  | "conservation"
+  | "general";
+
+export type DetailLevel = "simple" | "standard" | "professional";
+
+export type IncidentStatus =
+  | "draft"
+  | "reported"
+  | "response_requested"
+  | "responder_assigned"
+  | "awaiting_pickup"
+  | "in_transport"
+  | "transferred"
+  | "in_care"
+  | "veterinary_care"
+  | "monitoring"
+  | "released"
+  | "deceased"
+  | "closed"
+  | "cancelled";
+
+export type IncidentType =
+  | "injured_wildlife"
+  | "sick_unusual"
+  | "orphaned_young"
+  | "trapped_entangled"
+  | "collision"
+  | "hazardous_location"
+  | "dead_wildlife"
+  | "human_wildlife_conflict"
+  | "other"
+  | "not_sure";
+
+export type AnimalGroup =
+  | "bird"
+  | "mammal"
+  | "reptile"
+  | "amphibian"
+  | "fish"
+  | "other"
+  | "not_sure";
+
+export type LifeStage = "adult" | "juvenile" | "young" | "unknown";
+export type Sex = "male" | "female" | "unknown" | "not_recorded";
+
+export type LocationPrecision = "exact" | "approximate" | "sensitive";
+
+/** Observational urgency — explicitly NOT veterinary triage. */
+export type ObservedUrgency =
+  | "immediate_danger"
+  | "appears_distressed"
+  | "appears_stable"
+  | "condition_unclear"
+  | "deceased";
+
+export type Hazard =
+  | "traffic"
+  | "water"
+  | "predators"
+  | "pets"
+  | "people"
+  | "machinery"
+  | "extreme_weather"
+  | "fishing_line_hooks"
+  | "chemicals"
+  | "unsafe_structure"
+  | "other"
+  | "none_observed"
+  | "unknown";
+
+export type AnimalLocation =
+  | "original_location"
+  | "being_observed"
+  | "contained"
+  | "with_finder"
+  | "with_responder"
+  | "in_transport"
+  | "rehab_facility"
+  | "vet_facility"
+  | "released"
+  | "deceased"
+  | "unknown"
+  | "other";
+
+export type ObservationCategory =
+  | "movement"
+  | "breathing"
+  | "bleeding"
+  | "visible_injury"
+  | "behavior"
+  | "responsiveness"
+  | "entanglement"
+  | "body_position"
+  | "other";
+
+export interface AnimalInfo {
+  group: AnimalGroup | null;
+  /** Free-text species description. Never treated as verified. */
+  species: string | null;
+  speciesConfirmed: boolean;
+  count: number | null;
+  lifeStage: LifeStage | null;
+  sex: Sex | null;
+  /** Short human description used on cards when species is unknown, e.g. "Unknown raptor". */
+  description: string | null;
+}
+
+export interface IncidentLocation {
+  description: string | null;
+  precision: LocationPrecision | null;
+  landmark: string | null;
+  address: string | null;
+  /** Latitude/longitude. Nullable; never auto-exposed in shareable exports. */
+  latitude: number | null;
+  longitude: number | null;
+  notes: string | null;
+}
+
+export interface Observation {
+  id: string;
+  category: ObservationCategory;
+  text: string;
+  recordedAt: string;
+  recordedBy: string | null;
+}
+
+export interface HazardRecord {
+  hazards: Hazard[];
+  notes: string | null;
+  recordedAt: string;
+}
+
+export interface ActionRecord {
+  id: string;
+  text: string;
+  recordedAt: string;
+  recordedBy: string | null;
+}
+
+export interface ContactInfo {
+  id: string;
+  role: "finder" | "responder" | "receiving_organization" | "receiving_person" | "other";
+  name: string | null;
+  organization: string | null;
+  phone: string | null;
+  email: string | null;
+  preferredContactMethod: "phone" | "email" | "in_person" | "other" | null;
+  markedPrivate: boolean;
+}
+
+export interface CustodyEntry {
+  id: string;
+  holder: string;
+  holderRole: string;
+  location: string | null;
+  startedAt: string;
+  endedAt: string | null;
+  handoffId: string | null;
+}
+
+export interface AttachmentMeta {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  byteSize: number;
+  caption: string | null;
+  addedAt: string;
+  sourceAttribution: string | null;
+  /** Excluded from shareable exports when true. */
+  sensitive: boolean;
+}
+
+export type TimelineEventType =
+  | "incident_created"
+  | "status_changed"
+  | "observation_added"
+  | "photo_added"
+  | "contact_added"
+  | "handoff_started"
+  | "handoff_completed"
+  | "custody_changed"
+  | "field_corrected"
+  | "note_added"
+  | "incident_closed"
+  | "incident_reopened"
+  | "incident_archived"
+  | "incident_restored"
+  | "attachment_removed";
+
+export interface TimelineEvent {
+  eventId: string;
+  incidentId: string;
+  eventType: TimelineEventType;
+  timestamp: string;
+  actor: string | null;
+  summary: string;
+  details: string | null;
+  /** Structured payload: e.g. { field, previousValue, newValue } for corrections. */
+  metadata: Record<string, string> | null;
+  relatedAttachmentIds: string[];
+}
+
+export interface HandoffItem {
+  label: string;
+  included: boolean;
+}
+
+export interface Handoff {
+  id: string;
+  fromParty: string;
+  toParty: string;
+  fromOrganization: string | null;
+  toOrganization: string | null;
+  receivingPerson: string | null;
+  method: string | null;
+  occurredAt: string;
+  conditionNotes: string | null;
+  items: HandoffItem[];
+  notes: string | null;
+  completedAt: string | null;
+  recordedBy: string | null;
+}
+
+export type NoteKind = "incident_record" | "private";
+
+export interface IncidentNote {
+  id: string;
+  kind: NoteKind;
+  text: string;
+  createdAt: string;
+  createdBy: string | null;
+}
+
+export interface Incident {
+  id: string;
+  humanReference: string;
+  schemaVersion: number;
+  createdAt: string;
+  updatedAt: string;
+  status: IncidentStatus;
+  incidentType: IncidentType | null;
+  occurredAt: string | null;
+  urgency: ObservedUrgency | null;
+  animal: AnimalInfo;
+  location: IncidentLocation;
+  observations: Observation[];
+  hazards: HazardRecord | null;
+  actions: ActionRecord[];
+  animalNow: AnimalLocation | null;
+  animalNowDescription: string | null;
+  contacts: ContactInfo[];
+  custody: CustodyEntry[];
+  handoffs: Handoff[];
+  attachments: AttachmentMeta[];
+  timeline: TimelineEvent[];
+  notes: IncidentNote[];
+  tags: string[];
+  archivedAt: string | null;
+  deletedAt: string | null;
+  isDemo: boolean;
+  /** Free-text "what happened" summary from creation. */
+  summary: string | null;
+  /** Short "next step" line shown on the overview. */
+  nextStep: string | null;
+}
+
+export interface IncidentDraft {
+  id: string;
+  step: number;
+  data: Partial<Incident> & { animal: AnimalInfo; location: IncidentLocation };
+  savedAt: string;
+}

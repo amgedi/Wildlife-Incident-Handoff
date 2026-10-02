@@ -1,0 +1,14 @@
+/* Print CSS: used for browser print-to-PDF of handoff summaries
+   (the app also offers a dedicated print window; this keeps any accidental
+   Ctrl+P of the main UI readable). */
+
+@media print {
+  .sidebar, .topbar, .mobile-header, .bottom-nav, .toast-region,
+  .btn, .tab-bar, .wizard-nav, .no-print {
+    display: none !important;
+  }
+  body { background: #fff; color: #000; font-size: 11pt; }
+  .content { padding: 0; max-width: none; }
+  .card { box-shadow: none; border: 1px solid #999; break-inside: avoid; }
+  * { animation: none !important; transition: none !important; }
+}
