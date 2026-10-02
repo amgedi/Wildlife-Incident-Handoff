@@ -61,15 +61,19 @@ export function markerStateFor(incident: Incident): keyof typeof STATUS_MARKER_C
  * MapLibre-based provider using OpenStreetMap raster tiles (no API key,
  * attribution required). Fully swappable via the MapProvider interface.
  */
-export function createMapLibreProvider(): MapProvider & { destroy(): void; setErrorHandler(fn: (offline: boolean) => void): void } {
+export function createMapLibreProvider(): MapProvider & { destroy(): void; setErrorHandler(fn: (offline: boolean) => void): void; setLoadHandler(fn: () => void): void } {
   let map: maplibregl.Map | null = null;
   let markers: maplibregl.Marker[] = [];
   let errorFn: ((offline: boolean) => void) | null = null;
+  let loadFn: (() => void) | null = null;
 
   return {
     id: "maplibre-osm",
     setErrorHandler(fn) {
       errorFn = fn;
+    },
+    setLoadHandler(fn) {
+      loadFn = fn;
     },
     renderMarkers(container, points) {
       if (map) {
@@ -100,7 +104,10 @@ export function createMapLibreProvider(): MapProvider & { destroy(): void; setEr
       map.on("data", (e) => {
         if (e.dataType === "source" && errorFn) errorFn(false);
       });
-      map.on("load", () => updatePoints(points));
+      map.on("load", () => {
+        updatePoints(points);
+        loadFn?.();
+      });
       function updatePoints(pts: typeof points) {
         if (!map) return;
         markers.forEach((m) => m.remove());

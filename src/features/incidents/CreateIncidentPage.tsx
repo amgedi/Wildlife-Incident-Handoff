@@ -73,6 +73,12 @@ interface DraftState {
   reporter: { name: string; phone: string; email: string; preferred: string };
   rememberContact: boolean;
   shareProfile: "private" | "responder" | "public";
+  /** Professional intake (professional workspace only). Recorded as private
+   *  notes — never a rewrite of the public observations. */
+  sourceOfReport: string;
+  professionalAssessment: string;
+  organization: string;
+  internalNote: string;
 }
 
 function emptyDraft(): DraftState {
@@ -97,6 +103,10 @@ function emptyDraft(): DraftState {
     reporter: { name: "", phone: "", email: "", preferred: "phone" },
     rememberContact: false,
     shareProfile: "private",
+    sourceOfReport: "",
+    professionalAssessment: "",
+    organization: "",
+    internalNote: "",
   };
 }
 
@@ -284,7 +294,20 @@ export function CreateIncidentPage() {
           : [],
       handoffs: [],
       attachments: s.photos.map((p) => p.meta),
-      notes: [],
+      notes: [
+        cleanText(s.professionalAssessment)
+          ? { id: uuid(), kind: "private" as const, text: "Professional assessment: " + cleanText(s.professionalAssessment), createdAt: nowIso(), createdBy: settings.displayName || null }
+          : null,
+        cleanText(s.sourceOfReport)
+          ? { id: uuid(), kind: "private" as const, text: "Source of report: " + cleanText(s.sourceOfReport), createdAt: nowIso(), createdBy: settings.displayName || null }
+          : null,
+        cleanText(s.organization)
+          ? { id: uuid(), kind: "private" as const, text: "Organization: " + cleanText(s.organization), createdAt: nowIso(), createdBy: settings.displayName || null }
+          : null,
+        cleanText(s.internalNote)
+          ? { id: uuid(), kind: "private" as const, text: cleanText(s.internalNote), createdAt: nowIso(), createdBy: settings.displayName || null }
+          : null,
+      ].filter((n): n is NonNullable<typeof n> => n !== null),
       tags: s.tags.split(",").map((t) => cleanText(t)).filter(Boolean),
       archivedAt: null,
       deletedAt: null,
@@ -347,8 +370,49 @@ export function CreateIncidentPage() {
         {step === 5 && <StepActions state={state} update={update} />}
         {step === 6 && <StepAnimalNow state={state} update={update} />}
         {step === 7 && <StepContacts state={state} update={update} />}
-        {step === 8 && <StepPhotos state={state} update={update} showToast={showToast} />}
+        {step === 8 && <StepMedia state={state} update={update} showToast={showToast} />}
         {step === 9 && <StepReview state={state} update={update} />}
+        {step === 0 && settings.workspace === "professional" && (
+          <details className="card" style={{ marginTop: "var(--space-4)", boxShadow: "none", border: "1px solid var(--c-border)" }}>
+            <summary style={{ cursor: "pointer", fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+              <Icons.shield size={16} /> {t("wizard:proIntakeTitle", { defaultValue: "Professional intake (optional)" })}
+            </summary>
+            <p className="hint" style={{ marginTop: 8 }}>
+              {t("wizard:proIntakeNote", { defaultValue: "These are internal professional fields recorded as private notes. They never replace or edit the reporter's original observations." })}
+            </p>
+            <div className="stack" style={{ marginTop: "var(--space-2)" }}>
+              <TextField
+                label={t("wizard:proSource", { defaultValue: "Source of report" })}
+                value={state.sourceOfReport}
+                onChange={(v) => update("sourceOfReport", v)}
+                optional
+                hint={t("wizard:proSourceHint", { defaultValue: "e.g. Phone call, member of the public, partner organization, patrol" })}
+              />
+              <TextField
+                label={t("wizard:proOrg", { defaultValue: "Organization" })}
+                value={state.organization}
+                onChange={(v) => update("organization", v)}
+                optional
+              />
+              <TextField
+                label={t("wizard:proAssessment", { defaultValue: "Professional assessment" })}
+                value={state.professionalAssessment}
+                onChange={(v) => update("professionalAssessment", v)}
+                optional
+                multiline
+                rows={3}
+              />
+              <TextField
+                label={t("wizard:proInternalNote", { defaultValue: "Internal note" })}
+                value={state.internalNote}
+                onChange={(v) => update("internalNote", v)}
+                optional
+                multiline
+                rows={2}
+              />
+            </div>
+          </details>
+        )}
         {error && <p className="error-text" role="alert">{error}</p>}
 
         {step < 3 && <div className="notice" style={{ marginTop: "var(--space-4)" }}><Icons.info size={18} /><span>{SAFETY_NOTE}</span></div>}
@@ -480,6 +544,8 @@ function StepAnimal({ state, update, detail }: StepProps & { detail: string }) {
 
 function StepLocation({ state, update, defaultPrecision }: StepProps & { defaultPrecision: string }) {
   const [geoStatus, setGeoStatus] = useState<"idle" | "locating" | "ok" | "denied" | "unavailable">("idle");
+  const [pendingFix, setPendingFix] = useState<{ lat: string; lon: string; accuracyMeters: number | null; capturedAt: string } | null>(null);
+  const [confirmPrecision, setConfirmPrecision] = useState<LocationPrecision>(defaultPrecision as LocationPrecision);
 
   function useMyLocation() {
     if (!navigator.geolocation) {
@@ -489,14 +555,14 @@ function StepLocation({ state, update, defaultPrecision }: StepProps & { default
     setGeoStatus("locating");
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        update("location", {
-          ...state.location,
+        // Confirmation first: coordinates are only applied to the report when confirmed.
+        setPendingFix({
           lat: pos.coords.latitude.toFixed(6),
           lon: pos.coords.longitude.toFixed(6),
           accuracyMeters: pos.coords.accuracy != null ? Math.round(pos.coords.accuracy) : null,
           capturedAt: nowIso(),
-          fromDevice: true,
         });
+        setConfirmPrecision((state.location.precision ?? defaultPrecision) as LocationPrecision);
         setGeoStatus("ok");
       },
       (err) => {
@@ -505,6 +571,20 @@ function StepLocation({ state, update, defaultPrecision }: StepProps & { default
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
+  }
+
+  function confirmFix() {
+    if (!pendingFix) return;
+    update("location", {
+      ...state.location,
+      lat: pendingFix.lat,
+      lon: pendingFix.lon,
+      accuracyMeters: pendingFix.accuracyMeters,
+      capturedAt: pendingFix.capturedAt,
+      fromDevice: true,
+      precision: confirmPrecision,
+    });
+    setPendingFix(null);
   }
 
   return (
@@ -519,11 +599,38 @@ function StepLocation({ state, update, defaultPrecision }: StepProps & { default
           <Icons.compass size={16} />
           {geoStatus === "locating" ? "Locating…" : "Use my current location"}
         </button>
-        {geoStatus === "ok" && state.location.accuracyMeters != null && (
-          <p className="hint" style={{ marginTop: 8 }}>
-            Captured {new Date(state.location.capturedAt ?? Date.now()).toLocaleTimeString()} — accuracy about ±{state.location.accuracyMeters} m.
-            {state.location.accuracyMeters > 100 && " This accuracy is poor; treat the position as approximate."}
-          </p>
+        {geoStatus === "ok" && !pendingFix && (
+          <p className="hint" style={{ marginTop: 8 }}>Location ready.</p>
+        )}
+        {pendingFix && (
+          <div className="card" style={{ marginTop: "var(--space-3)", boxShadow: "none", border: "1px solid var(--c-primary)" }} role="group" aria-label="Confirm captured location">
+            <h4 style={{ margin: "0 0 6px" }}>Confirm this location</h4>
+            <div
+              aria-hidden="true"
+              style={{
+                position: "relative", height: 110, borderRadius: "var(--radius-md)", marginBottom: 8,
+                background: "radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--c-primary) 30%, transparent) 0 28%, transparent 32%), linear-gradient(0deg, var(--c-border) 1px, transparent 1px), linear-gradient(90deg, var(--c-border) 1px, transparent 1px)",
+                backgroundSize: "auto, 22px 22px, 22px 22px", backgroundPosition: "center",
+                border: "1px solid var(--c-border)",
+              }}
+            >
+              <span style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", color: "var(--c-primary)" }}><Icons.pin size={22} /></span>
+            </div>
+            <p className="hint" style={{ marginTop: 0 }}>
+              {pendingFix.lat}, {pendingFix.lon}
+              {pendingFix.accuracyMeters != null && <> — accuracy about ±{pendingFix.accuracyMeters} m{pendingFix.accuracyMeters > 100 ? " (poor; treat as approximate)" : ""}</>}
+            </p>
+            <Select
+              label="Precision for this report"
+              value={confirmPrecision}
+              options={LOCATION_PRECISIONS}
+              onChange={(v) => setConfirmPrecision(v as LocationPrecision)}
+            />
+            <div className="row" style={{ marginTop: "var(--space-2)" }}>
+              <button type="button" className="btn btn-primary btn-sm" onClick={confirmFix}>Confirm</button>
+              <button type="button" className="btn btn-quiet btn-sm" onClick={() => setPendingFix(null)}>Adjust manually instead</button>
+            </div>
+          </div>
         )}
         {geoStatus === "denied" && (
           <p className="error-text" style={{ marginTop: 8 }}>
@@ -809,14 +916,92 @@ function StepContacts({ state, update }: StepProps) {
   );
 }
 
-function StepPhotos({ state, update, showToast }: StepProps & { showToast: (m: string) => void }) {
+const VIDEO_MAX_BYTES = 500 * 1024 * 1024; // hard limit: refuse enormous videos
+const VIDEO_WARN_BYTES = 64 * 1024 * 1024; // warn before storing large videos
+
+async function makeVideoPoster(file: Blob): Promise<{ poster?: string; duration?: number }> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const video = document.createElement("video");
+    video.muted = true;
+    video.preload = "metadata";
+    const done = (r: { poster?: string; duration?: number }) => {
+      URL.revokeObjectURL(url);
+      resolve(r);
+    };
+    const timeout = window.setTimeout(() => done({}), 6000);
+    video.onloadedmetadata = () => {
+      const duration = Number.isFinite(video.duration) ? video.duration : undefined;
+      try {
+        video.currentTime = Math.min(1, (duration ?? 2) / 2);
+      } catch {
+        window.clearTimeout(timeout);
+        done({ duration });
+      }
+    };
+    video.onseeked = () => {
+      window.clearTimeout(timeout);
+      try {
+        const canvas = document.createElement("canvas");
+        const scale = Math.min(1, 320 / Math.max(video.videoWidth || 320, 1));
+        canvas.width = Math.max(1, Math.round((video.videoWidth || 320) * scale));
+        canvas.height = Math.max(1, Math.round((video.videoHeight || 180) * scale));
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+        done({ poster: canvas.toDataURL("image/jpeg", 0.6), duration: Number.isFinite(video.duration) ? video.duration : undefined });
+      } catch {
+        done({});
+      }
+    };
+    video.onerror = () => {
+      window.clearTimeout(timeout);
+      done({});
+    };
+    video.src = url;
+  });
+}
+
+function attachmentKind(mimeType: string): "photo" | "video" {
+  return mimeType.startsWith("video/") ? "video" : "photo";
+}
+
+function StepMedia({ state, update, showToast }: StepProps & { showToast: (m: string) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const captureRef = useRef<HTMLInputElement>(null);
+  const { t } = useTranslation();
   async function onFiles(files: FileList | null) {
     if (!files) return;
     for (const file of Array.from(files).slice(0, 8)) {
-      if (!file.type.startsWith("image/")) {
-        showToast(`${file.name} is not an image and was skipped`);
+      const isImage = file.type.startsWith("image/");
+      const isVideo = file.type.startsWith("video/");
+      if (!isImage && !isVideo) {
+        showToast(t("wizard:notMediaSkipped", { defaultValue: "{{name}} is not a photo or video and was skipped", name: file.name }));
         continue;
+      }
+      if (file.size > VIDEO_MAX_BYTES) {
+        showToast(t("wizard:videoTooLarge", { defaultValue: "{{name}} is too large to store locally (over 500 MB)", name: file.name }));
+        continue;
+      }
+      if (isVideo && file.size > VIDEO_WARN_BYTES) {
+        // Quota awareness before committing to a large video.
+        let freeBytes: number | null = null;
+        try {
+          const est = await navigator.storage?.estimate?.();
+          freeBytes = est?.quota != null && est?.usage != null ? est.quota - est.usage : null;
+        } catch { /* estimate unavailable */ }
+        const sizeMb = Math.round(file.size / (1024 * 1024));
+        const freeText = freeBytes != null
+          ? t("wizard:videoFreeSpace", { defaultValue: "Approximately {{mb}} MB of local storage is free", mb: Math.max(0, Math.round(freeBytes / (1024 * 1024))) })
+          : t("wizard:videoFreeUnknown", { defaultValue: "Remaining local storage space is unknown" });
+        const proceed = window.confirm(t("wizard:videoLargeConfirm", { defaultValue: "{{name}} is {{size}} MB. Large videos may fill local storage. {{free}}. Store it anyway?", name: file.name, size: sizeMb, free: freeText }));
+        if (!proceed) continue;
+      }
+      let durationSeconds: number | undefined;
+      let posterDataUrl: string | undefined;
+      if (isVideo) {
+        const info = await makeVideoPoster(file);
+        posterDataUrl = info.poster;
+        durationSeconds = info.duration;
       }
       const meta: AttachmentMeta = {
         id: uuid(),
@@ -827,39 +1012,84 @@ function StepPhotos({ state, update, showToast }: StepProps & { showToast: (m: s
         addedAt: nowIso(),
         sourceAttribution: null,
         sensitive: false,
+        kind: isVideo ? "video" : "photo",
+        ...(durationSeconds != null ? { durationSeconds } : {}),
+        ...(posterDataUrl ? { posterDataUrl } : {}),
       };
       update("photos", [...state.photos, { meta, blob: file }]);
     }
     if (inputRef.current) inputRef.current.value = "";
+    if (captureRef.current) captureRef.current.value = "";
   }
   return (
     <div className="fade-in">
       <p style={{ color: "var(--c-ink-soft)" }}>
-        Photos are stored locally on this device. The app never analyzes or diagnoses wildlife from photos.
+        {t("wizard:mediaStorageNote", { defaultValue: "Photos and videos are stored locally on this device. The app never analyzes or diagnoses wildlife from media." })}
       </p>
-      <input ref={inputRef} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={(e) => void onFiles(e.target.files)} id="photo-input" />
-      <button className="btn btn-secondary" onClick={() => inputRef.current?.click()}>
-        <Icons.camera size={16} />
-        Add photos
-      </button>
-      <label htmlFor="photo-input" className="sr-only">Add photos</label>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*,video/mp4,video/webm,video/quicktime"
+        multiple
+        style={{ display: "none" }}
+        onChange={(e) => void onFiles(e.target.files)}
+        id="photo-input"
+      />
+      <input
+        ref={captureRef}
+        type="file"
+        accept="image/*,video/mp4,video/webm"
+        capture="environment"
+        multiple
+        style={{ display: "none" }}
+        onChange={(e) => void onFiles(e.target.files)}
+        id="media-capture"
+      />
+      <div className="row" style={{ gap: 8 }}>
+        <button className="btn btn-secondary" onClick={() => inputRef.current?.click()}>
+          <Icons.camera size={16} />
+          {t("wizard:addPhotosVideos", { defaultValue: "Add photos or videos" })}
+        </button>
+        <button className="btn btn-secondary" onClick={() => captureRef.current?.click()}>
+          <Icons.camera size={16} />
+          {t("wizard:captureMedia", { defaultValue: "Capture" })}
+        </button>
+      </div>
+      <label htmlFor="photo-input" className="sr-only">{t("wizard:addPhotosVideos", { defaultValue: "Add photos or videos" })}</label>
       {state.photos.length > 0 && (
         <div className="photo-grid" style={{ marginTop: "var(--space-4)" }}>
           {state.photos.map((p) => (
             <div key={p.meta.id} className="photo-card">
-              <img src={URL.createObjectURL(p.blob)} alt={p.meta.caption ?? p.meta.fileName} />
+              {attachmentKind(p.meta.mimeType) === "video" ? (
+                // No autoplay, starts muted: media only plays when the user chooses.
+                <video
+                  src={URL.createObjectURL(p.blob)}
+                  poster={p.meta.posterDataUrl}
+                  controls
+                  muted
+                  preload="metadata"
+                  style={{ width: "100%", height: "100%", objectFit: "cover", background: "#000" }}
+                />
+              ) : (
+                <img src={URL.createObjectURL(p.blob)} alt={p.meta.caption ?? p.meta.fileName} />
+              )}
+              {p.meta.kind === "video" && (
+                <span className="badge" style={{ position: "absolute", top: 6, left: 6 }}>
+                  {t("wizard:videoBadge", { defaultValue: "Video" })}{p.meta.durationSeconds != null ? ` · ${Math.round(p.meta.durationSeconds)}s` : ""}
+                </span>
+              )}
               <div className="photo-caption">
                 <input
                   className="input"
                   style={{ fontSize: "0.8rem", minHeight: 32 }}
-                  placeholder="Caption (optional)"
+                  placeholder={t("wizard:captionPlaceholder", { defaultValue: "Caption (optional)" })}
                   value={p.meta.caption ?? ""}
                   onChange={(e) =>
                     update("photos", state.photos.map((x) => (x.meta.id === p.meta.id ? { ...x, meta: { ...x.meta, caption: e.target.value } } : x)))
                   }
                 />
                 <button className="btn btn-quiet btn-sm" onClick={() => update("photos", state.photos.filter((x) => x.meta.id !== p.meta.id))}>
-                  <Icons.trash size={13} /> Remove
+                  <Icons.trash size={13} /> {t("common:remove", { defaultValue: "Remove" })}
                 </button>
               </div>
             </div>

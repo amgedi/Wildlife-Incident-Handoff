@@ -1,7 +1,14 @@
 /**
- * First-run onboarding: five short principles, then the experience-mode
- * questions. Everything skippable. Presentation presets only — never
- * permissions.
+ * First-run onboarding, rebuilt (0.2.0-dev.7).
+ *
+ * Default path is the NORMAL REPORTER path: language → country → optional
+ * profile → privacy explanation → ready. The professional path is a
+ * deliberate secondary choice, and its setup questions only shape the local
+ * "Professional Preview" workspace — they never verify identity or grant
+ * authorization (see src/features/network/authorization.ts).
+ *
+ * `preview` mode (Settings → Advanced → Preview first-run experience) runs
+ * the same flow without touching saved settings.
  */
 import { useState } from "react";
 import { LANGUAGE_CATALOG, suggestLanguage } from "../../i18n";
@@ -9,63 +16,102 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../../app/AppContext";
 import { BrandMark } from "../../components/BrandMark";
+import { Icons } from "../../components/Icons";
 import { TextField } from "../../components/ui";
 import { Select } from "../../components/Select";
-import { Segmented } from "../../components/ui";
-import type { DetailLevel, ExperienceMode } from "../../types/settings";
+import { endOnboardingPreview } from "./onboardingState";
+import { normalizePhoneForStorage } from "../../utils/phone";
 
-const MODES: { value: ExperienceMode; label: string; hint: string }[] = [
-  { value: "reporter", label: "Reporting wildlife I found", hint: "You found an animal and want to record and pass on what you saw." },
-  { value: "rescue", label: "Wildlife rescue / volunteer response", hint: "You receive reports and respond to incidents." },
-  { value: "rehab", label: "Wildlife rehabilitation", hint: "You receive animals and record care handoffs." },
-  { value: "vet", label: "Veterinary / professional intake", hint: "You take professional intake of wildlife cases." },
-  { value: "conservation", label: "Conservation / field work", hint: "You record incidents during field or research work." },
-  { value: "general", label: "General / not sure", hint: "A balanced setup that fits most situations." },
+const COUNTRIES = [
+  { value: "", label: "Not set" },
+  { value: "CA", label: "Canada" },
+  { value: "US", label: "United States" },
+  { value: "GB", label: "United Kingdom" },
+  { value: "AU", label: "Australia" },
+  { value: "NZ", label: "New Zealand" },
+  { value: "IE", label: "Ireland" },
+  { value: "FR", label: "France" },
+  { value: "DE", label: "Germany" },
+  { value: "NL", label: "Netherlands" },
+  { value: "ES", label: "Spain" },
+  { value: "IT", label: "Italy" },
+  { value: "BR", label: "Brazil" },
+  { value: "MX", label: "Mexico" },
+  { value: "ZA", label: "South Africa" },
+  { value: "IN", label: "India" },
+  { value: "JP", label: "Japan" },
+  { value: "OTHER", label: "Other / not listed" },
 ];
 
-const PRINCIPLES = [
-  { title: "Record what you actually observed", text: "“Right wing hangs lower than left” is more useful and more honest than a guess at a diagnosis." },
-  { title: "Unknown is okay", text: "Species, age, sex, cause — you never have to pretend to know. Unknown is a valid, respected answer." },
-  { title: "Every update joins the timeline", text: "Your notes build a chronological story instead of overwriting what came before." },
-  { title: "Original entries stay traceable", text: "Corrections are recorded, not erased — the history remains visible." },
-  { title: "Your data stays local", text: "Everything is stored in this browser on this device, unless you explicitly export or share it." },
-];
-
-export function OnboardingPage() {
-  const { updateSettings } = useApp();
+export function OnboardingPage({ preview = false }: { preview?: boolean }) {
+  const { settings, updateSettings } = useApp();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
-  const [stage, setStage] = useState(0);
-  const [mode, setMode] = useState<ExperienceMode>("general");
-  const [detail, setDetail] = useState<DetailLevel>("standard");
-  const [suggested] = useState(() => suggestLanguage());
-  const [chosenLanguage, setChosenLanguage] = useState(suggested);
-  const [contact, setContact] = useState({ name: "", phone: "", email: "", preferred: "no_preference", organization: "" });
+  const [stage, setStage] = useState<0 | 1 | 2 | 3 | 4>(0);
+  const [chosenLanguage, setChosenLanguage] = useState(() => settings.language || suggestLanguage());
+  const [country, setCountry] = useState(settings.country);
+  const [contact, setContact] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    preferred: "no_preference",
+    organization: "",
+    role: "",
+    serviceArea: "",
+  });
   const [saveContact, setSaveContact] = useState(false);
+  const [proWorkspace, setProWorkspace] = useState(false);
 
-  const finish = () => {
-    const professional: ExperienceMode[] = ["rescue", "rehab", "vet", "conservation"];
+  const finishReporter = () => {
+    if (preview) {
+      endOnboardingPreview();
+      updateSettings({ onboardingPreviewActive: false });
+      navigate("/");
+      return;
+    }
     updateSettings({
       onboarded: true,
       language: chosenLanguage,
-      experienceMode: mode,
-      detailLevel: detail,
-      workspace: professional.includes(mode) ? "professional" : "reporter",
-      savedReporterContact: saveContact && (contact.name || contact.phone || contact.email)
-        ? { name: contact.name, phone: contact.phone, email: contact.email, preferred: contact.preferred }
+      country,
+      workspace: proWorkspace ? "professional" : "reporter",
+      experienceMode: proWorkspace ? "rescue" : "reporter",
+      savedReporterContact: !proWorkspace && saveContact && (contact.name || contact.phone || contact.email)
+        ? { name: contact.name, phone: normalizePhoneForStorage(contact.phone, country), email: contact.email, preferred: contact.preferred, organization: contact.organization || undefined, role: contact.role || undefined }
+        : null,
+      professionalProfile: proWorkspace
+        ? {
+            name: contact.name,
+            organization: contact.organization,
+            role: contact.role,
+            workEmail: contact.email,
+            workPhone: normalizePhoneForStorage(contact.phone, country),
+            serviceArea: contact.serviceArea,
+          }
         : null,
     });
     void i18n.changeLanguage(chosenLanguage);
     navigate("/");
   };
 
+  const setLang = (code: string) => {
+    setChosenLanguage(code);
+    void i18n.changeLanguage(code);
+  };
+
   return (
     <div style={{ maxWidth: 640, margin: "0 auto", padding: "var(--space-6) var(--space-4)" }}>
+      {preview && (
+        <div className="notice" style={{ marginBottom: "var(--space-4)", alignItems: "center" }}>
+          <Icons.eye size={16} />
+          <span style={{ flex: 1 }}>{t("onboarding:previewBanner", { defaultValue: "First-run preview — nothing you do here changes your saved settings." })}</span>
+          <button className="btn btn-quiet btn-sm" onClick={finishReporter}>{t("onboarding:previewExit", { defaultValue: "Exit preview" })}</button>
+        </div>
+      )}
       <div className="row" style={{ gap: 12, marginBottom: "var(--space-6)" }}>
         <BrandMark size={40} />
         <div>
-          <h1 style={{ margin: 0, fontSize: "1.3rem" }}>Wildlife Incident Handoff</h1>
-          <p style={{ margin: 0, color: "var(--c-ink-faint)", fontSize: "0.9rem" }}>Clear information. Safer handoffs.</p>
+          <h1 style={{ margin: 0, fontSize: "1.3rem" }}>{t("common:appName", { defaultValue: "Wildlife Incident Handoff" })}</h1>
+          <p style={{ margin: 0, color: "var(--c-ink-faint)", fontSize: "0.9rem" }}>{t("onboarding:tagline", { defaultValue: "Clear information. Safer handoffs." })}</p>
         </div>
       </div>
 
@@ -82,93 +128,41 @@ export function OnboardingPage() {
                 role="option"
                 aria-selected={chosenLanguage === l.code}
                 className={`language-option${chosenLanguage === l.code ? " selected" : ""}`}
-                onClick={() => { setChosenLanguage(l.code); void i18n.changeLanguage(l.code); }}
+                onClick={() => setLang(l.code)}
               >
                 <strong>{l.nativeName}</strong>
-                {l.code === suggested && <span className="language-badge beta">{t("onboarding:suggested", { defaultValue: "Suggested" })}</span>}
+                {l.code === suggestLanguage() && <span className="language-badge beta">{t("onboarding:suggested", { defaultValue: "Suggested" })}</span>}
               </button>
             ))}
           </div>
-          <h2 style={{ fontSize: "1.25rem" }}>{t("onboarding:principlesTitle", { defaultValue: "Here's what this app believes." })}</h2>
-          <div className="stack" style={{ margin: "var(--space-5) 0" }}>
-            {PRINCIPLES.map((p, i) => (
-              <div key={p.title} className="card scale-in" style={{ padding: "var(--space-4)", animationDelay: `${i * 40}ms` }}>
-                <h3 style={{ marginBottom: 4 }}>
-                  <span style={{ color: "var(--c-primary)", marginRight: 8 }}>{i + 1}.</span>
-                  {p.title}
-                </h3>
-                <p style={{ margin: 0, color: "var(--c-ink-soft)", fontSize: "0.92rem" }}>{p.text}</p>
-              </div>
-            ))}
-          </div>
           <div className="row between">
-            <button className="btn btn-quiet" onClick={finish}>Skip setup</button>
-            <button className="btn btn-primary" onClick={() => setStage(1)}>Next</button>
+            <button className="btn btn-quiet" onClick={finishReporter}>{t("onboarding:skipSetup", { defaultValue: "Skip setup" })}</button>
+            <button className="btn btn-primary" onClick={() => setStage(1)}>{t("common:next", { defaultValue: "Next" })}</button>
           </div>
         </div>
       )}
 
       {stage === 1 && (
         <div className="fade-in">
-          <h2 style={{ fontSize: "1.25rem" }}>How will you mostly use Wildlife Incident Handoff?</h2>
-          <p style={{ color: "var(--c-ink-soft)" }}>This shapes what the app shows you first. You can change it any time.</p>
-          <div className="stack" role="radiogroup" aria-label="Primary use">
-            {MODES.map((m) => (
-              <button
-                key={m.value}
-                className="chip"
-                role="radio"
-                aria-checked={mode === m.value}
-                onClick={() => setMode(m.value)}
-                style={{ display: "block", width: "100%", textAlign: "left", borderRadius: "var(--radius-md)", padding: "var(--space-3) var(--space-4)" }}
-              >
-                <strong>{m.label}</strong>
-                <div style={{ fontSize: "0.85rem", color: "var(--c-ink-faint)" }}>{m.hint}</div>
-              </button>
-            ))}
+          <h2 style={{ fontSize: "1.25rem" }}>{t("onboarding:regionTitle", { defaultValue: "Where are you located?" })}</h2>
+          <p style={{ color: "var(--c-ink-soft)" }}>
+            {t("onboarding:regionHint", { defaultValue: "Used for regional defaults like units, and international phone formatting." })}
+          </p>
+          <div className="card" style={{ marginTop: "var(--space-4)" }}>
+            <Select label={t("onboarding:country", { defaultValue: "Country or region" })} value={country} options={COUNTRIES} onChange={setCountry} optional />
           </div>
           <div className="row between" style={{ marginTop: "var(--space-6)" }}>
-            <button className="btn btn-ghost" onClick={() => setStage(0)}>Back</button>
-            <button className="btn btn-primary" onClick={() => setStage(2)}>Next</button>
+            <button className="btn btn-ghost" onClick={() => setStage(0)}>{t("common:back", { defaultValue: "Back" })}</button>
+            <button className="btn btn-primary" onClick={() => setStage(2)}>{t("common:next", { defaultValue: "Next" })}</button>
           </div>
         </div>
       )}
 
       {stage === 2 && (
         <div className="fade-in">
-          <h2 style={{ fontSize: "1.25rem" }}>How much detail would you like?</h2>
-          <p style={{ color: "var(--c-ink-soft)" }}>These are presentation presets only — they never change who can do what.</p>
-          <div className="card" style={{ marginTop: "var(--space-5)" }}>
-            <Segmented
-              label="Detail level"
-              value={detail}
-              onChange={setDetail}
-              options={[
-                { value: "simple", label: "Simple" },
-                { value: "standard", label: "Standard" },
-                { value: "professional", label: "Professional" },
-              ]}
-            />
-            <p style={{ color: "var(--c-ink-soft)", fontSize: "0.92rem", margin: 0 }}>
-              {detail === "simple" && "Guide me step by step. Short, friendly prompts with helpful defaults."}
-              {detail === "standard" && "Show normal incident and handoff tools — the recommended balance."}
-              {detail === "professional" && "Show detailed intake, custody, timeline and technical fields."}
-            </p>
-          </div>
-          <div className="row between" style={{ marginTop: "var(--space-6)" }}>
-            <button className="btn btn-ghost" onClick={() => setStage(1)}>Back</button>
-            <button className="btn btn-primary" onClick={() => setStage(3)}>Next</button>
-          </div>
-        </div>
-      )}
-
-      {stage === 3 && (
-        <div className="fade-in">
-          <h2 style={{ fontSize: "1.25rem" }}>
-            {t("onboarding:contactTitle", { defaultValue: "Would you like to save your contact details on this device?" })}
-          </h2>
+          <h2 style={{ fontSize: "1.25rem" }}>{t("onboarding:profileTitle", { defaultValue: "Would you like to save a profile on this device?" })}</h2>
           <p style={{ color: "var(--c-ink-soft)" }}>
-            {t("onboarding:contactExplain", { defaultValue: "These can be filled into future reports automatically. You choose whether they are actually included when sharing each report." })}
+            {t("onboarding:profileHint", { defaultValue: "Optional. Saved details can pre-fill new reports for convenience — you always choose what is actually included when you create or share a report." })}
           </p>
           <div className="notice" style={{ margin: "var(--space-3) 0" }}>
             {t("onboarding:contactLocalOnly", { defaultValue: "Stored only on this device." })}{" "}
@@ -181,7 +175,7 @@ export function OnboardingPage() {
           {saveContact && (
             <div className="grid-2">
               <TextField label={t("onboarding:name", { defaultValue: "Name" })} value={contact.name} onChange={(v) => setContact({ ...contact, name: v })} optional />
-              <TextField label={t("onboarding:phone", { defaultValue: "Phone" })} value={contact.phone} onChange={(v) => setContact({ ...contact, phone: v })} optional hint="International format welcome, e.g. +44 7700 900123" />
+              <TextField label={t("onboarding:phone", { defaultValue: "Phone" })} type="tel" value={contact.phone} onChange={(v) => setContact({ ...contact, phone: v })} optional hint={t("onboarding:phoneHint", { defaultValue: "Any international format, e.g. +44 7700 900123" })} />
               <TextField label={t("onboarding:email", { defaultValue: "Email" })} type="email" value={contact.email} onChange={(v) => setContact({ ...contact, email: v })} optional />
               <Select
                 label={t("onboarding:preferredMethod", { defaultValue: "Preferred contact method" })}
@@ -195,17 +189,88 @@ export function OnboardingPage() {
                 ]}
                 optional
               />
-              {(mode === "rescue" || mode === "rehab" || mode === "vet" || mode === "conservation") && (
-                <TextField label={t("onboarding:organization", { defaultValue: "Organization (optional, for professionals)" })} value={contact.organization} onChange={(v) => setContact({ ...contact, organization: v })} optional />
-              )}
             </div>
           )}
           <div className="row between" style={{ marginTop: "var(--space-6)" }}>
-            <button className="btn btn-ghost" onClick={() => setStage(2)}>Back</button>
-            <button className="btn btn-primary btn-lg" onClick={finish}>
-              {t("onboarding:getStarted", { defaultValue: "Get started" })}
-            </button>
+            <button className="btn btn-ghost" onClick={() => setStage(1)}>{t("common:back", { defaultValue: "Back" })}</button>
+            <button className="btn btn-primary" onClick={() => setStage(3)}>{t("common:next", { defaultValue: "Next" })}</button>
           </div>
+        </div>
+      )}
+
+      {stage === 3 && (
+        <div className="fade-in">
+          <h2 style={{ fontSize: "1.25rem" }}>{t("onboarding:privacyTitle", { defaultValue: "Your records stay on this device" })}</h2>
+          <div className="stack" style={{ margin: "var(--space-4) 0" }}>
+            {[
+              {
+                title: t("onboarding:privacyLocal", { defaultValue: "Local-first, no account" }),
+                text: t("onboarding:privacyLocalText", { defaultValue: "Reports, photos and backups are stored in this browser on this device. You do not need an account to document injured wildlife." }),
+              },
+              {
+                title: t("onboarding:privacyControl", { defaultValue: "You control every export" }),
+                text: t("onboarding:privacyControlText", { defaultValue: "Nothing is sent, published or uploaded automatically. Sharing happens only when you choose it, and each export shows exactly what it contains." }),
+              },
+              {
+                title: t("onboarding:privacyLocation", { defaultValue: "Locations can stay vague" }),
+                text: t("onboarding:privacyLocationText", { defaultValue: "Choose exact, approximate or sensitive location for each report — useful for protected species or private land." }),
+              },
+            ].map((p, i) => (
+              <div key={p.title} className="card scale-in" style={{ padding: "var(--space-4)", animationDelay: `${i * 40}ms` }}>
+                <h3 style={{ marginBottom: 4 }}>
+                  <span style={{ color: "var(--c-primary)", marginRight: 8 }}>{i + 1}.</span>
+                  {p.title}
+                </h3>
+                <p style={{ margin: 0, color: "var(--c-ink-soft)", fontSize: "0.92rem" }}>{p.text}</p>
+              </div>
+            ))}
+          </div>
+          <div className="row between" style={{ marginTop: "var(--space-6)" }}>
+            <button className="btn btn-ghost" onClick={() => setStage(2)}>{t("common:back", { defaultValue: "Back" })}</button>
+            <button className="btn btn-primary" onClick={() => setStage(4)}>{t("common:next", { defaultValue: "Next" })}</button>
+          </div>
+        </div>
+      )}
+
+      {stage === 4 && (
+        <div className="fade-in">
+          <h2 style={{ fontSize: "1.25rem" }}>{t("onboarding:readyTitle", { defaultValue: "You're ready" })}</h2>
+          <p style={{ color: "var(--c-ink-soft)" }}>{t("onboarding:readyHint", { defaultValue: "Choose how you'd like to start. You can change this any time in Settings." })}</p>
+          <div className="stack" style={{ margin: "var(--space-4) 0" }}>
+            <button className="btn btn-primary btn-lg" onClick={finishReporter} style={{ justifyContent: "center" }}>
+              {t("onboarding:continueReporter", { defaultValue: "Continue as reporter" })}
+            </button>
+            {!proWorkspace && (
+              <button className="btn btn-secondary" onClick={() => setProWorkspace(true)}>
+                {t("onboarding:professionalPath", { defaultValue: "I work or volunteer in wildlife response" })}
+              </button>
+            )}
+          </div>
+          {proWorkspace && (
+            <div className="card">
+              <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                <Icons.users size={18} /> {t("onboarding:professionalSetup", { defaultValue: "Local professional workspace" })}
+              </h3>
+              <div className="notice" style={{ margin: "var(--space-3) 0" }}>
+                <Icons.shield size={16} />
+                <span>{t("onboarding:professionalPreviewNote", { defaultValue: "This sets up the local Professional Preview workspace. It is not professional verification — verified responder permissions will require approval through a real response organization." })}</span>
+              </div>
+              <div className="grid-2">
+                <TextField label={t("onboarding:name", { defaultValue: "Name" })} value={contact.name} onChange={(v) => setContact({ ...contact, name: v })} optional />
+                <TextField label={t("onboarding:organization", { defaultValue: "Organization" })} value={contact.organization} onChange={(v) => setContact({ ...contact, organization: v })} optional />
+                <TextField label={t("onboarding:role", { defaultValue: "Role" })} value={contact.role} onChange={(v) => setContact({ ...contact, role: v })} optional hint={t("onboarding:roleHint", { defaultValue: "e.g. Responder, dispatcher, rehabilitator, ranger" })} />
+                <TextField label={t("onboarding:workEmail", { defaultValue: "Work email" })} type="email" value={contact.email} onChange={(v) => setContact({ ...contact, email: v })} optional />
+                <TextField label={t("onboarding:workPhone", { defaultValue: "Work phone" })} type="tel" value={contact.phone} onChange={(v) => setContact({ ...contact, phone: v })} optional />
+                <TextField label={t("onboarding:serviceArea", { defaultValue: "Service area" })} value={contact.serviceArea} onChange={(v) => setContact({ ...contact, serviceArea: v })} optional hint={t("onboarding:serviceAreaHint", { defaultValue: "You can draw or describe this later in the professional dashboard." })} />
+              </div>
+              <div className="row" style={{ marginTop: "var(--space-3)" }}>
+                <button className="btn btn-primary" onClick={finishReporter}>
+                  {t("onboarding:openProfessional", { defaultValue: "Open professional workspace" })}
+                </button>
+                <button className="btn btn-quiet btn-sm" onClick={() => setProWorkspace(false)}>{t("common:back", { defaultValue: "Back" })}</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

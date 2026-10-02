@@ -36,8 +36,10 @@ export function AttachmentsTab({ incident, onChanged }: { incident: Incident; on
   async function onFiles(files: FileList | null) {
     if (!files) return;
     for (const file of Array.from(files).slice(0, 8)) {
-      if (!file.type.startsWith("image/")) {
-        showToast(`${file.name} is not an image and was skipped`);
+      const isImage = file.type.startsWith("image/");
+      const isVideo = file.type.startsWith("video/");
+      if (!isImage && !isVideo) {
+        showToast(`${file.name} is not a photo or video and was skipped`);
         continue;
       }
       if (file.size > 25 * 1024 * 1024) {
@@ -58,12 +60,13 @@ export function AttachmentsTab({ incident, onChanged }: { incident: Incident; on
           addedAt: nowIso(),
           sourceAttribution: null,
           sensitive: false,
+          kind: isVideo ? "video" : "photo",
         });
       } catch {
-        showToast("We couldn't save this photo because browser storage is full. Try exporting a backup, then removing large photos.");
+        showToast("We couldn't save this media because browser storage is full. Try exporting a backup, then removing large attachments.");
       }
     }
-    showToast("Photo added");
+    showToast("Attachment added");
     onChanged();
     if (inputRef.current) inputRef.current.value = "";
   }
@@ -91,23 +94,30 @@ export function AttachmentsTab({ incident, onChanged }: { incident: Incident; on
       <input
         ref={(el) => { inputRef.current = el; }}
         type="file"
-        accept="image/*"
+        accept="image/*,video/mp4,video/webm,video/quicktime"
         multiple
         style={{ display: "none" }}
         id="attachments-input"
         onChange={(e) => void onFiles(e.target.files)}
       />
       <button className="btn btn-secondary" onClick={() => inputRef.current?.click()}>
-        <Icons.camera size={16} /> Add photos
+        <Icons.camera size={16} /> Add photos or videos
       </button>
 
       {loaded.length > 0 && (
         <div className="photo-grid" style={{ marginTop: "var(--space-4)" }}>
           {loaded.map((l) => {
             const meta = incident.attachments.find((a) => a.id === l.id);
+            const isVideo = (meta?.kind ?? (l.mimeType.startsWith("video/") ? "video" : "photo")) === "video";
             return (
               <div key={l.id} className="photo-card">
-                <img src={l.url} alt={meta?.caption ?? l.fileName} loading="lazy" />
+                {isVideo ? (
+                  // No autoplay — playback only on user action.
+                  <video src={l.url} poster={meta?.posterDataUrl} controls muted preload="metadata" style={{ width: "100%", height: "100%", objectFit: "cover", background: "#000" }} />
+                ) : (
+                  <img src={l.url} alt={meta?.caption ?? l.fileName} loading="lazy" />
+                )}
+                {isVideo && <span className="badge" style={{ position: "absolute", top: 6, left: 6 }}>Video{meta?.durationSeconds != null ? ` · ${Math.round(meta.durationSeconds)}s` : ""}</span>}
                 <div className="photo-caption">
                   <input
                     className="input"

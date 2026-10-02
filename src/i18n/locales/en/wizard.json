@@ -25,5 +25,22 @@
   "lifeStage": "Life stage",
   "createTitle": "Report wildlife",
   "createTitlePro": "Create incident",
-  "dateHintDefault": "Defaults to now — edit it if the animal was found earlier."
+  "dateHintDefault": "Defaults to now — edit it if the animal was found earlier.",
+  "notMediaSkipped": "{{name}} is not a photo or video and was skipped",
+  "videoTooLarge": "{{name}} is too large to store locally (over 500 MB)",
+  "videoFreeSpace": "Approximately {{mb}} MB of local storage is free",
+  "videoFreeUnknown": "Remaining local storage space is unknown",
+  "videoLargeConfirm": "{{name}} is {{size}} MB. Large videos may fill local storage. {{free}}. Store it anyway?",
+  "mediaStorageNote": "Photos and videos are stored locally on this device. The app never analyzes or diagnoses wildlife from media.",
+  "addPhotosVideos": "Add photos or videos",
+  "captureMedia": "Capture",
+  "videoBadge": "Video",
+  "captionPlaceholder": "Caption (optional)",
+  "proIntakeTitle": "Professional intake (optional)",
+  "proIntakeNote": "These are internal professional fields recorded as private notes. They never replace or edit the reporter's original observations.",
+  "proSource": "Source of report",
+  "proSourceHint": "e.g. Phone call, member of the public, partner organization, patrol",
+  "proOrg": "Organization",
+  "proAssessment": "Professional assessment",
+  "proInternalNote": "Internal note"
 }

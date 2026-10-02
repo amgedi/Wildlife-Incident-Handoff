@@ -11,11 +11,14 @@ import { OnboardingPage } from "./features/onboarding/OnboardingPage";
 import { IncidentListPage } from "./features/incidents/IncidentListPage";
 import { CreateIncidentPage } from "./features/incidents/CreateIncidentPage";
 import { IncidentDetailPage } from "./features/incidents/IncidentDetailPage";
-import { ExamplesPage } from "./features/tutorial/ExamplesPage";
 import { SettingsPage } from "./features/settings/SettingsPage";
 import { NetworkPage } from "./features/network/NetworkPage";
 import { TutorialPage } from "./features/tutorial/TutorialPage";
 import { SpotlightTour } from "./features/tutorial/SpotlightTour";
+import { isTauri } from "./utils/platformFile";
+import { HelpPage } from "./features/help/HelpPage";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import { NotificationBell } from "./components/NotificationCenter";
 
 
 
@@ -26,13 +29,17 @@ export function App() {
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
+  const previewingOnboarding = settings.onboardingPreviewActive === true;
 
   // First-run onboarding redirect.
   useEffect(() => {
-    if (storageReady && !settings.onboarded && location.pathname !== "/onboarding") {
+    if (storageReady && (previewingOnboarding || !settings.onboarded) && location.pathname !== "/onboarding") {
       navigate("/onboarding", { replace: true });
     }
-  }, [storageReady, settings.onboarded, location.pathname, navigate]);
+    if (storageReady && settings.onboarded && !previewingOnboarding && location.pathname === "/onboarding") {
+      navigate("/", { replace: true });
+    }
+  }, [storageReady, settings.onboarded, previewingOnboarding, location.pathname, navigate]);
 
   if (!storageReady) {
     return (
@@ -42,15 +49,17 @@ export function App() {
     );
   }
 
-  if (!settings.onboarded) {
+  if (!settings.onboarded || previewingOnboarding) {
     return (
       <Routes>
-        <Route path="*" element={<OnboardingPage />} />
+        <Route path="*" element={<OnboardingPage preview={previewingOnboarding} />} />
       </Routes>
     );
   }
 
+  const isDesktop = isTauri();
   const navItems = settings.workspace === "professional" ? PROFESSIONAL_NAV_ITEMS : REPORTER_NAV_ITEMS;
+  const firstName = (settings.displayName || settings.savedReporterContact?.name || "").trim().split(/\s+/)[0];
   const runTour = () => {
     void import("./features/tutorial/guidance").then(async ({ buildInterfaceTourSteps }) => {
       const steps = await buildInterfaceTourSteps(settings.workspace);
@@ -68,11 +77,22 @@ export function App() {
       <aside className="sidebar">
         <NavLink to="/" className="brand">
           <BrandMark size={30} />
-          <span className="brand-name">
-            Wildlife Incident
-            <br />
-            Handoff
-          </span>
+          {isDesktop && (
+            <span className="brand-name">
+              {settings.workspace === "professional"
+                ? settings.professionalProfile?.organization || t("home:professionalWorkspace", { defaultValue: "Professional workspace" })
+                : firstName
+                  ? t("home:welcomeShort", { name: firstName, defaultValue: "Welcome, {{name}}", interpolation: { escapeValue: false } })
+                  : t("navigation:home")}
+            </span>
+          )}
+          {!isDesktop && (
+            <span className="brand-name">
+              Wildlife Incident
+              <br />
+              Handoff
+            </span>
+          )}
         </NavLink>
         <nav aria-label="Main navigation">
           {navItems.map((item) => (
@@ -93,17 +113,19 @@ export function App() {
         <header className="mobile-header">
           <BrandMark size={26} />
           <strong style={{ fontSize: "0.95rem" }}>{t("appName")}</strong>
+          <span style={{ marginLeft: "auto" }}><NotificationBell /></span>
         </header>
         <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/incidents" element={<IncidentListPage />} />
-          <Route path="/incidents/new" element={<CreateIncidentPage />} />
-          <Route path="/incidents/:id" element={<IncidentDetailPage />} />
-          <Route path="/examples" element={<ExamplesPage />} />
-          <Route path="/tutorial" element={<TutorialPage />} />
-          <Route path="/network" element={<NetworkPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="*" element={<HomePage />} />
+          <Route path="/" element={<ErrorBoundary><HomePage /></ErrorBoundary>} />
+          <Route path="/incidents" element={<ErrorBoundary><IncidentListPage /></ErrorBoundary>} />
+          <Route path="/incidents/new" element={<ErrorBoundary><CreateIncidentPage /></ErrorBoundary>} />
+          <Route path="/incidents/:id" element={<ErrorBoundary><IncidentDetailPage /></ErrorBoundary>} />
+          <Route path="/examples" element={<ErrorBoundary><HelpPage /></ErrorBoundary>} />
+          <Route path="/help" element={<ErrorBoundary><HelpPage /></ErrorBoundary>} />
+          <Route path="/tutorial" element={<ErrorBoundary><TutorialPage /></ErrorBoundary>} />
+          <Route path="/network" element={<ErrorBoundary><NetworkPage /></ErrorBoundary>} />
+          <Route path="/settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
+          <Route path="*" element={<ErrorBoundary><HomePage /></ErrorBoundary>} />
         </Routes>
       </div>
       </div>

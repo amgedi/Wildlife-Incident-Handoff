@@ -190,8 +190,6 @@ export function SpotlightTour({ steps, startIndex = 0, onFinish }: SpotlightProp
   const radius = ready?.radius ?? 12;
   const calloutW = Math.min(340, vw - 24);
   const calloutH = 230;
-  const callout = calloutPosition(hole, { width: vw, height: vh }, { width: calloutW, height: calloutH });
-
   const r = radius;
   const { left: hx, top: hy, width: hw, height: hh } = hole;
   const holePath =
@@ -201,6 +199,12 @@ export function SpotlightTour({ steps, startIndex = 0, onFinish }: SpotlightProp
     `V ${hy + r} A ${r} ${r} 0 0 1 ${hx + r} ${hy} Z`;
 
   const busy = phase.kind === "navigating" || phase.kind === "waiting";
+
+  // While navigating/waiting, the callout is CENTERED (AM): never anchored to
+  // stale geometry of a target that is not mounted yet.
+  const calloutPos = busy
+    ? { left: Math.max(12, (vw - calloutW) / 2), top: Math.max(12, vh / 2 - 140) }
+    : calloutPosition(hole, { width: vw, height: vh }, { width: calloutW, height: calloutH });
 
   return createPortal(
     <div className="spotlight-overlay" role="dialog" aria-modal="true" aria-label={`Tutorial: ${step.title}`} data-testid="spotlight-overlay">
@@ -218,7 +222,7 @@ export function SpotlightTour({ steps, startIndex = 0, onFinish }: SpotlightProp
       )}
       {busy && <div className="spotlight-dim" />}
 
-      <div className="spotlight-callout" style={{ left: callout.left, top: callout.top, width: calloutW }} data-testid="tour-callout">
+      <div className="spotlight-callout" style={{ left: calloutPos.left, top: calloutPos.top, width: calloutW }} data-testid="tour-callout">
         <p className="spotlight-step-count">{t("stepOf", { current: index + 1, total: steps.length })}</p>
         {phase.kind === "failed" ? (
           <>

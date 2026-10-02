@@ -12,8 +12,19 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { DEFAULT_SETTINGS, type AppSettings } from "../types/settings";
+import { DEFAULT_SETTINGS, DEFAULT_NOTIFICATION_PREFERENCES, type AppSettings } from "../types/settings";
 import { getSetting, setSetting } from "../storage/repositories";
+import {
+  listNotifications,
+  unreadNotificationCount,
+  markNotificationRead,
+  markAllNotificationsRead,
+  clearNotifications,
+  recordNotification,
+  isQuietHours,
+  type NotificationDraft,
+} from "../storage/notificationService";
+import type { NotificationRecord } from "../storage/db";
 import { changeLanguage } from "../i18n";
 import { markGuidanceComplete, type GuidanceSystemId } from "../features/tutorial/guidance";
 import type { TourStepV2 } from "../features/tutorial/tourStepsTypes";
@@ -42,6 +53,14 @@ interface AppContextValue {
    *  persisted under that system's own key — never any other. */
   startGuidance: (systemId: GuidanceSystemId, steps: TourStepV2[]) => void;
   endGuidance: (markComplete: boolean) => void;
+  /** Notification center state (local notifications only). */
+  notifications: NotificationRecord[];
+  unreadNotifications: number;
+  refreshNotifications: () => Promise<void>;
+  notify: (draft: NotificationDraft) => Promise<void>;
+  markNotificationRead: (id: string) => Promise<void>;
+  markAllNotificationsRead: () => Promise<void>;
+  clearNotifications: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -59,18 +78,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [storageReady, setStorageReady] = useState(false);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [guidance, setGuidance] = useState<GuidanceRun | null>(null);
+  const [notifications, setNotifications] = useState<NotificationRecord[]>([]);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   useEffect(() => {
     getSetting<AppSettings>("app-settings").then((stored) => {
       if (stored) {
-        const merged = { ...DEFAULT_SETTINGS, ...stored };
+        const notificationsPrefs = {
+          ...DEFAULT_NOTIFICATION_PREFERENCES,
+          ...(stored.notifications ?? {}),
+          categories: {
+            ...DEFAULT_NOTIFICATION_PREFERENCES.categories,
+            ...(stored.notifications?.categories ?? {}),
+          },
+        };
+        const merged: AppSettings = { ...DEFAULT_SETTINGS, ...stored, notifications: notificationsPrefs };
         void changeLanguage(merged.language);
         // Respect OS reduced-motion until the user makes an explicit choice.
         if (stored.motion === DEFAULT_SETTINGS.motion && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
           merged.motion = "reduced";
         }
         setSettings(merged);
-        void changeLanguage(merged.language);
       }
       setStorageReady(true);
     });
@@ -121,9 +149,58 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const refreshNotifications = useCallback(async () => {
+    const [all, unread] = await Promise.all([listNotifications(), unreadNotificationCount()]);
+    setNotifications(all);
+    setUnreadNotifications(unread);
+  }, []);
+
+  useEffect(() => {
+    if (storageReady) void refreshNotifications();
+  }, [storageReady, refreshNotifications]);
+
+  /** Record a notification for the center; raise an in-app toast when allowed
+   *  by the user's preferences (delivery beyond in-app does not exist yet). */
+  const notify = useCallback(
+    async (draft: NotificationDraft) => {
+      const prefs = settings.notifications;
+      if (prefs && prefs.categories[draft.category] === false) return;
+      const quiet = prefs?.quietHoursEnabled && isQuietHours(prefs.quietHoursStart, prefs.quietHoursEnd);
+      await recordNotification(draft);
+      await refreshNotifications();
+      if (prefs?.inApp && !quiet) {
+        showToast(`${draft.title} — ${draft.body}`);
+      }
+    },
+    [settings.notifications, refreshNotifications, showToast]
+  );
+
+  const doMarkRead = useCallback(
+    async (id: string) => {
+      await markNotificationRead(id);
+      await refreshNotifications();
+    },
+    [refreshNotifications]
+  );
+
+  const doMarkAllRead = useCallback(async () => {
+    await markAllNotificationsRead();
+    await refreshNotifications();
+  }, [refreshNotifications]);
+
+  const doClearNotifications = useCallback(async () => {
+    await clearNotifications();
+    await refreshNotifications();
+  }, [refreshNotifications]);
+
   const value = useMemo(
-    () => ({ settings, updateSettings, showToast, storageReady, guidance, startGuidance, endGuidance }),
-    [settings, updateSettings, showToast, storageReady, guidance, startGuidance, endGuidance]
+    () => ({
+      settings, updateSettings, showToast, storageReady, guidance, startGuidance, endGuidance,
+      notifications, unreadNotifications, refreshNotifications, notify,
+      markNotificationRead: doMarkRead, markAllNotificationsRead: doMarkAllRead, clearNotifications: doClearNotifications,
+    }),
+    [settings, updateSettings, showToast, storageReady, guidance, startGuidance, endGuidance,
+      notifications, unreadNotifications, refreshNotifications, notify, doMarkRead, doMarkAllRead, doClearNotifications]
   );
 
   return (

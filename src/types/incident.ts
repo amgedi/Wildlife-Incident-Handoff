@@ -194,6 +194,12 @@ export interface AttachmentMeta {
   sourceAttribution: string | null;
   /** Excluded from shareable exports when true. */
   sensitive: boolean;
+  /** Media kind. Optional: older records without it are photos. */
+  kind?: "photo" | "video";
+  /** Videos: duration in seconds when known. */
+  durationSeconds?: number;
+  /** Videos: small poster frame (data URL) for previews/exports. */
+  posterDataUrl?: string;
 }
 
 export type TimelineEventType =

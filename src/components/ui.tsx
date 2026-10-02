@@ -41,14 +41,18 @@ export function EmptyState({
 }
 
 /** Contextual "What is this?" help trigger with a popover. */
-export function ContextHelp({ text }: { text: string }) {
+export function ContextHelp({ text, glossaryTerm }: { text?: string; glossaryTerm?: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const popRef = useRef<HTMLDivElement>(null);
   const id = useId();
+  const { t } = useTranslation("glossary");
+  const resolved = text ?? (glossaryTerm ? t(glossaryTerm, { defaultValue: glossaryTerm }) : "");
   useEffect(() => {
     if (!open) return;
     const onDoc = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (!ref.current?.contains(target) && !popRef.current?.contains(target)) setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     document.addEventListener("mousedown", onDoc);
@@ -58,12 +62,36 @@ export function ContextHelp({ text }: { text: string }) {
       document.removeEventListener("keydown", onKey);
     };
   }, [open]);
+  // Floating UI: portal above app content, flip near edges, shift into the
+  // viewport (never clipped by overflow containers or the window/taskbar edge).
+  useEffect(() => {
+    if (!open || !ref.current || !popRef.current) return;
+    let cleanup: (() => void) | undefined;
+    void import("@floating-ui/dom").then(({ computePosition, flip, shift, offset, limitShift }) => {
+      if (!ref.current || !popRef.current) return;
+      const update = () => {
+        if (!ref.current || !popRef.current) return;
+        computePosition(ref.current, popRef.current, {
+          placement: "bottom-start",
+          strategy: "fixed",
+          middleware: [offset(6), flip({ padding: 8 }), shift({ padding: 8, limiter: limitShift() })],
+        }).then(({ x, y }) => {
+          if (!popRef.current) return;
+          popRef.current.style.left = `${x}px`;
+          popRef.current.style.top = `${y}px`;
+        });
+      };
+      update();
+      cleanup = undefined;
+    });
+    return () => { cleanup?.(); };
+  }, [open]);
   return (
     <div ref={ref} style={{ position: "relative", display: "inline-flex" }}>
       <button
         type="button"
         className="help-trigger"
-        aria-label="What is this?"
+        aria-label={glossaryTerm ? t(glossaryTerm + "_term", { defaultValue: glossaryTerm }) : "What is this?"}
         aria-expanded={open}
         aria-describedby={open ? id : undefined}
         onClick={() => setOpen((o) => !o)}
@@ -71,8 +99,14 @@ export function ContextHelp({ text }: { text: string }) {
         <Icons.help size={16} />
       </button>
       {open && (
-        <div className="help-popover" role="note" id={id} style={{ top: "calc(100% + 6px)", left: 0 }}>
-          {text}
+        <div
+          ref={popRef}
+          className="help-popover"
+          role="note"
+          id={id}
+          style={{ position: "fixed", top: 0, left: 0, maxHeight: "40vh", overflowY: "auto", zIndex: 400, width: "max-content", maxWidth: 340 }}
+        >
+          {resolved}
         </div>
       )}
     </div>

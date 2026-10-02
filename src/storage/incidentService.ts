@@ -106,7 +106,7 @@ export async function changeStatus(
     incident.id,
     "status_changed",
     `Status changed from ${STATUS_EVENT_LABELS[incident.status]} to ${STATUS_EVENT_LABELS[newStatus]}`,
-    { actor, details: note ?? null }
+    { actor, details: note ?? null, metadata: { from: incident.status, to: newStatus } }
   );
   const updated = touch({ ...incident, status: newStatus, timeline: [...incident.timeline, event] });
   await putIncident(updated);
@@ -228,6 +228,11 @@ export async function recordHandoff(
   const startedEvent = makeEvent(incident.id, "handoff_started", `Handoff from ${full.fromParty || "unknown"} to ${full.toParty || "unknown"}`, {
     actor: actor ?? full.recordedBy,
     details: full.method ? `Method: ${full.method}` : null,
+    metadata: {
+      fromParty: full.fromParty ?? "",
+      toParty: full.toParty ?? "",
+      toOrganization: full.toOrganization ?? "",
+    },
   });
   const events: TimelineEvent[] = [startedEvent];
   const custody = [...incident.custody];
@@ -249,6 +254,7 @@ export async function recordHandoff(
       makeEvent(incident.id, "handoff_completed", `Custody accepted by ${full.toParty || "unknown"}`, {
         actor: full.receivingPerson ?? full.toParty,
         timestamp: full.completedAt,
+        metadata: { toParty: full.toParty ?? "", toOrganization: full.toOrganization ?? "" },
       })
     );
   }
@@ -256,6 +262,7 @@ export async function recordHandoff(
     makeEvent(incident.id, "custody_changed", `Current custody: ${full.toParty || "unknown"}`, {
       timestamp: full.occurredAt,
       actor,
+      metadata: { holder: full.toParty ?? "", handoffId: full.id },
     })
   );
   const updated = touch({

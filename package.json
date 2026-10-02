@@ -1,7 +1,7 @@
 {
   "name": "wildlife-incident-handoff",
   "private": true,
-  "version": "0.2.0-dev.6",
+  "version": "0.2.0-dev.7",
   "description": "An open-source, local-first tool for creating clear and traceable wildlife incident handoffs.",
   "type": "module",
   "license": "AGPL-3.0-only",
@@ -14,9 +14,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@floating-ui/dom": "^1.8.0",
     "@tauri-apps/api": "^2.12.1",
     "i18next": "^26.4.2",
     "idb": "^8.0.1",
+    "libphonenumber-js": "^1.13.14",
     "maplibre-gl": "^6.11.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

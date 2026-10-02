@@ -11,10 +11,13 @@ export function NetworkMap({
   incidents,
   privacy,
   onSelect,
+  compact = false,
 }: {
   incidents: Incident[];
   privacy: MapPrivacy;
   onSelect?: (incident: Incident) => void;
+  /** Compact dashboard panel: reduced default height. */
+  compact?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<MapState>(() => (incidents.length === 0 ? "no-coordinates" : "loading"));
@@ -36,6 +39,14 @@ export function NetworkMap({
       if (!settled && isError) {
         if (navigator.onLine === false) setState("offline");
         else setState("provider-failed");
+      }
+    });
+    // A successful map load is authoritative: a single transient tile error
+    // must not permanently mark the provider failed when tiles do arrive.
+    provider.setLoadHandler(() => {
+      if (!settled) {
+        settled = true;
+        setState("ready");
       }
     });
     providerRef.current = provider;
@@ -130,7 +141,7 @@ export function NetworkMap({
       ) : (
         <div
           ref={containerRef}
-          style={{ height: 460, borderRadius: "var(--radius-md)", border: "1px solid var(--c-border)", overflow: "hidden", position: "relative" }}
+          style={{ height: compact ? 280 : 460, borderRadius: "var(--radius-md)", border: "1px solid var(--c-border)", overflow: "hidden", position: "relative" }}
         />
       )}
       <div className="row" style={{ marginTop: "var(--space-2)", gap: 12, fontSize: "0.82rem", color: "var(--c-ink-soft)" }}>

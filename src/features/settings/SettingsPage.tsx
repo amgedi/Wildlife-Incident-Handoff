@@ -14,18 +14,23 @@ import { defaultUnitsFor } from "../../utils/units";
 import { isTauri } from "../../utils/platformFile";
 import { LANGUAGE_CATALOG } from "../../i18n";
 import { useTranslation } from "react-i18next";
-import type { DetailLevel, ExperienceMode, MotionPreference, ThemeName } from "../../types/settings";
+import type { DetailLevel, ExperienceMode, MotionPreference, ThemeName, NotificationPreferences } from "../../types/settings";
+import { DEFAULT_NOTIFICATION_CATEGORIES } from "../../types/settings";
+import { displayPhone, normalizePhoneForStorage, isValidPhone, parsePhone } from "../../utils/phone";
+import { resetAllGuidance } from "../../features/tutorial/guidance";
+import { resetOnboardingForReplay, beginOnboardingPreview } from "../../features/onboarding/onboardingState";
 
 const SECTIONS = [
   { id: "appearance", labelKey: "appearance", icon: Icons.eye, keywords: "theme appearance dark light density motion" },
   { id: "experience", labelKey: "experience", icon: Icons.compass, keywords: "experience mode detail level profile workspace" },
   { id: "accessibility", labelKey: "accessibility", icon: Icons.heart, keywords: "accessibility motion reduced contrast keyboard" },
-  { id: "profile", labelKey: "profile", icon: Icons.heart, keywords: "profile contact name phone email organization" },
+  { id: "profile", labelKey: "profile", icon: Icons.user, keywords: "profile contact name phone email organization role country language" },
   { id: "defaults", labelKey: "defaults", icon: Icons.list, keywords: "incident defaults location precision name" },
   { id: "privacy", labelKey: "privacy", icon: Icons.shield, keywords: "privacy location contacts shareable" },
   { id: "storage", labelKey: "storage", icon: Icons.archive, keywords: "backup storage import export where is my data" },
-  { id: "notifications", labelKey: "notifications", icon: Icons.info, keywords: "notifications toasts" },
-  { id: "advanced", labelKey: "advanced", icon: Icons.settings, keywords: "advanced language region units" },
+  { id: "notifications", labelKey: "notifications", icon: Icons.bell, keywords: "notifications bell toasts quiet hours sound categories" },
+  { id: "map", labelKey: "map", icon: Icons.map, keywords: "map tiles provider online offline test connection" },
+  { id: "advanced", labelKey: "advanced", icon: Icons.settings, keywords: "advanced language region units reset factory replay onboarding tutorial testing" },
   { id: "about", labelKey: "about", icon: Icons.book, keywords: "about version license" },
 ] as const;
 
@@ -93,6 +98,7 @@ export function SettingsPage() {
           {section === "privacy" && <PrivacySection />}
           {section === "storage" && <StorageSection />}
           {section === "notifications" && <NotificationsSection />}
+          {section === "map" && <MapSection />}
           {section === "advanced" && <AdvancedSection />}
           {section === "about" && <AboutSection />}
         </div>
@@ -409,17 +415,184 @@ function StorageSection() {
 }
 
 function NotificationsSection() {
-  const { showToast } = useApp();
+  const { settings, updateSettings, showToast } = useApp();
+  const { t } = useTranslation("settings");
+  const prefs = settings.notifications;
+  const setPrefs = (patch: Partial<NotificationPreferences>) => updateSettings({ notifications: { ...prefs, ...patch } });
+  const setCategory = (id: string, on: boolean) =>
+    setPrefs({ categories: { ...prefs.categories, [id]: on } });
+
+  const reporterCategories = DEFAULT_NOTIFICATION_CATEGORIES.slice(0, 7);
+  const professionalCategories = DEFAULT_NOTIFICATION_CATEGORIES.slice(7);
+
+  return (
+    <div className="stack">
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>{t("notifDelivery", { defaultValue: "Delivery" })}</h3>
+        <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: "0.92rem", cursor: "pointer" }}>
+          <input type="checkbox" checked={prefs.inApp} onChange={(e) => setPrefs({ inApp: e.target.checked })} />
+          {t("notifInApp", { defaultValue: "In-app notifications" })}
+        </label>
+        <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: "0.92rem", cursor: "pointer" }}>
+          <input type="checkbox" checked={prefs.sound} onChange={(e) => setPrefs({ sound: e.target.checked })} />
+          {t("notifSound", { defaultValue: "Sound" })}
+        </label>
+        <p className="hint">{t("notifDeliveryHint", { defaultValue: "Notifications are generated locally from your own records. There is no push, email or server delivery yet." })}</p>
+      </div>
+
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>{t("notifCategories", { defaultValue: "Categories" })}</h3>
+        <h4 style={{ marginBottom: 6 }}>{t("notifReporter", { defaultValue: "Reporter" })}</h4>
+        {reporterCategories.map((id) => (
+          <label key={id} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: "0.92rem", cursor: "pointer", marginBottom: 4 }}>
+            <input type="checkbox" checked={prefs.categories[id] !== false} onChange={(e) => setCategory(id, e.target.checked)} />
+            {t(`notifCat_${id}`, { defaultValue: NOTIF_CATEGORY_LABELS[id] ?? id })}
+          </label>
+        ))}
+        <h4 style={{ margin: "var(--space-3) 0 6px" }}>{t("notifProfessional", { defaultValue: "Professional" })}</h4>
+        {professionalCategories.map((id) => (
+          <label key={id} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: "0.92rem", cursor: "pointer", marginBottom: 4 }}>
+            <input type="checkbox" checked={prefs.categories[id] !== false} onChange={(e) => setCategory(id, e.target.checked)} />
+            {t(`notifCat_${id}`, { defaultValue: NOTIF_CATEGORY_LABELS[id] ?? id })}
+          </label>
+        ))}
+      </div>
+
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>{t("notifQuiet", { defaultValue: "Quiet hours" })}</h3>
+        <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: "0.92rem", cursor: "pointer", marginBottom: 8 }}>
+          <input type="checkbox" checked={prefs.quietHoursEnabled} onChange={(e) => setPrefs({ quietHoursEnabled: e.target.checked })} />
+          {t("notifQuietEnable", { defaultValue: "Silence in-app notifications during quiet hours" })}
+        </label>
+        <div className="row" style={{ gap: 12 }}>
+          <TextField type="time" label={t("notifQuietStart", { defaultValue: "Start" })} value={prefs.quietHoursStart} onChange={(v) => setPrefs({ quietHoursStart: v })} />
+          <TextField type="time" label={t("notifQuietEnd", { defaultValue: "End" })} value={prefs.quietHoursEnd} onChange={(v) => setPrefs({ quietHoursEnd: v })} />
+        </div>
+        <p className="hint">{t("notifQuietHint", { defaultValue: "During quiet hours notifications are still recorded in the bell menu, but no toast appears." })}</p>
+      </div>
+
+      <div className="row">
+        <button className="btn btn-secondary btn-sm" onClick={() => showToast("This is what a notification looks like")}>
+          {t("previewNotification", { defaultValue: "Preview notification" })}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const NOTIF_CATEGORY_LABELS: Record<string, string> = {
+  status_changed: "Report status changed",
+  responder_assigned: "Responder assigned",
+  information_requested: "Information requested",
+  handoff_recorded: "Handoff recorded",
+  resolved: "Resolved",
+  draft_reminder: "Draft reminder",
+  backup_reminder: "Backup reminder",
+  new_in_service_area: "New incident in service area",
+  assignment: "Assignment",
+  unassigned_aging: "Unassigned incident aging",
+  reporter_update: "Reporter update",
+  handoff_waiting: "Handoff waiting",
+  possible_duplicate: "Possible duplicate",
+};
+
+function MapSection() {
+  const { settings, updateSettings } = useApp();
+  const { t } = useTranslation("settings");
+  const [testing, setTesting] = useState<"idle" | "testing" | "ok" | "failed">("idle");
+  return (
+    <div className="stack">
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>{t("mapProvider", { defaultValue: "Map provider" })}</h3>
+        <dl className="kv">
+          <dt>{t("mapCurrent", { defaultValue: "Provider" })}</dt><dd>OpenStreetMap raster tiles (MapLibre)</dd>
+          <dt>{t("mapStatus", { defaultValue: "Status" })}</dt>
+          <dd>{testing === "ok" ? <span className="badge open">{t("mapReachable", { defaultValue: "Reachable" })}</span> : testing === "failed" ? <span className="badge warn">{t("mapUnreachable", { defaultValue: "Unreachable" })}</span> : testing === "testing" ? "…" : "—"}</dd>
+        </dl>
+        <button
+          className="btn btn-secondary btn-sm"
+          disabled={testing === "testing"}
+          onClick={async () => {
+            setTesting("testing");
+            try {
+              const res = await fetch("https://tile.openstreetmap.org/0/0/0.png", { method: "HEAD", mode: "cors" });
+              setTesting(res.ok ? "ok" : "failed");
+            } catch {
+              setTesting("failed");
+            }
+          }}
+        >
+          <Icons.refresh size={14} /> {t("mapTest", { defaultValue: "Test connection" })}
+        </button>
+        <p className="hint">{t("mapPrivacyHint", { defaultValue: "When online maps are on, your map viewport (not your reports) is sent to the tile provider to draw the map. Incident coordinates are never uploaded." })}</p>
+      </div>
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>{t("mapOnline", { defaultValue: "Online maps" })}</h3>
+        <Segmented
+          label={t("mapOnline", { defaultValue: "Online maps" })}
+          value={settings.mapTilesEnabled === false ? "off" : "on"}
+          onChange={(v) => updateSettings({ mapTilesEnabled: v !== "off" })}
+          options={[
+            { value: "on", label: t("on", { defaultValue: "On" }) },
+            { value: "off", label: t("off", { defaultValue: "Off" }) },
+          ]}
+        />
+        <p className="hint">{t("mapOfflineHint", { defaultValue: "Off means maps show incident positions locally without downloading any tiles. Useful on metered connections or for maximum privacy." })}</p>
+      </div>
+    </div>
+  );
+}
+
+function ResetAndTestingSection() {
+  const { updateSettings, showToast } = useApp();
+  const { t } = useTranslation("settings");
+  const [confirmFactory, setConfirmFactory] = useState(false);
   return (
     <div className="card">
-      <h3 style={{ marginTop: 0 }}>In-app notifications</h3>
-      <p style={{ color: "var(--c-ink-soft)" }}>
-        The app confirms important actions with a brief notification at the bottom of the screen (with Undo where safe).
-        Wildlife Incident Handoff does not send push notifications, emails or any other outbound messages.
-      </p>
-      <button className="btn btn-secondary btn-sm" onClick={() => showToast("This is what a notification looks like")}>
-        Preview notification
-      </button>
+      <h3 style={{ marginTop: 0 }}>{t("resetTitle", { defaultValue: "Reset & testing" })}</h3>
+      <div className="stack" style={{ gap: "var(--space-3)" }}>
+        <div className="row" style={{ flexWrap: "wrap", gap: 10 }}>
+          <button className="btn btn-secondary btn-sm" onClick={() => { resetOnboardingForReplay(); updateSettings({ onboarded: false }); }}>
+            <Icons.refresh size={14} /> {t("resetReplay", { defaultValue: "Replay onboarding" })}
+          </button>
+          <p className="hint" style={{ width: "100%", margin: 0 }}>{t("resetReplayHint", { defaultValue: "Shows first-run setup again. Does not delete any reports." })}</p>
+        </div>
+        <div className="row" style={{ flexWrap: "wrap", gap: 10 }}>
+          <button className="btn btn-secondary btn-sm" onClick={async () => { await resetAllGuidance(); showToast(t("resetTutorialsDone", { defaultValue: "Tutorial progress reset" })); }}>
+            <Icons.refresh size={14} /> {t("resetTutorials", { defaultValue: "Reset tutorial progress" })}
+          </button>
+          <p className="hint" style={{ width: "100%", margin: 0 }}>{t("resetTutorialsHint", { defaultValue: "Resets the Interface Tour, Guide Me, Guided First Report and demo tutorial state. Does not delete incidents." })}</p>
+        </div>
+        <div className="row" style={{ flexWrap: "wrap", gap: 10 }}>
+          <button className="btn btn-secondary btn-sm" onClick={() => { beginOnboardingPreview(); updateSettings({ onboardingPreviewActive: true }); }}>
+            <Icons.eye size={14} /> {t("resetPreviewFirstRun", { defaultValue: "Preview first-run experience" })}
+          </button>
+          <p className="hint" style={{ width: "100%", margin: 0 }}>{t("resetPreviewHint", { defaultValue: "Shows onboarding temporarily without modifying your saved settings or reports." })}</p>
+        </div>
+        <div className="notice warning">
+          <Icons.warning size={18} />
+          <span>
+            {t("resetFactoryWarn", { defaultValue: "Factory reset permanently deletes ALL local application data — every incident, photo, draft and setting. There is no cloud copy." })}{" "}
+            <strong>{t("resetFactoryBackupFirst", { defaultValue: "Create a backup first (Storage & backups)." })}</strong>
+          </span>
+        </div>
+        {!confirmFactory ? (
+          <button className="btn btn-secondary btn-sm" onClick={() => setConfirmFactory(true)}>{t("resetFactory", { defaultValue: "Factory reset…" })}</button>
+        ) : (
+          <div className="row">
+            <button
+              className="btn btn-danger btn-sm"
+              onClick={async () => {
+                const { factoryReset } = await import("../../storage/factoryReset");
+                await factoryReset();
+              }}
+            >
+              <Icons.trash size={14} /> {t("resetFactoryConfirm", { defaultValue: "Yes, delete everything" })}
+            </button>
+            <button className="btn btn-quiet btn-sm" onClick={() => setConfirmFactory(false)}>{t("cancel", { defaultValue: "Cancel" })}</button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -511,6 +684,7 @@ function AdvancedSection() {
         <p className="hint" style={{ marginTop: 0 }}>All incident statuses side by side for visual comparison in this theme.</p>
         <StatusFixture />
       </div>
+      <ResetAndTestingSection />
       <div className="notice">
         <Icons.info size={18} />
         <span>
@@ -526,19 +700,53 @@ function ProfileSection() {
   const { settings, updateSettings, showToast } = useApp();
   const { t } = useTranslation("settings");
   const saved = settings.savedReporterContact;
-  const [draft, setDraft] = useState(saved ?? { name: "", phone: "", email: "", preferred: "no_preference" });
+  const [draft, setDraft] = useState({
+    name: saved?.name ?? "",
+    phone: saved?.phone ?? "",
+    email: saved?.email ?? "",
+    preferred: saved?.preferred ?? "no_preference",
+    organization: saved?.organization ?? "",
+    role: saved?.role ?? "",
+  });
+  const parsed = draft.phone.trim() ? parsePhone(draft.phone, settings.country) : null;
 
   return (
     <div className="stack">
       <div className="card">
-        <h3 style={{ marginTop: 0 }}>{t("profileTitle", { defaultValue: "Contact details" })}</h3>
+        <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
+          <Icons.user size={18} /> {t("profileTitle", { defaultValue: "Your profile" })}
+        </h3>
         <p style={{ color: "var(--c-ink-soft)" }}>
-          {t("profileBlurb", { defaultValue: "Saved details pre-fill new reports for convenience. You always choose whether they are actually included when creating or sharing a report — nothing is sent or shared automatically." })}
+          {t("profileBlurb", { defaultValue: "Saved details pre-fill new reports for convenience. You always choose whether they are actually included when creating or sharing a report — nothing is sent, shared or submitted automatically." })}
         </p>
-        <div className="notice" style={{ margin: "var(--space-3) 0" }}>{t("profileLocal", { defaultValue: "Stored locally on this device." })}</div>
+        <div className="notice" style={{ margin: "var(--space-3) 0" }}>
+          <Icons.shield size={16} />
+          <span>{t("profileLocal", { defaultValue: "Stored locally on this device. Pre-fills reports only — final report privacy controls decide what is shared." })}</span>
+        </div>
         <div className="grid-2">
           <TextField label={t("profileName", { defaultValue: "Name" })} value={draft.name} onChange={(v) => setDraft({ ...draft, name: v })} optional />
-          <TextField label={t("profilePhone", { defaultValue: "Phone" })} type="tel" value={draft.phone} onChange={(v) => setDraft({ ...draft, phone: v })} optional hint="International format welcome, e.g. +44 7700 900123" />
+          <TextField label={t("profileOrg", { defaultValue: "Organization (optional)" })} value={draft.organization} onChange={(v) => setDraft({ ...draft, organization: v })} optional />
+          <TextField label={t("profileRole", { defaultValue: "Role (optional)" })} value={draft.role} onChange={(v) => setDraft({ ...draft, role: v })} optional hint={t("profileRoleHint", { defaultValue: "e.g. Volunteer transport, Rehabilitator, Ranger" })} />
+          <Select
+            label={t("profileCountry", { defaultValue: "Country or region" })}
+            value={settings.country}
+            options={COUNTRIES}
+            onChange={(v) => updateSettings({ country: v })}
+            optional
+          />
+          <div>
+            <TextField
+              label={t("profilePhone", { defaultValue: "Phone" })}
+              type="tel"
+              value={draft.phone}
+              onChange={(v) => setDraft({ ...draft, phone: v })}
+              optional
+              hint={parsed?.valid ? parsed.display ?? undefined : t("profilePhoneHint", { defaultValue: "Any international format, e.g. +44 7700 900123 or 07700 900123" })}
+            />
+            {parsed && !parsed.valid && draft.phone.trim().length > 3 && (
+              <p className="hint" style={{ color: "var(--c-warn, #b8860b)" }}>{t("profilePhoneUnknown", { defaultValue: "Will be saved exactly as typed — it doesn't look like a complete international number." })}</p>
+            )}
+          </div>
           <TextField label={t("profileEmail", { defaultValue: "Email" })} type="email" value={draft.email} onChange={(v) => setDraft({ ...draft, email: v })} optional />
           <Select
             label={t("profilePreferred", { defaultValue: "Preferred contact method" })}
@@ -557,27 +765,33 @@ function ProfileSection() {
           <button
             className="btn btn-primary btn-sm"
             onClick={() => {
-              const has = draft.name || draft.phone || draft.email;
-              updateSettings({ savedReporterContact: has ? draft : null });
-              if (has) void setSetting("saved-reporter-contact", draft);
+              const has = draft.name || draft.phone || draft.email || draft.organization || draft.role;
+              const normalized = { ...draft, phone: normalizePhoneForStorage(draft.phone, settings.country) };
+              updateSettings({ savedReporterContact: has ? normalized : null });
+              if (has) void setSetting("saved-reporter-contact", normalized);
               else void setSetting("saved-reporter-contact", null);
-              showToast(t("profileSaved", { defaultValue: "Contact details saved" }));
+              showToast(t("profileSaved", { defaultValue: "Profile saved" }));
             }}
           >
-            {t("profileSave", { defaultValue: "Save details" })}
+            {t("profileSave", { defaultValue: "Save profile" })}
           </button>
           <button
             className="btn btn-quiet btn-sm"
             onClick={() => {
-              setDraft({ name: "", phone: "", email: "", preferred: "no_preference" });
+              setDraft({ name: "", phone: "", email: "", preferred: "no_preference", organization: "", role: "" });
               updateSettings({ savedReporterContact: null });
               void setSetting("saved-reporter-contact", null);
-              showToast(t("profileCleared", { defaultValue: "Saved contact details cleared" }));
+              showToast(t("profileCleared", { defaultValue: "Saved profile cleared" }));
             }}
           >
             <Icons.trash size={14} /> {t("profileClear", { defaultValue: "Clear" })}
           </button>
         </div>
+        {saved?.phone && isValidPhone(saved.phone) && (
+          <p className="hint" style={{ marginTop: "var(--space-2)" }}>
+            {t("profileStoredPhone", { defaultValue: "Stored phone (normalized):" })} {displayPhone(saved.phone)}
+          </p>
+        )}
       </div>
     </div>
   );

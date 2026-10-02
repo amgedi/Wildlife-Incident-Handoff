@@ -123,4 +123,40 @@ export const Icons = {
   undo: (p: IconProps) => (
     <Icon {...p}><path d="M8 5 3.5 9.5 8 14" /><path d="M4 9.5h10a6 6 0 0 1 0 12h-4" /></Icon>
   ),
+  user: (p: IconProps) => (
+    <Icon {...p}><circle cx="12" cy="8" r="3.6" /><path d="M4.5 20.5c1.2-3.6 4-5.4 7.5-5.4s6.3 1.8 7.5 5.4" /></Icon>
+  ),
+  bell: (p: IconProps) => (
+    <Icon {...p}><path d="M18 16H6c1.2-1.2 1.8-2 1.8-5.2 0-3.6 1.6-6.3 4.2-6.3s4.2 2.7 4.2 6.3c0 3.2.6 4 1.8 5.2Z" /><path d="M10 19a2 2 0 0 0 4 0" /></Icon>
+  ),
+  activity: (p: IconProps) => (
+    <Icon {...p}><path d="M3 12h4l2.5-6.5L14 18l2.5-6H21" /></Icon>
+  ),
+  map: (p: IconProps) => (
+    <Icon {...p}><path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6 9 4Z" /><path d="M9 4v14" /><path d="M15 6v14" /></Icon>
+  ),
+  clock: (p: IconProps) => (
+    <Icon {...p}><circle cx="12" cy="12" r="8.5" /><path d="M12 7v5.2l3.4 2" /></Icon>
+  ),
+  refresh: (p: IconProps) => (
+    <Icon {...p}><path d="M20 12a8 8 0 1 1-2.5-5.8" /><path d="M20 3.5V8h-4.5" /></Icon>
+  ),
+  filter: (p: IconProps) => (
+    <Icon {...p}><path d="M4 5h16l-6.2 7.4V19l-3.6 1.6v-8.2L4 5Z" /></Icon>
+  ),
+  phone: (p: IconProps) => (
+    <Icon {...p}><path d="M6.8 3.5 9 3l1.8 4.3-2 1.5a12 12 0 0 0 6.4 6.4l1.5-2L21 15l-.5 2.2c-.3 1.4-1.6 2.4-3 2.1C10.9 18 6 13.1 4.7 6.5c-.3-1.4.7-2.7 2.1-3Z" /></Icon>
+  ),
+  flag: (p: IconProps) => (
+    <Icon {...p}><path d="M5 21V4" /><path d="M5 5h12l-2.5 3.5L17 12H5" /></Icon>
+  ),
+  monitor: (p: IconProps) => (
+    <Icon {...p}><rect x="3.5" y="4.5" width="17" height="12" rx="1.5" /><path d="M9 20h6" /><path d="M12 16.5V20" /></Icon>
+  ),
+  zap: (p: IconProps) => (
+    <Icon {...p}><path d="M13 3 5 13.5h5L10.5 21l8-10.5h-5L13 3Z" /></Icon>
+  ),
+  users: (p: IconProps) => (
+    <Icon {...p}><circle cx="9" cy="8.5" r="3.2" /><path d="M3 19.5c1-3 3.4-4.6 6-4.6s5 1.6 6 4.6" /><path d="M15.5 5.6a3.2 3.2 0 0 1 0 5.8" /><path d="M17.5 15.2c1.6.7 2.9 2.1 3.5 4.3" /></Icon>
+  ),
 };

@@ -40,5 +40,19 @@
   "drafts": "Drafts",
   "draftStarted": "Unfinished report · started {{when}}",
   "draftContinue": "Continue",
-  "draftDiscard": "Discard"
+  "draftDiscard": "Discard",
+  "welcome": "Welcome",
+  "welcomeShort": "Welcome, {{name}}",
+  "homeSubtitle": "Help with the animal in front of you — calmly and safely.",
+  "beforeYouApproach": "Before you approach wildlife",
+  "latestActiveReport": "Latest active report",
+  "latestUpdate": "Latest update",
+  "continue": "Continue",
+  "recentEmpty": "Your reports will appear here.",
+  "helpSupport": "Help & support",
+  "noIncidentsTitle": "No incidents yet",
+  "professionalWorkspace": "Professional workspace",
+  "verifiedWorkspace": "Verified",
+  "professionalPreview": "Professional Preview",
+  "openDashboard": "Open operations dashboard"
 }

@@ -23,15 +23,27 @@ export interface DraftRecord {
   savedAt: string;
 }
 
+/** Locally-generated notification (notification center). Never server push. */
+export interface NotificationRecord {
+  id: string;
+  createdAt: string;
+  category: string;
+  title: string;
+  body: string;
+  incidentId: string | null;
+  read: boolean;
+}
+
 interface WihDB extends DBSchema {
   incidents: { key: string; value: Incident; indexes: { "by-updatedAt": string; "by-status": string } };
   attachments: { key: string; value: AttachmentBlob; indexes: { "by-incident": string } };
   drafts: { key: string; value: DraftRecord };
   settings: { key: string; value: { key: string; value: unknown } };
+  notifications: { key: string; value: NotificationRecord; indexes: { "by-createdAt": string } };
 }
 
 const DB_NAME = "wildlife-incident-handoff";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBPDatabase<WihDB>> | null = null;
 
@@ -47,7 +59,7 @@ export async function resetDbForTests(): Promise<void> {
 export function getDb(): Promise<IDBPDatabase<WihDB>> {
   if (!dbPromise) {
     dbPromise = openDB<WihDB>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
+      upgrade(db, oldVersion) {
         // Version 1: initial schema.
         if (!db.objectStoreNames.contains("incidents")) {
           const incidents = db.createObjectStore("incidents", { keyPath: "id" });
@@ -63,6 +75,11 @@ export function getDb(): Promise<IDBPDatabase<WihDB>> {
         }
         if (!db.objectStoreNames.contains("settings")) {
           db.createObjectStore("settings", { keyPath: "key" });
+        }
+        // Version 2: notification center.
+        if (oldVersion < 2 && !db.objectStoreNames.contains("notifications")) {
+          const notifications = db.createObjectStore("notifications", { keyPath: "id" });
+          notifications.createIndex("by-createdAt", "createdAt");
         }
       },
     });

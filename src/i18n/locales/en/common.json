@@ -24,5 +24,7 @@
   "loading": "Loading…",
   "localFirstNote": "Local-first. Your data stays in this browser on this device.",
   "skipToContent": "Skip to main content",
-  "languageName": "English"
+  "languageName": "English",
+  "hide": "Hide",
+  "show": "Show"
 }

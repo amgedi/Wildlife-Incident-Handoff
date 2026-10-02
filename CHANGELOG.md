@@ -2,6 +2,41 @@
 
 All notable changes to Wildlife Incident Handoff are documented here. Format based on [Keep a Changelog](https://keepachangelog.com/); versioning follows [SemVer](https://semver.org/).
 
+## 0.2.0-dev.7 — major product overhaul (two products, one data model)
+
+### Added
+- **Two genuinely different products**: Reporter (calm, safety-first) and Professional (operations command center) over one incident data model.
+- **Reporter Home rebuilt**: greeting ("Welcome, [name]") up top, safety card ("Before you approach wildlife") moved to the very top BEFORE the report CTA, then Report wildlife, Latest active report (animal/status/latest update/useful next action/Continue), Your reports summary cards, drafts, recent reports, help links.
+- **First-run experience rebuilt**: default path is reporter onboarding (language → country → optional profile → privacy explanation → ready). The professional path ("I work or volunteer in wildlife response") is a deliberate secondary choice and is labeled **Professional Preview** — it never claims verification.
+- **Profile section fixed**: capitalized "Profile", person icon (was heart), expanded with organization, role, country/region, language context; explicit "Stored locally / pre-fills reports only / never shared automatically" notices.
+- **International phone numbers** via libphonenumber-js: country-aware parsing, live validation, E.164 normalization on save with raw preservation for unparseable input; no +1 assumption.
+- **Professional operations dashboard**: layered ops top bar (greeting, organization, live-indicator, honest "Network: local professional preview" badge), **Needs Attention** ops queue (unassigned, >2 h waits, handoffs awaiting acceptance, missing location, duplicates — icon/count/reason/severity/time/action, click-through), animated **KPI strip**, compact **geographic operations map** panel + Open full map, **Live activity** feed from real timeline events, response performance medians ("Not enough data yet" instead of fake zeros), visual case-aging strip, **Operations View** full-screen mode (Esc exits, never forced), unified dashboard filters (time, status, animal group, incident type, assigned/unassigned) applied to every widget.
+- **Responder workload** table (assigned/active/completed-today) — capacity visibility only, explicitly no rankings or productivity scoring.
+- **Reports over time modernized**: 24 h (hourly) / 7 d / 30 d / 90 d, y-axis gridlines, hover/focus value readout, accessible data-table fallback, legend; resolved series now uses structured resolution events.
+- **Professional intake**: optional internal fields (source of report, organization, professional assessment, internal note) recorded as private notes — never a rewrite of public observations.
+- **Photo AND video support**: MP4/WebM/MOV, capture or choose file, poster-frame thumbnails, duration badge, captions, no autoplay; large-video warnings with storage-quota awareness and a 500 MB hard limit; same attachment abstraction in wizard and incident Attachments tab.
+- **Notification center**: bell icon with unread count, panel (mark read / clear / click-through to the incident), backed by a new IndexedDB `notifications` store (DB v2 migration).
+- **Notification settings**: delivery (in-app), categories (reporter + professional), quiet hours (start/end, overnight-safe), sound; only features that actually exist.
+- **Help Center** (replaces Examples & Tutorial in primary navigation): searchable role-aware topics (Reporter/Professional), Tutorials section, **Glossary** (single source, 15 terms) shared with contextual popovers, Support with privacy-safe diagnostics + GitHub links.
+- **Reset & testing tools** (Settings → Advanced): Replay onboarding, Reset tutorial progress, Preview first-run (session-scoped, modifies nothing), Factory reset with backup-first warning and deliberate confirmation.
+- **Error boundaries** around major routes: recoverable "We couldn't load this section" with Retry/Copy diagnostics.
+- **Contextual help popovers rebuilt on Floating UI**: portal, flip/shift near edges, viewport-clipping-safe, scrollable.
+- **Page/section animations**: 160–220 ms fade/translate, disabled under Reduced Motion/Off.
+- **Reporter location confirmation**: "Use my location" now shows a preview (position, accuracy, precision choice) with Confirm / Adjust manually.
+- **Map settings** (Settings → Map): provider info, connection test, online-maps toggle, tile-privacy explanation.
+- **Structured analytics events**: `status_changed`, `handoff_started`, `handoff_completed`, `custody_changed` events now carry structured metadata; analytics prefers structured events with legacy text-parsing fallback; resolution timestamps derived from structured events.
+- **Security documentation**: docs/SECURITY_ARCHITECTURE.md (threat model incl. future network layer) and docs/NETWORK_SECURITY_AND_AUTH_PLAN.md (server-side authorization architecture, honest no-backend labeling).
+
+### Fixed
+- **Green spotlight glow removed**: tour ring is now a neutral theme-aware 2 px outline.
+- **Tutorial transition state centered**: navigating/waiting callout is centered, never anchored to stale geometry.
+- **Desktop sidebar branding**: product name no longer repeats beside the native titlebar (paw + greeting/organization instead); Professional shows organization + Professional Preview badge.
+- **Professional navigation priority**: Dashboard → Response network → Incidents → New incident → Help → Settings; reporters never see professional destinations.
+- "Updated just now" footer now shows an actual clock tick.
+
+### Tests
+- 200 tests (was 176): international phone parsing/formatting, structured vs legacy analytics events, resolution timestamps, activity feed, workload, notifications store + quiet hours, authorization separation hard-unverifiable locally, first-run defaults, tutorial step contract (reporter/professional/demo), i18n completeness maintained (321 new keys per language, fr + es).
+
 ## 0.2.0-dev.6 — in development
 
 ### Fixed

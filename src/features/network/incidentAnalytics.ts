@@ -64,10 +64,47 @@ function median(values: number[]): number | null {
   return sorted.length % 2 === 1 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2;
 }
 
-function firstEvent(incident: Incident, summaryPrefix: RegExp): TimelineEvent | undefined {
-  return [...incident.timeline]
-    .sort((a, b) => a.timestamp.localeCompare(b.timestamp))
-    .find((e) => summaryPrefix.test(e.summary));
+function sortedTimeline(incident: Incident): TimelineEvent[] {
+  return [...incident.timeline].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+}
+
+/** First event whose structured metadata matches, with legacy summary-text
+ *  parsing as a fallback for pre-0.2.0-dev.7 records. */
+function milestoneEvent(
+  incident: Incident,
+  structured: (e: TimelineEvent) => boolean,
+  legacy: RegExp
+): TimelineEvent | undefined {
+  const timeline = sortedTimeline(incident);
+  return timeline.find(structured) ?? timeline.find((e) => legacy.test(e.summary));
+}
+
+function statusChangedTo(e: TimelineEvent, to: string[]): boolean {
+  return e.eventType === "status_changed" && e.metadata?.to != null && to.includes(e.metadata.to);
+}
+
+function assignedEvent(incident: Incident): TimelineEvent | undefined {
+  return milestoneEvent(incident, (e) => statusChangedTo(e, ["responder_assigned"]), /responder assigned|accepted by/i);
+}
+
+function pickupEvent(incident: Incident): TimelineEvent | undefined {
+  return milestoneEvent(incident, (e) => statusChangedTo(e, ["awaiting_pickup", "in_transport"]), /contained|pickup|collected/i);
+}
+
+function transferEvent(incident: Incident): TimelineEvent | undefined {
+  return milestoneEvent(
+    incident,
+    (e) => e.eventType === "handoff_completed" || statusChangedTo(e, ["transferred"]),
+    /transferred|handoff from/i
+  );
+}
+
+/** Structured resolution timestamp when available (status_changed to a
+ *  resolved status); legacy records fall back to updatedAt. */
+function resolvedAt(incident: Incident): string | null {
+  if (!RESOLVED_STATUSES.has(incident.status)) return null;
+  const ev = sortedTimeline(incident).find((e) => statusChangedTo(e, [...RESOLVED_STATUSES]));
+  return ev?.timestamp ?? incident.updatedAt;
 }
 
 function isSameLocalDay(iso: string, ref: Date): boolean {
@@ -123,11 +160,11 @@ export function getResponseTimeMetrics(incidents: Incident[], now = new Date()):
   const transferHours: number[] = [];
   for (const inc of live) {
     const created = inc.occurredAt ?? inc.createdAt;
-    const assigned = firstEvent(inc, /responder assigned|accepted by/i);
+    const assigned = assignedEvent(inc);
     if (assigned) assignedHours.push((new Date(assigned.timestamp).getTime() - new Date(created).getTime()) / 3600_000);
-    const pickup = firstEvent(inc, /contained|pickup|collected/i);
+    const pickup = pickupEvent(inc);
     if (pickup) pickupHours.push((new Date(pickup.timestamp).getTime() - new Date(created).getTime()) / 3600_000);
-    const transfer = firstEvent(inc, /transferred|handoff from/i);
+    const transfer = transferEvent(inc);
     if (transfer) transferHours.push((new Date(transfer.timestamp).getTime() - new Date(created).getTime()) / 3600_000);
   }
   const open = live.filter(isOpen);
@@ -142,7 +179,10 @@ export function getResponseTimeMetrics(incidents: Incident[], now = new Date()):
     medianHoursToTransfer: median(transferHours),
     oldestUnassignedHours,
     openedToday: live.filter((i) => isSameLocalDay(i.createdAt, today)).length,
-    resolvedToday: live.filter((i) => RESOLVED_STATUSES.has(i.status) && isSameLocalDay(i.updatedAt, today)).length,
+    resolvedToday: live.filter((i) => {
+      const at = resolvedAt(i);
+      return at != null && isSameLocalDay(at, today);
+    }).length,
     sufficientData: assignedHours.length + pickupHours.length + transferHours.length >= 3,
   };
 }
@@ -225,9 +265,67 @@ export function getTransferMetrics(incidents: Incident[]): { awaitingTransfer: n
 
 export interface TrendPoint { day: string; reported: number; resolved: number }
 
-export function getTimeSeries(incidents: Incident[], days: 1 | 7 | 30, now = new Date()): TrendPoint[] {
+export interface ActivityFeedEntry {
+  timestamp: string;
+  eventType: string;
+  summary: string;
+  incidentId: string;
+  incidentRef: string;
+  animalLabel: string;
+}
+
+/** Live activity feed, derived ONLY from real timeline events of live,
+ *  non-demo incidents. Most recent first. */
+export function getActivityFeed(incidents: Incident[], limit = 12): ActivityFeedEntry[] {
+  const live = new Map(
+    incidents
+      .filter((i) => !i.deletedAt && !i.archivedAt && !i.isDemo)
+      .map((i) => [i.id, i])
+  );
+  const entries: ActivityFeedEntry[] = [];
+  for (const inc of live.values()) {
+    for (const e of inc.timeline) {
+      if (e.eventType === "incident_created" && inc.timeline.length > 1) continue;
+      entries.push({
+        timestamp: e.timestamp,
+        eventType: e.eventType,
+        summary: e.summary,
+        incidentId: inc.id,
+        incidentRef: inc.humanReference,
+        animalLabel: inc.animal.species || inc.animal.description || inc.animal.group || "",
+      });
+    }
+  }
+  return entries.sort((a, b) => b.timestamp.localeCompare(a.timestamp)).slice(0, limit);
+}
+
+export function getTimeSeries(incidents: Incident[], days: 1 | 7 | 30 | 90, now = new Date()): TrendPoint[] {
   const live = incidents.filter((i) => !i.deletedAt && !i.isDemo);
   const points: TrendPoint[] = [];
+  // 24 hours: hourly buckets ending now.
+  if (days === 1) {
+    for (let h = 23; h >= 0; h--) {
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() - h);
+      const end = new Date(start);
+      end.setHours(end.getHours() + 1);
+      const reported = live.filter((i) => {
+        const t = new Date(i.createdAt);
+        return t >= start && t < end;
+      }).length;
+      const resolved = live.filter((i) => {
+        const at = resolvedAt(i);
+        if (!at) return false;
+        const t = new Date(at);
+        return t >= start && t < end;
+      }).length;
+      points.push({
+        day: start.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }),
+        reported,
+        resolved,
+      });
+    }
+    return points;
+  }
   for (let d = days - 1; d >= 0; d--) {
     const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - d);
     const next = new Date(day);
@@ -237,15 +335,54 @@ export function getTimeSeries(incidents: Incident[], days: 1 | 7 | 30, now = new
       return t >= day && t < next;
     }).length;
     const resolved = live.filter((i) => {
-      if (!RESOLVED_STATUSES.has(i.status)) return false;
-      const t = new Date(i.updatedAt);
+      const at = resolvedAt(i);
+      if (!at) return false;
+      const t = new Date(at);
       return t >= day && t < next;
     }).length;
     points.push({
-      day: day.toLocaleDateString(undefined, days === 1 ? { hour: "2-digit" } : { month: "short", day: "numeric" }),
+      day: day.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
       reported,
       resolved,
     });
   }
   return points;
+}
+
+export interface ResponderWorkload {
+  actor: string;
+  assignedCases: number;
+  activeCases: number;
+  completedToday: number;
+}
+
+/** Operational capacity visibility from structured events — explicitly NOT
+ *  productivity scoring: no leaderboards, no rankings, no comparisons. */
+export function getResponderWorkload(incidents: Incident[], now = new Date()): ResponderWorkload[] {
+  const live = incidents.filter((i) => !i.deletedAt && !i.archivedAt && !i.isDemo);
+  const byActor = new Map<string, { assigned: number; active: number; completedToday: number }>();
+  const bump = (actor: string | null | undefined, key: "assigned" | "active" | "completedToday") => {
+    const name = (actor ?? "").trim();
+    if (!name) return;
+    const entry = byActor.get(name) ?? { assigned: 0, active: 0, completedToday: 0 };
+    entry[key] += 1;
+    byActor.set(name, entry);
+  };
+  for (const inc of live) {
+    // Assignment from structured status_changed metadata.
+    const assigned = assignedEvent(inc);
+    if (assigned) bump(assigned.actor, "assigned");
+    // Active = currently holding custody.
+    const currentCustody = inc.custody.find((c) => !c.endedAt);
+    if (currentCustody) bump(currentCustody.holder, "active");
+    // Resolved today with this actor as last event actor.
+    const resolved = resolvedAt(inc);
+    if (resolved && isSameLocalDay(resolved, now)) {
+      const lastEvent = [...inc.timeline].sort((a, b) => b.timestamp.localeCompare(a.timestamp))[0];
+      bump(lastEvent?.actor, "completedToday");
+    }
+  }
+  return [...byActor.entries()]
+    .map(([actor, v]) => ({ actor, assignedCases: v.assigned, activeCases: v.active, completedToday: v.completedToday }))
+    .sort((a, b) => b.activeCases - a.activeCases || a.actor.localeCompare(b.actor));
 }
