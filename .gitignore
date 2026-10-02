@@ -22,3 +22,4 @@ Thumbs.db
 
 # Release packaging
 release/
+src-tauri/target/
