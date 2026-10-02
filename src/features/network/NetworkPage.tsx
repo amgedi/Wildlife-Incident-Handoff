@@ -9,6 +9,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "../../app/AppContext";
+import { useTranslation } from "react-i18next";
 import { useIncidents } from "../incidents/IncidentCard";
 import { Icons } from "../../components/Icons";
 import { EmptyState, StatusBadge, TextField } from "../../components/ui";
@@ -19,16 +20,17 @@ import {
   findDuplicateCandidates, inServiceArea, type ServiceArea,
 } from "./networkService";
 import { formatDistance } from "../../utils/units";
-import { NetworkMap } from "./NetworkMap";
+const NetworkMap = lazy(() => import("./NetworkMap").then((m) => ({ default: m.NetworkMap })));
 import { useNavigate } from "react-router-dom";
 import { getSetting, setSetting } from "../../storage/repositories";
-import { useEffect } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { changeStatus } from "../../storage/incidentService";
 
 export function NetworkPage() {
   const { incidents, refresh } = useIncidents();
   const { settings, showToast } = useApp();
   const navigate = useNavigate();
+  const { t } = useTranslation("professional");
   const [tab, setTab] = useState<"list" | "map">("list");
   const [area, setArea] = useState<ServiceArea>({ centerLat: null, centerLon: null, radiusKm: 25, label: "My service area" });
   const [loaded, setLoaded] = useState(false);
@@ -67,23 +69,22 @@ export function NetworkPage() {
     <main className="content wide" id="main-content">
       <div className="row between" style={{ flexWrap: "wrap" }}>
         <div>
-          <h1 style={{ margin: 0 }}>Response network</h1>
+          <h1 style={{ margin: 0 }}>{t("title")}</h1>
           <p style={{ color: "var(--c-ink-faint)", fontSize: "0.88rem", margin: "4px 0 0" }}>
-            <span className="demo-banner" style={{ marginRight: 8 }}>LOCAL PREVIEW</span>
-            Running against incidents on this device for the organization “{org?.name}”. Nothing is shared or transmitted.
+            <span className="demo-banner" style={{ marginRight: 8 }}>{t("localPreview")}</span>
+            {t("localPreviewNote", { org: org?.name ?? "" })}
           </p>
         </div>
         <div className="segmented" role="group" aria-label="Dashboard view">
-          <button aria-pressed={tab === "list"} onClick={() => setTab("list")}>List</button>
-          <button aria-pressed={tab === "map"} onClick={() => setTab("map")}>Map</button>
+          <button aria-pressed={tab === "list"} onClick={() => setTab("list")}>{t("list")}</button>
+          <button aria-pressed={tab === "map"} onClick={() => setTab("map")}>{t("map")}</button>
         </div>
       </div>
 
       <div className="card" style={{ marginTop: "var(--space-5)" }}>
-        <h3 style={{ marginTop: 0 }}>Service area</h3>
+        <h3 style={{ marginTop: 0 }}>{t("serviceArea")}</h3>
         <p style={{ color: "var(--c-ink-soft)", fontSize: "0.9rem" }}>
-          Incidents inside this radius appear in the feed. Set the center from any incident with coordinates, or enter it
-          manually. Polygons and administrative regions are planned for the real network backend.
+          {t("serviceAreaNote")}
         </p>
         <div className="row" style={{ alignItems: "flex-end" }}>
           <TextField label="Center latitude" type="number" step="any" value={area.centerLat?.toString() ?? ""} onChange={(v) => saveArea({ ...area, centerLat: v ? parseFloat(v) : null })} optional />
@@ -94,12 +95,14 @@ export function NetworkPage() {
 
       {tab === "map" ? (
         <div className="card" style={{ marginTop: "var(--space-4)" }}>
-          <h3 style={{ marginTop: 0 }}>Map</h3>
-          <NetworkMap
-            incidents={inArea}
-            privacy="approximate"
-            onSelect={(incident) => navigate(`/incidents/${incident.id}`)}
-          />
+          <h3 style={{ marginTop: 0 }}>{t("mapTitle")}</h3>
+          <Suspense fallback={<p style={{ color: "var(--c-ink-faint)" }}>Loading map…</p>}>
+            <NetworkMap
+              incidents={inArea}
+              privacy="approximate"
+              onSelect={(incident) => navigate(`/incidents/${incident.id}`)}
+            />
+          </Suspense>
         </div>
             ) : (
         <>
@@ -124,9 +127,9 @@ export function NetworkPage() {
 
           {FEED_GROUPS.map((group) => (
             <section key={group.id} style={{ marginTop: "var(--space-5)" }}>
-              <h2 className="section-label">{group.label} ({grouped[group.id]!.length})</h2>
+              <h2 className="section-label">{t(group.id === "new" ? "newGroup" : group.id)} ({grouped[group.id]!.length})</h2>
               {grouped[group.id]!.length === 0 ? (
-                <p style={{ color: "var(--c-ink-faint)", fontSize: "0.88rem" }}>Nothing here right now.</p>
+                <p style={{ color: "var(--c-ink-faint)", fontSize: "0.88rem" }}>{t("nothingHere")}</p>
               ) : (
                 <div className="card-list">
                   {grouped[group.id]!.map((i) => {
@@ -161,10 +164,10 @@ export function NetworkPage() {
                                 await refresh();
                               }}
                             >
-                              Accept
+                              {t("accept")}
                             </button>
                           )}
-                          <Link className="btn btn-secondary btn-sm" to={`/incidents/${i.id}`}>Review</Link>
+                          <Link className="btn btn-secondary btn-sm" to={`/incidents/${i.id}`}>{t("review")}</Link>
                         </div>
                       </div>
                     );

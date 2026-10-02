@@ -1,15 +1,16 @@
 /** Small shared presentational components. */
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { Icons } from "./Icons";
-import { STATUS_LABELS_BY_KEY } from "../features/incidents/labels";
+import { useTranslation } from "react-i18next";
 import type { IncidentStatus } from "../types/incident";
+import { Icons } from "./Icons";
 
 export function StatusBadge({ status }: { status: IncidentStatus }) {
   // Distinct per-status identity via data-status (see tokens.css).
   // Color is never the only signal: the label text is always present.
+  const { t } = useTranslation("status");
   return (
     <span className="badge" data-status={status}>
-      {STATUS_LABELS_BY_KEY[status]}
+      {t(status)}
     </span>
   );
 }

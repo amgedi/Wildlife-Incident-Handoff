@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { REPORTER_NAV_ITEMS, PROFESSIONAL_NAV_ITEMS } from "./app/navigation";
 import { useApp } from "./app/AppContext";
@@ -22,6 +23,7 @@ import { SpotlightTour } from "./features/tutorial/SpotlightTour";
 
 export function App() {
   const { settings, storageReady, guidance, startGuidance, endGuidance } = useApp();
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -61,7 +63,8 @@ export function App() {
   return (
     <div className="app-shell">
       <TitleBar />
-      <a href="#main-content" className="sr-only">Skip to main content</a>
+      <div className="app-body">
+        <a href="#main-content" className="sr-only">{t("skipToContent")}</a>
       <aside className="sidebar">
         <NavLink to="/" className="brand">
           <BrandMark size={30} />
@@ -75,21 +78,21 @@ export function App() {
           {navItems.map((item) => (
             <NavLink key={item.to} to={item.to} end={item.end ?? item.to === "/"} data-tour-id={item.tourId} className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}>
               <item.icon size={18} />
-              {item.label}
+              {t(item.labelKey, { ns: "navigation" })}
             </NavLink>
           ))}
           <button className="nav-item" style={{ background: "none", border: "none", cursor: "pointer", font: "inherit", textAlign: "left", width: "100%" }} onClick={runTour}>
             <Icons.compass size={18} />
-            Take the tour
+            {t("navigation:takeTheTour")}
           </button>
         </nav>
-        <p className="nav-note">Local-first. Your data stays in this browser on this device.</p>
+        <p className="nav-note">{t("localFirstNote")}</p>
       </aside>
 
       <div className="main-area">
         <header className="mobile-header">
           <BrandMark size={26} />
-          <strong style={{ fontSize: "0.95rem" }}>Wildlife Incident Handoff</strong>
+          <strong style={{ fontSize: "0.95rem" }}>{t("appName")}</strong>
         </header>
         <Routes>
           <Route path="/" element={<HomePage />} />
@@ -103,33 +106,34 @@ export function App() {
           <Route path="*" element={<HomePage />} />
         </Routes>
       </div>
+      </div>
 
-      <nav className="bottom-nav" aria-label="Mobile navigation">
+      <nav className="bottom-nav" aria-label={t("navigation:mobileNav")}>
         <NavLink to="/" end className={({ isActive }) => (isActive ? "active" : "")} data-tour-id="nav-home">
           <Icons.home size={20} />
-          Home
+          {t("navigation:home")}
         </NavLink>
         <NavLink to="/incidents" className={({ isActive }) => (isActive ? "active" : "")} data-tour-id="nav-incidents">
           <Icons.list size={20} />
-          {settings.workspace === "professional" ? "Incidents" : "My reports"}
+          {settings.workspace === "professional" ? t("navigation:incidents") : t("navigation:myReports")}
         </NavLink>
         <NavLink to="/incidents/new" data-tour-id="nav-create">
           <span style={{ display: "grid", placeItems: "center", width: 40, height: 40, borderRadius: "50%", background: "var(--c-primary)", color: "var(--c-primary-ink)", marginTop: -14 }}>
             <Icons.plus size={22} />
           </span>
-          {settings.workspace === "professional" ? "Create" : "Report"}
+          {settings.workspace === "professional" ? t("navigation:createIncident") : t("navigation:report")}
         </NavLink>
         <NavLink to="/network" className={({ isActive }) => (isActive ? "active" : "")} style={{ display: settings.workspace === "professional" ? undefined : "none" }} data-tour-id="nav-network">
           <Icons.handoff size={20} />
-          Network
+          {t("navigation:network")}
         </NavLink>
         <NavLink to="/examples" className={({ isActive }) => (isActive ? "active" : "")}>
           <Icons.book size={20} />
-          Help
+          {t("navigation:learn")}
         </NavLink>
         <NavLink to="/settings" className={({ isActive }) => (isActive ? "active" : "")} data-tour-id="nav-settings">
           <Icons.settings size={20} />
-          Settings
+          {t("navigation:settings")}
         </NavLink>
       </nav>
 

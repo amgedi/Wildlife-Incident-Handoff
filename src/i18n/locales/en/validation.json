@@ -1,0 +1,11 @@
+{
+  "coordinatesNumeric": "Coordinates must be numbers, e.g. 45.123 for latitude.",
+  "latitudeRange": "Latitude must be between -90 and 90.",
+  "longitudeRange": "Longitude must be between -180 and 180.",
+  "saveFailedStorage": "We couldn't save this incident, most likely because browser storage is full. Try exporting a backup first, then removing large photos.",
+  "couldNotSave": "Could not save incident",
+  "notAnImage": "{{name}} is not an image and was skipped",
+  "fileTooLarge": "{{name}} is over 25 MB and was skipped to protect local storage",
+  "photoAdded": "Photo added",
+  "storageFull": "We couldn't save this photo because browser storage is full. Try exporting a backup, then removing large photos."
+}

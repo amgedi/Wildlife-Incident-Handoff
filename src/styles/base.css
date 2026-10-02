@@ -35,7 +35,9 @@ code { font-family: var(--font-mono); font-size: 0.85em; background: var(--c-sur
 /* ---------- Desktop title bar (Tauri only) ---------- */
 .titlebar {
   display: flex; align-items: center; justify-content: space-between;
-  height: 38px; background: var(--c-header); color: var(--c-header-ink);
+  height: 38px; width: 100%;
+  background: var(--titlebar-bg, var(--c-header)); color: var(--titlebar-fg, var(--c-header-ink));
+  border-bottom: 1px solid var(--titlebar-border, transparent);
   user-select: none; -webkit-user-select: none;
 }
 .titlebar-brand { display: flex; align-items: center; gap: 10px; padding-left: 12px; font-size: 0.85rem; font-weight: 600; }
@@ -44,7 +46,7 @@ code { font-family: var(--font-mono); font-size: 0.85em; background: var(--c-sur
   width: 46px; height: 100%; display: grid; place-items: center;
   background: none; border: none; color: var(--c-header-ink); cursor: default;
 }
-.titlebar-btn:hover { background: rgb(255 255 255 / 0.09); }
+.titlebar-btn:hover { background: var(--titlebar-hover, rgb(255 255 255 / 0.09)); }
 .titlebar-btn.titlebar-close:hover { background: var(--c-danger); color: #fff; }
 
 /* ---------- App layout ---------- */
@@ -530,3 +532,97 @@ code { font-family: var(--font-mono); font-size: 0.85em; background: var(--c-sur
   padding: var(--space-1) var(--space-3); border-radius: var(--radius-sm);
   display: inline-block;
 }
+
+/* ---------- Titlebar semantic tokens (per theme) ---------- */
+:root {
+  --titlebar-bg: var(--c-header);
+  --titlebar-fg: var(--c-header-ink);
+  --titlebar-border: rgb(255 255 255 / 0.08);
+  --titlebar-hover: rgb(255 255 255 / 0.12);
+}
+[data-theme="forest-light"] { --titlebar-border: rgb(0 0 0 / 0.1); --titlebar-hover: rgb(0 0 0 / 0.07); }
+[data-theme="mono-light"] { --titlebar-bg: #ffffff; --titlebar-fg: #0d0d0d; --titlebar-border: #dcdcdc; --titlebar-hover: #ececec; }
+[data-theme="mono-dark"] { --titlebar-bg: #060606; --titlebar-border: #2c2c2c; --titlebar-hover: #242424; }
+[data-theme="high-contrast-dark"] { --titlebar-bg: #000000; --titlebar-border: #4a5361; --titlebar-hover: #1c2430; }
+
+/* ---------- Ambient animation for EVERY theme (distinct atmospheres) ----------
+   Pure CSS pseudo-elements; transform/opacity only; paused when hidden. */
+[data-theme="moss"] body::before {
+  background:
+    radial-gradient(38% 34% at 24% 30%, rgb(105 132 62 / 0.26), transparent 70%),
+    radial-gradient(34% 30% at 78% 66%, rgb(64 90 44 / 0.24), transparent 70%);
+  animation: wih-ambient-a 96s ease-in-out infinite;
+}
+[data-theme="moss"] body::after {
+  background:
+    radial-gradient(36% 32% at 70% 24%, rgb(196 174 120 / 0.14), transparent 70%),
+    radial-gradient(42% 38% at 18% 78%, rgb(96 122 70 / 0.22), transparent 70%);
+  animation: wih-ambient-b 124s ease-in-out infinite;
+}
+[data-theme="ocean"] body::before {
+  background:
+    radial-gradient(40% 36% at 26% 26%, rgb(38 130 168 / 0.28), transparent 70%),
+    radial-gradient(36% 32% at 74% 70%, rgb(20 84 118 / 0.26), transparent 70%);
+  animation: wih-ambient-b 102s ease-in-out infinite;
+}
+[data-theme="ocean"] body::after {
+  background:
+    radial-gradient(42% 38% at 68% 20%, rgb(217 130 43 / 0.1), transparent 70%),
+    radial-gradient(40% 36% at 24% 76%, rgb(46 140 160 / 0.2), transparent 70%);
+  animation: wih-ambient-a 128s ease-in-out infinite;
+}
+[data-theme="slate"] body::before {
+  background:
+    radial-gradient(42% 38% at 30% 24%, rgb(110 132 164 / 0.22), transparent 70%),
+    radial-gradient(36% 32% at 74% 70%, rgb(78 92 116 / 0.2), transparent 70%);
+  animation: wih-ambient-a 104s ease-in-out infinite;
+}
+[data-theme="slate"] body::after {
+  background:
+    radial-gradient(40% 36% at 70% 18%, rgb(181 150 100 / 0.1), transparent 70%),
+    radial-gradient(44% 40% at 20% 80%, rgb(96 112 138 / 0.2), transparent 70%);
+  animation: wih-ambient-b 118s ease-in-out infinite;
+}
+[data-theme="high-contrast-dark"] body::before {
+  background: radial-gradient(40% 36% at 30% 26%, rgb(120 140 160 / 0.07), transparent 70%);
+  animation: wih-ambient-a 140s ease-in-out infinite;
+}
+[data-theme="high-contrast-dark"] body::after {
+  background: radial-gradient(40% 36% at 72% 70%, rgb(90 104 120 / 0.06), transparent 70%);
+  animation: wih-ambient-b 150s ease-in-out infinite;
+}
+[data-theme="mono-dark"] body::before {
+  background: radial-gradient(42% 38% at 30% 26%, rgb(255 255 255 / 0.05), transparent 70%);
+  animation: wih-ambient-a 132s ease-in-out infinite;
+}
+[data-theme="mono-dark"] body::after {
+  background: radial-gradient(40% 36% at 72% 72%, rgb(255 255 255 / 0.04), transparent 70%);
+  animation: wih-ambient-b 146s ease-in-out infinite;
+}
+[data-theme="mono-light"] body::before {
+  background: radial-gradient(42% 38% at 30% 26%, rgb(0 0 0 / 0.035), transparent 70%);
+  animation: wih-ambient-a 136s ease-in-out infinite;
+}
+[data-theme="mono-light"] body::after {
+  background: radial-gradient(40% 36% at 72% 72%, rgb(0 0 0 / 0.03), transparent 70%);
+  animation: wih-ambient-b 148s ease-in-out infinite;
+}
+
+/* Pause ambient animation when the document is hidden (battery). */
+[data-motion="full"][data-ambient="on"] body.hidden-pause::before,
+[data-motion="full"][data-ambient="on"] body.hidden-pause::after {
+  animation-play-state: paused !important;
+}
+
+/* Language picker */
+.language-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.language-option {
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+  border: 1px solid var(--c-border-strong); border-radius: var(--radius-sm);
+  background: var(--c-surface); color: var(--c-ink); font: inherit; font-size: 0.9rem;
+  cursor: pointer; min-height: 40px;
+}
+.language-option.selected { border-color: var(--c-primary); background: var(--c-ok-surface); }
+.language-badge { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em; padding: 1px 6px; border-radius: 4px; }
+.language-badge.complete { background: var(--c-ok-surface); color: var(--c-ok); }
+.language-badge.beta { background: var(--c-warn-surface); color: var(--c-warn); }

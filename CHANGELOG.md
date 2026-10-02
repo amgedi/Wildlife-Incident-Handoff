@@ -2,7 +2,28 @@
 
 All notable changes to Wildlife Incident Handoff are documented here. Format based on [Keep a Changelog](https://keepachangelog.com/); versioning follows [SemVer](https://semver.org/).
 
-## 0.2.0-dev.3 — in development
+## 0.2.0-dev.4 — in development
+
+### Fixed
+- **Desktop title bar spans the full window width** — it was nested inside the flex row; the shell is now titlebar-above-body (sidebar + content below it), with window controls at the true top-right and Windows-sized hit areas.
+- Title bar uses semantic `--titlebar-*` tokens per theme (no hard-coded green) and localized Minimize/Maximize/Restore/Close labels.
+
+### Added
+- **Complete localization architecture** (i18next + react-i18next): feature namespaces, lazy-loaded language packs, live switching, English fallback with dev missing-key warnings, RTL support (`dir` + language catalog), first-run language suggestion.
+- **English, French, Spanish catalogs are complete** (404 keys each, enforced by tests). Ten more languages (de, pt-BR, nl, it, pl, tr, ar, zh-CN, ja, ko) are architecture-ready "beta" — partial packs fall back to English and are never labeled complete. See docs/LOCALIZATION_COVERAGE.md.
+- **Ambient animation for every theme** — each of the 10 themes has a distinct atmosphere (forest drift, daylight glow, aurora, sunset, olive, ocean, graphite, and subtle grayscale for mono/high-contrast); pure CSS transform/opacity, paused automatically when the window is hidden.
+- **Update report** (Reporter): quick update types (animal still here / moved / no longer present / condition changed / responder contacted) that append timeline events.
+- **Drafts in My Reports**: unfinished reports listed with Continue/Discard.
+- **Safety help card** on Reporter home (region-neutral, no treatment advice).
+- **Check for updates** in About (queries the project's release metadata; shows result, never installs anything).
+- MapLibre is lazy-loaded: Reporter users never download the map chunk (~1 MB) unless they open the professional map.
+
+### Housekeeping
+- Repository audit: generated artifacts (dist/, src-tauri/target/, release binaries) confirmed untracked; sizes documented in the completion report.
+- docs/FEATURE_GAP_AUDIT.md and docs/LOCALIZATION_COVERAGE.md added.
+- Dependency inventory refreshed (docs/THIRD_PARTY_NOTICES.md).
+
+## 0.2.0-dev.3 — 2026-10-02
 
 ### Fixed
 - **Canonical bear paw, done properly**: one vector geometry — exactly four toes, four attached claws, one pad, symmetric — shared by the sidebar logo, hero watermark, empty states, favicon and icon pipeline. The in-app logo adapts to the active theme via `--brand-icon-bg/-fg/-border` tokens (no hard-coded green).

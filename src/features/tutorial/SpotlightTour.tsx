@@ -19,6 +19,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import type { TourStepV2 } from "./tourStepsTypes";
 import { findTourTarget, calloutPosition, type Rect } from "./tourTarget";
 
@@ -47,6 +48,7 @@ export function SpotlightTour({ steps, startIndex = 0, onFinish }: SpotlightProp
   const generationRef = useRef(0);
   const calloutHeadingRef = useRef<HTMLHeadingElement>(null);
   const nav = useNavigate();
+  const { t } = useTranslation("guidance");
   const step = steps[index];
 
   const runStep = useCallback(
@@ -217,25 +219,25 @@ export function SpotlightTour({ steps, startIndex = 0, onFinish }: SpotlightProp
       {busy && <div className="spotlight-dim" />}
 
       <div className="spotlight-callout" style={{ left: callout.left, top: callout.top, width: calloutW }} data-testid="tour-callout">
-        <p className="spotlight-step-count">Step {index + 1} of {steps.length}</p>
+        <p className="spotlight-step-count">{t("stepOf", { current: index + 1, total: steps.length })}</p>
         {phase.kind === "failed" ? (
           <>
-            <h3 ref={calloutHeadingRef} tabIndex={-1} className="spotlight-heading">We couldn't find this part of the interface.</h3>
-            <p>It may not be available in your current workspace. You can retry, skip this step, or exit the tour.</p>
+            <h3 ref={calloutHeadingRef} tabIndex={-1} className="spotlight-heading">{t("failedTitle")}</h3>
+            <p>{t("failedBody")}</p>
             <div className="spotlight-footer">
-              <button className="btn btn-quiet btn-sm" onClick={onFinish}>Exit</button>
+              <button className="btn btn-quiet btn-sm" onClick={onFinish}>{t("guideExit")}</button>
               <span style={{ flex: 1 }} />
-              <button className="btn btn-secondary btn-sm" onClick={() => runStep(index, ++generationRef.current)}>Retry</button>
+              <button className="btn btn-secondary btn-sm" onClick={() => runStep(index, ++generationRef.current)}>{t("retry", { ns: "common" })}</button>
               {index < steps.length - 1 && (
-                <button className="btn btn-primary btn-sm" onClick={() => setIndex((i) => Math.min(steps.length - 1, i + 1))}>Skip step</button>
+                <button className="btn btn-primary btn-sm" onClick={() => setIndex((i) => Math.min(steps.length - 1, i + 1))}>{t("skipStep", { ns: "common" })}</button>
               )}
             </div>
           </>
         ) : (
           <>
-            <h3 ref={calloutHeadingRef} tabIndex={-1} className="spotlight-heading">{step.title}</h3>
-            <p>{step.text}</p>
-            {busy && <p className="spotlight-opening" role="status">Opening…</p>}
+            <h3 ref={calloutHeadingRef} tabIndex={-1} className="spotlight-heading">{step.titleKey ? t(step.titleKey) : step.title}</h3>
+            <p>{step.textKeyR ? t(step.textKeyR) : step.textKey ? t(step.textKey) : step.text}</p>
+            {busy && <p className="spotlight-opening" role="status">{t("opening")}</p>}
             {step.action && (
               <div style={{ marginTop: "var(--space-2)" }}>
                 <button
@@ -246,20 +248,20 @@ export function SpotlightTour({ steps, startIndex = 0, onFinish }: SpotlightProp
                     else onFinish();
                   }}
                 >
-                  {step.action.label}
+                  {step.action.labelKey ? t(step.action.labelKey) : step.action.label}
                 </button>
               </div>
             )}
             <div className="spotlight-footer">
-              <button className="btn btn-quiet btn-sm" onClick={onFinish}>Exit</button>
+              <button className="btn btn-quiet btn-sm" onClick={onFinish}>{t("guideExit")}</button>
               <span style={{ flex: 1 }} />
               {index > 0 && (
-                <button className="btn btn-secondary btn-sm" onClick={() => setIndex((i) => Math.max(0, i - 1))}>Back</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => setIndex((i) => Math.max(0, i - 1))}>{t("back", { ns: "common" })}</button>
               )}
               {index < steps.length - 1 ? (
-                <button className="btn btn-primary btn-sm" onClick={() => setIndex((i) => i + 1)}>Next</button>
+                <button className="btn btn-primary btn-sm" onClick={() => setIndex((i) => i + 1)}>{t("next", { ns: "common" })}</button>
               ) : (
-                <button className="btn btn-primary btn-sm" onClick={onFinish}>Finish</button>
+                <button className="btn btn-primary btn-sm" onClick={onFinish}>{t("finish", { ns: "common" })}</button>
               )}
             </div>
           </>

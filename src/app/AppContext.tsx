@@ -14,7 +14,7 @@ import {
 } from "react";
 import { DEFAULT_SETTINGS, type AppSettings } from "../types/settings";
 import { getSetting, setSetting } from "../storage/repositories";
-import { setLocale } from "../i18n";
+import { changeLanguage } from "../i18n";
 import { markGuidanceComplete, type GuidanceSystemId } from "../features/tutorial/guidance";
 import type { TourStepV2 } from "../features/tutorial/tourStepsTypes";
 
@@ -64,15 +64,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
     getSetting<AppSettings>("app-settings").then((stored) => {
       if (stored) {
         const merged = { ...DEFAULT_SETTINGS, ...stored };
+        void changeLanguage(merged.language);
         // Respect OS reduced-motion until the user makes an explicit choice.
         if (stored.motion === DEFAULT_SETTINGS.motion && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
           merged.motion = "reduced";
         }
         setSettings(merged);
-        setLocale(merged.language);
+        void changeLanguage(merged.language);
       }
       setStorageReady(true);
     });
+  }, []);
+
+  // Pause ambient background animation while the window is hidden (battery).
+  useEffect(() => {
+    const onVis = () => document.body.classList.toggle("hidden-pause", document.hidden);
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
   }, []);
 
   useEffect(() => {
@@ -86,7 +94,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSettings((prev) => {
       const next = { ...prev, ...patch };
       void setSetting("app-settings", next);
-      if (patch.language) setLocale(patch.language);
+      if (patch.language) void changeLanguage(patch.language);
       return next;
     });
   }, []);

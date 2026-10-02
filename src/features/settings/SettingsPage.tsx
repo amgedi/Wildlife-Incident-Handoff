@@ -12,6 +12,8 @@ import { useEffect } from "react";
 import { APP_VERSION as appVersion, BUILD_ID as buildId, DATA_SCHEMA_VERSION as dataSchemaVersion, APP_LICENSE } from "../../version";
 import { defaultUnitsFor } from "../../utils/units";
 import { isTauri } from "../../utils/platformFile";
+import { LANGUAGE_CATALOG } from "../../i18n";
+import { useTranslation } from "react-i18next";
 import type { DetailLevel, ExperienceMode, MotionPreference, ThemeName } from "../../types/settings";
 
 const SECTIONS = [
@@ -480,10 +482,44 @@ const COUNTRIES = [
 
 function AdvancedSection() {
   const { settings, updateSettings } = useApp();
+  const { t } = useTranslation();
+  const complete = LANGUAGE_CATALOG.filter((l) => l.completeness === "complete");
+  const beta = LANGUAGE_CATALOG.filter((l) => l.completeness === "beta");
   return (
     <div className="stack">
       <div className="card">
         <h3 style={{ marginTop: 0 }}>Region & language</h3>
+        <div className="field">
+          <span style={{ display: "block", fontWeight: 600, fontSize: "0.9rem", marginBottom: 4 }}>{t("settings:language")}</span>
+          <div className="language-grid" role="listbox" aria-label={t("settings:language")}>
+            {complete.map((l) => (
+              <button
+                key={l.code}
+                role="option"
+                aria-selected={settings.language === l.code}
+                className={`language-option${settings.language === l.code ? " selected" : ""}`}
+                onClick={() => updateSettings({ language: l.code })}
+              >
+                <strong>{l.nativeName}</strong>
+                <span className="language-badge complete">Complete</span>
+              </button>
+            ))}
+            {beta.map((l) => (
+              <button
+                key={l.code}
+                role="option"
+                aria-selected={settings.language === l.code}
+                className={`language-option${settings.language === l.code ? " selected" : ""}`}
+                onClick={() => updateSettings({ language: l.code })}
+                title="Partial — falls back to English"
+              >
+                <strong>{l.nativeName}</strong>
+                <span className="language-badge beta">Beta</span>
+              </button>
+            ))}
+          </div>
+          <p className="hint">{t("settings:languageHint")}</p>
+        </div>
         <Select
           label="Country or region"
           value={settings.country}
@@ -499,13 +535,6 @@ function AdvancedSection() {
             { value: "imperial", label: "Imperial (mi, lb, °F)" },
           ]}
           onChange={(v) => updateSettings({ units: v as "metric" })}
-        />
-        <Select
-          label="Language"
-          value={settings.language}
-          options={[{ value: "en", label: "English" }]}
-          onChange={(v) => updateSettings({ language: v })}
-          hint="English is the complete source locale. The interface is built on localization keys so additional languages can be added without code changes; no partial language is shipped as “complete”."
         />
         <p style={{ color: "var(--c-ink-soft)", fontSize: "0.92rem" }}>
           User observations, species names, organization names and incident references are never translated.
@@ -523,6 +552,39 @@ function AdvancedSection() {
           country — this app intentionally does not display a specific number.
         </span>
       </div>
+    </div>
+  );
+}
+
+function UpdateChecker() {
+  const { t } = useTranslation();
+  const [state, setState] = useState<"idle" | "checking" | "uptodate" | { available: string } | "failed">("idle");
+  async function check() {
+    setState("checking");
+    try {
+      const res = await fetch("https://api.github.com/repos/amgedi/wildlife-incident-handoff/releases/latest", { headers: { Accept: "application/vnd.github+json" } });
+      if (!res.ok) throw new Error("http");
+      const data = (await res.json()) as { tag_name?: string; html_url?: string };
+      const latest = (data.tag_name ?? "").replace(/^v/, "");
+      if (latest && latest !== appVersion) setState({ available: latest });
+      else setState("uptodate");
+    } catch {
+      setState("failed");
+    }
+  }
+  return (
+    <div className="row" style={{ marginTop: "var(--space-4)", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+      <button className="btn btn-secondary btn-sm" onClick={() => void check()} disabled={state === "checking"}>
+        {state === "checking" ? "…" : t("settings:checkUpdates")}
+      </button>
+      {state === "uptodate" && <span className="badge open">{t("settings:upToDate")}</span>}
+      {typeof state === "object" && state !== null && "available" in state && (
+        <>
+          <span className="badge warn">{t("settings:updateAvailable", { version: state.available })}</span>
+          <a className="btn btn-ghost btn-sm" href="https://github.com/amgedi/wildlife-incident-handoff/releases" target="_blank" rel="noreferrer">{t("settings:viewRelease")}</a>
+        </>
+      )}
+      {state === "failed" && <span style={{ color: "var(--c-ink-faint)", fontSize: "0.85rem" }}>{t("settings:updateCheckFailed")}</span>}
     </div>
   );
 }
@@ -585,6 +647,7 @@ function AboutSection() {
       <p style={{ color: "var(--c-ink-soft)", marginTop: "var(--space-4)" }}>
         An open-source, local-first tool for creating clear and traceable wildlife incident handoffs.
       </p>
+      <UpdateChecker />
       <div style={{ marginTop: "var(--space-4)" }}>
         <button className="btn btn-secondary btn-sm" onClick={() => void copyDiagnostics()}>
           <Icons.download size={14} /> {diagCopied ? "Copied!" : "Copy diagnostics"}

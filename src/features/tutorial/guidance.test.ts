@@ -8,6 +8,7 @@ import {
   buildDemoTourSteps,
 } from "./guidance";
 import { REPORTER_NAV_ITEMS, PROFESSIONAL_NAV_ITEMS } from "../../app/navigation";
+import type { TourStepV2 } from "./tourStepsTypes";
 
 describe("guidance systems are architecturally separate", () => {
   it("has a distinct persistence key per system", () => {
@@ -30,14 +31,14 @@ describe("guidance systems are architecturally separate", () => {
 
   it("interface tour steps each declare id, target and (where needed) an explicit route", async () => {
     for (const workspace of ["reporter", "professional"] as const) {
-      const steps = await buildInterfaceTourSteps(workspace);
+      const steps: TourStepV2[] = await buildInterfaceTourSteps(workspace);
       expect(steps.length).toBeGreaterThanOrEqual(10);
       const ids = steps.map((s) => s.id);
       expect(new Set(ids).size).toBe(ids.length); // unique ids
       for (const s of steps) {
         expect(s.tourId).toBeTruthy();
-        expect(s.title).toBeTruthy();
-        expect(s.text).toBeTruthy();
+        expect(s.titleKey || s.title).toBeTruthy();
+        expect(s.textKey || s.textKeyR || s.textKeyP || s.text).toBeTruthy();
       }
     }
   });

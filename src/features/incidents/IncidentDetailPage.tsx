@@ -2,6 +2,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useApp } from "../../app/AppContext";
+import { useTranslation } from "react-i18next";
+import { UpdateReportDialog } from "./UpdateReportDialog";
 import { Icons } from "../../components/Icons";
 import { Dialog } from "../../components/Dialog";
 import { Select } from "../../components/Select";
@@ -20,13 +22,13 @@ import { DetailsTab } from "./detail/DetailsTab";
 import { ExportTab } from "./detail/ExportTab";
 
 const TABS = [
-  { id: "overview", label: "Overview" },
-  { id: "timeline", label: "Timeline" },
-  { id: "observations", label: "Observations" },
-  { id: "attachments", label: "Attachments" },
-  { id: "people", label: "People & handoffs" },
-  { id: "details", label: "Incident details" },
-  { id: "export", label: "Export" },
+  { id: "overview", labelKey: "tabsOverview" },
+  { id: "timeline", labelKey: "tabsTimeline" },
+  { id: "observations", labelKey: "tabsObservations" },
+  { id: "attachments", labelKey: "tabsAttachments" },
+  { id: "people", labelKey: "tabsPeople" },
+  { id: "details", labelKey: "tabsDetails" },
+  { id: "export", labelKey: "tabsExport" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -35,7 +37,9 @@ export function IncidentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [search, setSearchParams] = useSearchParams();
-  const { showToast } = useApp();
+  const { showToast, settings } = useApp();
+  const { t: t2 } = useTranslation("tabs");
+  const { t: t3 } = useTranslation("workspace");
   const [incident, setIncident] = useState<Incident | null>(null);
   const [notFound, setNotFound] = useState(false);
   // The URL query is the single source of truth for the active tab.
@@ -50,6 +54,7 @@ export function IncidentDetailPage() {
     else params.set("tab", next);
     setSearchParams(params, { replace: false });
   };
+  const [updateDialog, setUpdateDialog] = useState(false);
   const [statusDialog, setStatusDialog] = useState(false);
   const [newStatus, setNewStatus] = useState<IncidentStatus | null>(null);
   const [statusNote, setStatusNote] = useState("");
@@ -124,17 +129,23 @@ export function IncidentDetailPage() {
             </p>
           </div>
           <div className="row" style={{ gap: 8 }}>
+            {settings.workspace === "reporter" && (
+              <button className="btn btn-primary btn-sm" onClick={() => setUpdateDialog(true)}>
+                <Icons.edit size={15} />
+                {t2("updateReport", { ns: "reports" })}
+              </button>
+            )}
             <button className="btn btn-secondary btn-sm" data-tour-id="nav-handoff" onClick={() => setTab("people")}>
               <Icons.handoff size={15} />
-              Transfer / hand off
+              {t3("transferHandoff")}
             </button>
             {incident.status !== "closed" ? (
               <button className="btn btn-secondary btn-sm" onClick={() => setStatusDialog(true)}>
                 <Icons.edit size={15} />
-                Change status
+                {t3("changeStatus")}
               </button>
             ) : null}
-            <button className="btn btn-quiet btn-sm" aria-label="Back to incidents" onClick={() => navigate("/incidents")}>
+            <button className="btn btn-quiet btn-sm" aria-label={t3("backToIncidents")} onClick={() => navigate("/incidents")}>
               <Icons.x size={15} />
             </button>
           </div>
@@ -152,10 +163,10 @@ export function IncidentDetailPage() {
         )}
       </header>
 
-      <div className="tab-bar" role="tablist" aria-label="Incident sections" style={{ marginTop: "var(--space-5)" }}>
+      <div className="tab-bar" role="tablist" aria-label={t2("sections", { ns: "tabs" })} style={{ marginTop: "var(--space-5)" }}>
         {TABS.map((t) => (
           <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)} data-tour-id={`tab-${t.id}`}>
-            {t.label}
+            {t2(t.labelKey, { ns: "tabs" })}
           </button>
         ))}
       </div>
@@ -169,6 +180,8 @@ export function IncidentDetailPage() {
         {tab === "details" && <DetailsTab incident={incident} onChanged={bump} />}
         {tab === "export" && <ExportTab incident={incident} />}
       </div>
+
+      <UpdateReportDialog incident={incident} open={updateDialog} onClose={() => setUpdateDialog(false)} onChanged={bump} />
 
       <Dialog
         open={statusDialog}

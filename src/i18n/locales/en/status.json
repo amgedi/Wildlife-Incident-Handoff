@@ -1,0 +1,16 @@
+{
+  "draft": "Draft",
+  "reported": "Reported",
+  "response_requested": "Response requested",
+  "responder_assigned": "Responder assigned",
+  "awaiting_pickup": "Awaiting pickup",
+  "in_transport": "In transport",
+  "transferred": "Transferred",
+  "in_care": "In care",
+  "veterinary_care": "Veterinary care",
+  "monitoring": "Monitoring",
+  "released": "Released",
+  "deceased": "Deceased",
+  "closed": "Closed",
+  "cancelled": "Cancelled"
+}

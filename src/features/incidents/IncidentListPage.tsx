@@ -7,6 +7,7 @@
  * with a labeled ⋯ menu for secondary actions.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useApp } from "../../app/AppContext";
 import { Icons } from "../../components/Icons";
@@ -17,6 +18,8 @@ import { useIncidents } from "./IncidentCard";
 import { moveToTrash, restoreFromTrash, permanentlyDelete, archiveIncident, unarchiveIncident } from "../../storage/incidentService";
 import { putIncident } from "../../storage/repositories";
 import { matchesSearch } from "../../utils/text";
+import { getAllDrafts, deleteDraft } from "../../storage/repositories";
+import type { DraftRecord } from "../../storage/db";
 import { STATUS_LABELS_BY_KEY, INCIDENT_TYPES, ANIMAL_GROUPS } from "./labels";
 import { animalLabel } from "../export/exportService";
 import { formatDateTime, relativeTime } from "../../utils/time";
@@ -27,10 +30,14 @@ type View = "active" | "archive" | "trash";
 export function IncidentListPage() {
   const { incidents, refresh } = useIncidents();
   const { showToast, settings } = useApp();
+  const { t } = useTranslation();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [pendingDelete, setPendingDelete] = useState<Incident | null>(null);
+  const [drafts, setDrafts] = useState<DraftRecord[]>([]);
+  const [reloadDrafts, setReloadDrafts] = useState(0);
 
   // Filters (popover state)
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -43,6 +50,11 @@ export function IncidentListPage() {
   const view = (searchParams.get("view") as View) ?? "active";
   const setView = (v: View) => setSearchParams(v === "active" ? {} : { view: v });
   const isReporter = settings.workspace === "reporter";
+
+  useEffect(() => {
+    if (view !== "active") return;
+    getAllDrafts().then((d) => setDrafts([...d].sort((a, b) => b.savedAt.localeCompare(a.savedAt))));
+  }, [view, reloadDrafts]);
 
   // "/" focuses search when not typing in a field.
   useEffect(() => {
@@ -112,7 +124,7 @@ export function IncidentListPage() {
 
   async function handleTrash(incident: Incident) {
     await moveToTrash(incident);
-    showToast("Moved to Trash", { actionLabel: "Undo", onAction: () => void restoreFromTrash(incident).then(refresh) });
+    showToast(t("reports:trashedToast"), { actionLabel: t("undo"), onAction: () => void restoreFromTrash(incident).then(refresh) });
     await refresh();
   }
 
@@ -132,14 +144,14 @@ export function IncidentListPage() {
         <h1 style={{ margin: 0 }}>{isReporter ? "My reports" : "Incidents"}</h1>
         <Link to="/incidents/new" className="btn btn-primary">
           <Icons.plus size={16} />
-          {isReporter ? "Report wildlife" : "Create incident"}
+          {isReporter ? t("navigation:reportWildlife") : t("navigation:createIncident")}
         </Link>
       </div>
 
       <div className="segmented" style={{ marginBottom: "var(--space-4)" }} role="group" aria-label="View">
         {(["active", "archive", "trash"] as View[]).map((v) => (
           <button key={v} aria-pressed={view === v} onClick={() => setView(v)}>
-            {v === "active" ? `Active (${counts.active})` : v === "archive" ? `Archived (${counts.archive})` : `Trash (${counts.trash})`}
+            {v === "active" ? `${t("reports:viewActive")} (${counts.active})` : v === "archive" ? `${t("reports:viewArchived")} (${counts.archive})` : `${t("reports:viewTrash")} (${counts.trash})`}
           </button>
         ))}
       </div>
@@ -155,10 +167,10 @@ export function IncidentListPage() {
                 data-tour-id="incident-search"
                 className="input"
                 style={{ paddingLeft: 38, paddingRight: 44 }}
-                placeholder={isReporter ? "Search my reports…" : "Search by reference, species, location, organization, notes…"}
+                placeholder={isReporter ? t("reports:searchPlaceholder") : t("reports:searchPlaceholderPro")}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                aria-label={isReporter ? "Search my reports" : "Search incidents"}
+                aria-label={isReporter ? t("reports:search") : t("reports:searchPro")}
               />
               <kbd className="kbd-hint" aria-hidden="true">/</kbd>
             </div>
@@ -170,7 +182,7 @@ export function IncidentListPage() {
               style={{ gap: 6 }}
             >
               <Icons.list size={15} />
-              Filters{activeFilters.length > 0 ? ` (${activeFilters.length})` : ""}
+              {activeFilters.length > 0 ? t("reports:filtersCount", { count: activeFilters.length }) : t("reports:filters")}
             </button>
           </div>
 
@@ -178,62 +190,81 @@ export function IncidentListPage() {
             <div className="filters-popover" role="group" aria-label="Filters">
               <div className="grid-2">
                 <div className="field">
-                  <label htmlFor="filter-status">Status</label>
+                  <label htmlFor="filter-status">{t("reports:filterStatus")}</label>
                   <select id="filter-status" className="input" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                    <option value="all">All statuses</option>
+                    <option value="all">{t("reports:allStatuses")}</option>
                     {Object.entries(STATUS_LABELS_BY_KEY).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                   </select>
                 </div>
                 <div className="field">
-                  <label htmlFor="filter-type">Incident type</label>
+                  <label htmlFor="filter-type">{t("reports:filterType")}</label>
                   <select id="filter-type" className="input" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-                    <option value="all">All types</option>
+                    <option value="all">{t("reports:allTypes")}</option>
                     {INCIDENT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                 </div>
                 <div className="field">
-                  <label htmlFor="filter-group">Animal group</label>
+                  <label htmlFor="filter-group">{t("reports:filterGroup")}</label>
                   <select id="filter-group" className="input" value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)}>
-                    <option value="all">All animal groups</option>
+                    <option value="all">{t("reports:allGroups")}</option>
                     {ANIMAL_GROUPS.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
                   </select>
                 </div>
                 <div className="field">
-                  <label htmlFor="filter-date">Date range</label>
+                  <label htmlFor="filter-date">{t("reports:filterDate")}</label>
                   <div className="row" style={{ gap: 8, flexWrap: "nowrap" }}>
-                    <input id="filter-date" type="date" className="input" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} aria-label="From date" />
-                    <input type="date" className="input" value={dateTo} onChange={(e) => setDateTo(e.target.value)} aria-label="To date" />
+                    <input id="filter-date" type="date" className="input" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} aria-label={t("reports:from")} />
+                    <input type="date" className="input" value={dateTo} onChange={(e) => setDateTo(e.target.value)} aria-label={t("reports:until")} />
                   </div>
                 </div>
               </div>
               <div className="row between">
                 <button className="btn btn-quiet btn-sm" onClick={() => { setStatusFilter("all"); setTypeFilter("all"); setGroupFilter("all"); setDateFrom(""); setDateTo(""); }}>
-                  Clear all
+                  {t("reports:clearAll")}
                 </button>
-                <button className="btn btn-primary btn-sm" onClick={() => setFiltersOpen(false)}>Done</button>
+                <button className="btn btn-primary btn-sm" onClick={() => setFiltersOpen(false)}>{t("done")}</button>
               </div>
             </div>
           )}
 
           {activeFilters.length > 0 && (
-            <div className="row" style={{ marginTop: "var(--space-3)" }} aria-label="Applied filters">
+            <div className="row" style={{ marginTop: "var(--space-3)" }} aria-label={t("reports:appliedFilters")}>
               {activeFilters.map((f) => (
-                <button key={f.key} className="filter-chip" onClick={f.clear} aria-label={`Remove filter ${f.label}`}>
+                <button key={f.key} className="filter-chip" onClick={f.clear} aria-label={t("reports:removeFilter", { label: f.label })}>
                   {f.label} <Icons.x size={12} />
                 </button>
               ))}
               <button className="btn btn-quiet btn-sm" onClick={() => { setStatusFilter("all"); setTypeFilter("all"); setGroupFilter("all"); setDateFrom(""); setDateTo(""); }}>
-                Clear all
+                {t("reports:clearAll")}
               </button>
             </div>
           )}
         </div>
       )}
 
+      {view === "active" && drafts.length > 0 && (
+        <div className="card" style={{ padding: "var(--space-4)", marginBottom: "var(--space-4)" }} aria-label={t("home:drafts")}>
+          <h3 style={{ marginTop: 0, fontSize: "0.95rem" }}>{t("home:drafts")}</h3>
+          <div className="stack">
+            {drafts.map((d) => (
+              <div key={d.id} className="row between" style={{ gap: 12 }}>
+                <span style={{ fontSize: "0.9rem", color: "var(--c-ink-soft)" }}>
+                  {t("home:draftStarted", { when: relativeTime(d.savedAt) })}
+                </span>
+                <div className="row" style={{ gap: 8 }}>
+                  <button className="btn btn-secondary btn-sm" onClick={() => navigate("/incidents/new?resume=1")}>{t("home:draftContinue")}</button>
+                  <button className="btn btn-quiet btn-sm" onClick={() => void deleteDraft(d.id).then(() => setReloadDrafts((n) => n + 1))}>{t("home:draftDiscard")}</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {view === "trash" && (
         <div className="notice warning" style={{ marginBottom: "var(--space-4)" }}>
           <Icons.trash size={18} />
-          <span>Items in Trash stay here until you delete them permanently. Restoring puts them back where they were.</span>
+          <span>{t("reports:trashNote")}</span>
         </div>
       )}
 
@@ -242,21 +273,19 @@ export function IncidentListPage() {
           {view === "active" && !query && activeFilters.length === 0 ? (
             <EmptyState
               icon={<BearPawMark size={48} tile={false} style={{ color: "var(--brand-icon-bg)" }} />}
-              title={isReporter ? "No reports yet" : "No incidents yet"}
-              hint={isReporter
-                ? "Report wildlife to start recording what you see — observations, photos and handoffs."
-                : "Create your first incident to start recording observations and handoffs."}
+              title={isReporter ? t("reports:title") : t("home:noIncidents")}
+              hint={isReporter ? t("home:noReportsHint") : t("home:noIncidentsHint")}
               action={
                 <Link to="/incidents/new" className="btn btn-primary">
-                  <Icons.plus size={16} /> {isReporter ? "Report wildlife" : "Create incident"}
+                  <Icons.plus size={16} /> {isReporter ? t("navigation:reportWildlife") : t("navigation:createIncident")}
                 </Link>
               }
             />
           ) : (
             <EmptyState
               icon={<Icons.search size={40} />}
-              title={view === "trash" ? "Trash is empty" : "Nothing matches"}
-              hint={view === "trash" ? "Deleted incidents will appear here." : "Try different search terms or filters."}
+              title={view === "trash" ? t("reports:trashEmpty") : t("reports:nothingMatches")}
+              hint={view === "trash" ? t("reports:trashEmptyHint") : t("reports:nothingMatchesHint")}
             />
           )}
         </div>
@@ -268,10 +297,10 @@ export function IncidentListPage() {
               incident={i}
               view={view}
               onPin={() => void putIncident({ ...i, pinnedAt: i.pinnedAt ? null : new Date().toISOString() }).then(refresh)}
-              onArchive={() => void archiveIncident(i).then(refresh).then(() => showToast("Incident archived"))}
+              onArchive={() => void archiveIncident(i).then(refresh).then(() => showToast(t("reports:archivedToast")))}
               onTrash={() => void handleTrash(i)}
-              onUnarchive={() => void unarchiveIncident(i).then(refresh).then(() => showToast("Incident unarchived"))}
-              onRestore={() => void restoreFromTrash(i).then(refresh).then(() => showToast("Restored from Trash"))}
+              onUnarchive={() => void unarchiveIncident(i).then(refresh).then(() => showToast(t("reports:unarchivedToast")))}
+              onRestore={() => void restoreFromTrash(i).then(refresh).then(() => showToast(t("reports:restoredToast")))}
               onDeleteForever={() => setPendingDelete(i)}
             />
           ))}
@@ -280,18 +309,18 @@ export function IncidentListPage() {
 
       <Dialog
         open={pendingDelete !== null}
-        title="Delete permanently?"
+        title={t("reports:deleteTitle")}
         danger
         onClose={() => setPendingDelete(null)}
         actions={
           <>
-            <button className="btn btn-secondary" onClick={() => setPendingDelete(null)}>Keep it</button>
+            <button className="btn btn-secondary" onClick={() => setPendingDelete(null)}>{t("reports:keepIt")}</button>
             <button
               className="btn btn-danger"
               onClick={async () => {
                 if (pendingDelete) {
                   await permanentlyDelete(pendingDelete);
-                  showToast("Incident deleted permanently");
+                  showToast(t("reports:deletedToast"));
                 }
                 setPendingDelete(null);
                 await refresh();
@@ -302,12 +331,9 @@ export function IncidentListPage() {
           </>
         }
       >
-        <p>
-          This removes <strong>{pendingDelete?.humanReference}</strong> and all of its timeline history, observations,
-          corrections and attached photos from this device. This cannot be undone.
-        </p>
+        <p>{t("reports:deleteBody", { ref: pendingDelete?.humanReference ?? "" })}</p>
         <p style={{ color: "var(--c-ink-faint)", fontSize: "0.85rem" }}>
-          Consider exporting a backup first (Settings → Storage & backups) if you might need this record later.
+          {t("reports:deleteBackupHint")}
         </p>
       </Dialog>
     </main>
@@ -330,6 +356,7 @@ function ReportCard({
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const last = [...incident.timeline].sort((a, b) => b.timestamp.localeCompare(a.timestamp))[0];
 
   useEffect(() => {
@@ -357,7 +384,7 @@ function ReportCard({
       tabIndex={0}
       onClick={() => navigate(`/incidents/${incident.id}`)}
       onKeyDown={(e) => { if (e.key === "Enter" && (e.target as HTMLElement) === e.currentTarget) navigate(`/incidents/${incident.id}`); }}
-      aria-label={`${animalLabel(incident)} — ${STATUS_LABELS_BY_KEY[incident.status]}`}
+      aria-label={`${animalLabel(incident)} — ${t(incident.status, { ns: "status" })}`}
     >
       <div className="rc-top">
         <p className="ic-title">{animalLabel(incident)}</p>
@@ -366,7 +393,7 @@ function ReportCard({
             className="btn btn-quiet btn-sm"
             aria-haspopup="menu"
             aria-expanded={menuOpen}
-            aria-label={`Actions for ${incident.humanReference}`}
+            aria-label={t("reports:actionsFor", { ref: incident.humanReference })}
             onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o); }}
             onKeyDown={(e) => e.stopPropagation()}
           >
@@ -377,28 +404,28 @@ function ReportCard({
               {view === "active" && (
                 <>
                   <button role="menuitem" onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onPin(); }}>
-                    <Icons.pin size={15} /> {incident.pinnedAt ? "Unpin" : "Pin to top"}
+                    <Icons.pin size={15} /> {incident.pinnedAt ? t("reports:unpin") : t("reports:pin")}
                   </button>
                   <button role="menuitem" onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onArchive(); }}>
-                    <Icons.archive size={15} /> Archive
+                    <Icons.archive size={15} /> {t("reports:archive")}
                   </button>
                   <button role="menuitem" className="danger" onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onTrash(); }}>
-                    <Icons.trash size={15} /> Move to Trash
+                    <Icons.trash size={15} /> {t("reports:moveToTrash")}
                   </button>
                 </>
               )}
               {view === "archive" && (
                 <button role="menuitem" onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onUnarchive(); }}>
-                  <Icons.undo size={15} /> Unarchive
+                  <Icons.undo size={15} /> {t("reports:unarchive")}
                 </button>
               )}
               {view === "trash" && (
                 <>
                   <button role="menuitem" onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onRestore(); }}>
-                    <Icons.undo size={15} /> Restore
+                    <Icons.undo size={15} /> {t("reports:restore")}
                   </button>
                   <button role="menuitem" className="danger" onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDeleteForever(); }}>
-                    <Icons.trash size={15} /> Delete permanently
+                    <Icons.trash size={15} /> {t("reports:deletePermanently")}
                   </button>
                 </>
               )}
@@ -412,7 +439,7 @@ function ReportCard({
       </p>
       {last && <p className="ic-updates">Last update: {last.summary} · {relativeTime(last.timestamp)}</p>}
       <div className="rc-footer">
-        <span className="badge" data-status={incident.status}>{STATUS_LABELS_BY_KEY[incident.status]}</span>
+        <span className="badge" data-status={incident.status}>{t(incident.status, { ns: "status" })}</span>
         <span style={{ marginLeft: "auto", color: "var(--c-ink-faint)", display: "inline-flex", paddingRight: 4 }} aria-hidden="true">
           <Icons.chevronRight size={18} />
         </span>

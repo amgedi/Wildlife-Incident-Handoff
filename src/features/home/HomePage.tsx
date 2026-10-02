@@ -1,5 +1,6 @@
 /** Calm, useful home screen: hero, continue working, recent incidents. */
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "../../app/AppContext";
 import { Icons } from "../../components/Icons";
@@ -15,6 +16,7 @@ import { relativeTime } from "../../utils/time";
 export function HomePage() {
   const { incidents } = useIncidents();
   const { settings, startGuidance } = useApp();
+  const { t } = useTranslation();
   const isReporter = settings.workspace === "reporter";
   const navigate = useNavigate();
   const [draft, setDraft] = useState<DraftRecord | null>(null);
@@ -57,29 +59,25 @@ export function HomePage() {
         <BrandMark size={44} />
         {isReporter ? (
           <>
-            <h1 style={{ marginTop: "var(--space-4)" }}>Found wildlife that may need help?</h1>
-            <p style={{ fontSize: "1.05rem" }}>
-              Record what you see, step by step. Nothing is shared without your say-so — and "Unknown" is always
-              a valid answer.
-            </p>
+            <h1 style={{ marginTop: "var(--space-4)" }}>{t("home:foundWildlife")}</h1>
+            <p style={{ fontSize: "1.05rem" }}>{t("home:heroReporter")}</p>
           </>
         ) : (
           <>
-            <h1 style={{ marginTop: "var(--space-4)" }}>Wildlife Incident Handoff</h1>
+            <h1 style={{ marginTop: "var(--space-4)" }}>{t("appName")}</h1>
             <p style={{ fontSize: "1.05rem" }}>
-              {settings.displayName ? `Welcome back, ${settings.displayName}. ` : ""}Clear information. Safer handoffs.
-              Record what was observed, keep the whole story in order, and pass the case on without losing context.
+              {settings.displayName ? t("home:welcomeBack", { name: settings.displayName }) : ""}{t("home:heroProfessional")}
             </p>
           </>
         )}
         <div className="hero-actions">
           <Link to="/incidents/new" className="btn btn-primary btn-lg" data-tour-id="hero-create">
             <Icons.plus size={18} />
-            {isReporter ? "Report wildlife" : "Create incident"}
+            {isReporter ? t("navigation:reportWildlife") : t("navigation:createIncident")}
           </Link>
           <Link to="/incidents" className="btn btn-secondary btn-lg btn-hero-secondary" data-tour-id="hero-open">
             <Icons.list size={18} />
-            {isReporter ? "My reports" : "Open incidents"}
+            {isReporter ? t("home:openIncidents") : t("home:openIncidentsPro")}
           </Link>
           {!settings.tourCompleted && (
             <button className="btn btn-ghost btn-lg btn-hero-ghost" onClick={() => {
@@ -102,13 +100,13 @@ export function HomePage() {
         <div className="notice warning" style={{ marginTop: "var(--space-5)" }} data-tour-id="draft-recovery">
           <Icons.edit size={20} />
           <div style={{ flex: 1 }}>
-            <strong>Unfinished draft</strong> — an incident was being created ({relativeTime(draft.savedAt)}).
+            <strong>{t("home:draftFound")}</strong> {t("home:draftFoundAt", { when: relativeTime(draft.savedAt) })}
             <div className="row" style={{ marginTop: 8 }}>
               <button className="btn btn-secondary btn-sm" onClick={() => navigate("/incidents/new?resume=1")}>
-                Resume draft
+                {t("home:resumeDraft")}
               </button>
               <button className="btn btn-quiet btn-sm" onClick={() => setDraft(null)}>
-                Discard reminder
+                {t("home:discardReminder")}
               </button>
             </div>
           </div>
@@ -118,30 +116,28 @@ export function HomePage() {
       <div className="card" style={{ marginTop: "var(--space-5)", display: "flex", gap: "var(--space-4)", alignItems: "center", flexWrap: "wrap" }} data-tour-id="guide-me-card">
         <Icons.help size={22} style={{ color: "var(--c-primary)", flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 220 }}>
-          <h3 style={{ margin: 0 }}>Not sure what to do?</h3>
-          <p style={{ margin: "4px 0 0", color: "var(--c-ink-soft)", fontSize: "0.92rem" }}>
-            Guide me walks you through a real report, one friendly step at a time.
-          </p>
+          <h3 style={{ margin: 0 }}>{t("home:notSureWhatToDo")}</h3>
+          <p style={{ margin: "4px 0 0", color: "var(--c-ink-soft)", fontSize: "0.92rem" }}>{t("home:guideMeBlurb")}</p>
         </div>
         <Link to="/incidents/new?guide=1" className="btn btn-primary">
           <Icons.compass size={16} />
-          Guide me
+          {t("home:guideMe")}
         </Link>
       </div>
 
       <h2 className="section-label" style={{ marginTop: "var(--space-6)" }}>
-        {isReporter ? "Your reports" : "Continue working"}
+        {isReporter ? t("home:yourReports") : t("home:continueWorking")}
       </h2>
       {active.length === 0 ? (
         <div className="card">
           <EmptyState
             icon={<BearPawMark size={48} tile={false} style={{ color: "var(--brand-icon-bg)" }} />}
             title="No incidents yet"
-            hint="Create your first incident to start recording observations and handoffs."
+            hint={isReporter ? t("home:noReportsHint") : t("home:noIncidentsHint")}
             action={
               <Link to="/incidents/new" className="btn btn-primary">
                 <Icons.plus size={16} />
-                Create incident
+                {isReporter ? t("navigation:reportWildlife") : t("navigation:createIncident")}
               </Link>
             }
           />
@@ -158,7 +154,7 @@ export function HomePage() {
         <div className="card" style={{ marginTop: "var(--space-4)" }}>
           <h3>Latest active incident</h3>
           <p style={{ color: "var(--c-ink-soft)" }}>
-            {animalLabel(first)} — {first.nextStep ? `Next step: ${first.nextStep}` : "No next step recorded yet."}
+            {animalLabel(first)} — {first.nextStep ? t("workspace:nextStep") + ": " + first.nextStep : t("home:noNextStep")}
           </p>
           <Link className="btn btn-secondary btn-sm" to={`/incidents/${first.id}`}>Continue</Link>
         </div>
@@ -167,17 +163,17 @@ export function HomePage() {
       {isReporter && (inProgress.length > 0 || awaiting.length > 0 || resolved.length > 0) && (
         <div className="grid-2" style={{ marginTop: "var(--space-4)" }}>
           <div className="card" style={{ padding: "var(--space-4)" }}>
-            <h3>In progress ({inProgress.length})</h3>
-            <p style={{ margin: 0, color: "var(--c-ink-soft)", fontSize: "0.88rem" }}>Someone is helping or the case is being handed over.</p>
+            <h3>{t("home:inProgress", { count: inProgress.length })}</h3>
+            <p style={{ margin: 0, color: "var(--c-ink-soft)", fontSize: "0.88rem" }}>{t("home:inProgressHint")}</p>
           </div>
           <div className="card" style={{ padding: "var(--space-4)" }}>
-            <h3>Awaiting response ({awaiting.length})</h3>
-            <p style={{ margin: 0, color: "var(--c-ink-soft)", fontSize: "0.88rem" }}>Recorded and waiting for a responder to pick it up.</p>
+            <h3>{t("home:awaitingResponse", { count: awaiting.length })}</h3>
+            <p style={{ margin: 0, color: "var(--c-ink-soft)", fontSize: "0.88rem" }}>{t("home:awaitingHint")}</p>
           </div>
           <div className="card" style={{ padding: "var(--space-4)", gridColumn: "1 / -1" }}>
-            <h3>Resolved ({resolved.length})</h3>
+            <h3>{t("home:resolved", { count: resolved.length })}</h3>
             {resolved.length === 0 ? (
-              <p style={{ margin: 0, color: "var(--c-ink-faint)", fontSize: "0.88rem" }}>Closed reports appear here.</p>
+              <p style={{ margin: 0, color: "var(--c-ink-faint)", fontSize: "0.88rem" }}>{t("home:resolvedHint")}</p>
             ) : (
               <div className="card-list" style={{ marginTop: 8 }}>
                 {resolved.map((i) => <IncidentCard key={i.id} incident={i} />)}
@@ -187,7 +183,7 @@ export function HomePage() {
         </div>
       )}
 
-      <h2 className="section-label" style={{ marginTop: "var(--space-6)" }}>Recent incidents</h2>
+      <h2 className="section-label" style={{ marginTop: "var(--space-6)" }}>{t("home:recentIncidents")}</h2>
       {recent.length === 0 && active.length === 0 ? (
         <div className="card">
           <p style={{ margin: 0, color: "var(--c-ink-faint)" }}>

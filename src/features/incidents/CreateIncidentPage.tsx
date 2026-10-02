@@ -10,6 +10,7 @@ import { useApp, useSaveStatus } from "../../app/AppContext";
 import { Select } from "../../components/Select";
 import { SearchableCombobox } from "../../components/SearchableCombobox";
 import { DateTimeField } from "../../components/DateTimeField";
+import { useTranslation } from "react-i18next";
 import { TextField } from "../../components/ui";
 import { Icons } from "../../components/Icons";
 import {
@@ -26,18 +27,7 @@ import { isoToLocalInput, localInputToIso, nowIso } from "../../utils/time";
 import { uuid } from "../../utils/id";
 import { cleanText } from "../../utils/text";
 
-const STEPS = [
-  "What happened?",
-  "The animal",
-  "Where was it found?",
-  "What did you observe?",
-  "Anything dangerous?",
-  "Already done",
-  "Where is the animal now?",
-  "Contacts",
-  "Photos",
-  "Review",
-];
+const STEP_KEYS = ["s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9", "s10"] as const;
 
 const SAFETY_NOTE =
   "Wildlife Incident Handoff records information — it is not medical or veterinary advice. Avoid unnecessary handling, keep people and pets away, and contact a licensed wildlife professional when needed.";
@@ -127,6 +117,7 @@ const ACTION_SUGGESTIONS = [
 export function CreateIncidentPage() {
   const navigate = useNavigate();
   const { settings, showToast } = useApp();
+  const { t } = useTranslation();
   const { status: saveStatus, markSaving } = useSaveStatus();
   const [searchParams] = useSearchParams();
   const guide = searchParams.get("guide") === "1";
@@ -155,7 +146,7 @@ export function CreateIncidentPage() {
       getDraft("draft").then((d) => {
         if (d && d.data) {
           setState({ ...emptyDraft(), ...(d.data as DraftState) });
-          setStep(Math.min(d.step ?? 0, STEPS.length - 1));
+          setStep(Math.min(d.step ?? 0, STEP_KEYS.length - 1));
         }
       });
     }
@@ -187,20 +178,20 @@ export function CreateIncidentPage() {
       const lat = parseFloat(state.location.lat);
       const lon = parseFloat(state.location.lon);
       if ((state.location.lat && !Number.isFinite(lat)) || (state.location.lon && !Number.isFinite(lon))) {
-        setError("Coordinates must be numbers, e.g. 45.123 for latitude.");
+        setError(t("validation:coordinatesNumeric"));
         return;
       }
       if (state.location.lat && (lat < -90 || lat > 90)) {
-        setError("Latitude must be between -90 and 90.");
+        setError(t("validation:latitudeRange"));
         return;
       }
       if (state.location.lon && (lon < -180 || lon > 180)) {
-        setError("Longitude must be between -180 and 180.");
+        setError(t("validation:longitudeRange"));
         return;
       }
     }
     setError(null);
-    setStep((s) => Math.min(s + 1, STEPS.length - 1));
+    setStep((s) => Math.min(s + 1, STEP_KEYS.length - 1));
     window.scrollTo({ top: 0 });
   };
   const goBack = () => {
@@ -312,35 +303,35 @@ export function CreateIncidentPage() {
       if (s.includeContact && s.rememberContact) {
         await setSetting("saved-reporter-contact", s.reporter);
       }
-      showToast(`Incident ${incident.humanReference} created`);
+      showToast(t("reports:reportCreatedToast", { ref: incident.humanReference }));
       navigate(`/incidents/${incident.id}`);
     } catch (e) {
-      setError("We couldn't save this incident, most likely because browser storage is full. Try exporting a backup first, then removing large photos.");
-      showToast("Could not save incident");
+      setError(t("validation:saveFailedStorage"));
+      showToast(t("validation:couldNotSave"));
     }
   }
 
   return (
     <main className="content" id="main-content" style={{ maxWidth: 760 }}>
       <div className="row between" style={{ marginBottom: "var(--space-2)" }}>
-        <h1>Create incident</h1>
+        <h1>{settings.workspace === "professional" ? t("wizard:createTitlePro") : t("wizard:createTitle")}</h1>
         <span className="save-status" role="status">
-          {saveStatus === "saving" ? "Saving…" : saveStatus === "saved" ? "Draft saved" : ""}
+          {saveStatus === "saving" ? t("wizard:saving") : saveStatus === "saved" ? t("wizard:draftSaved") : ""}
         </span>
       </div>
       <p style={{ color: "var(--c-ink-soft)", fontSize: "0.92rem" }}>
-        {STEPS[step]} — step {step + 1} of {STEPS.length}. Everything not marked required can be left out or left Unknown.
+        {t(`wizard:${STEP_KEYS[step]}`)} — {t("wizard:stepOf", { current: step + 1, total: STEP_KEYS.length })}
       </p>
 
       <div className="wizard-steps" role="tablist" aria-label="Wizard steps">
-        {STEPS.map((s, i) => (
+        {STEP_KEYS.map((key, i) => (
           <button
-            key={s}
+            key={key}
             className={`wizard-step-dot${i === step ? " current" : ""}${i < step ? " done" : ""}`}
             onClick={() => { setStep(i); window.scrollTo({ top: 0 }); }}
             aria-current={i === step ? "step" : undefined}
           >
-            {i + 1}. {s}
+            {i + 1}. {t(`wizard:${key}`)}
           </button>
         ))}
       </div>
@@ -370,7 +361,7 @@ export function CreateIncidentPage() {
             <button className="btn btn-quiet" onClick={() => { void deleteDraft("draft"); navigate("/"); }}>
               Cancel
             </button>
-            {step < STEPS.length - 1 ? (
+            {step < STEP_KEYS.length - 1 ? (
               <button className="btn btn-primary" onClick={goNext} disabled={!canContinue}>
                 Next
                 <Icons.chevronRight size={16} />
@@ -871,30 +862,19 @@ function StepPhotos({ state, update, showToast }: StepProps & { showToast: (m: s
   );
 }
 
-const GUIDE_TEXTS: Record<number, { title: string; body: string }> = {
-  0: { title: "Let's start with what happened", body: "The date is already filled in — change it if the animal was found earlier. Pick the kind of incident if you can, or choose “Not sure”. Then describe what happened in your own words." },
-  1: { title: "What animal is it?", body: "Only if you know. “Not sure” is a completely normal answer here — a short description like “small brown bird” is more useful than a guessed species." },
-  2: { title: "Where is it?", body: "You can use your device location (with your permission) or just describe the place. “Roadside near the old mill” is a perfectly good location." },
-  3: { title: "What did you see?", body: "Describe what you can see — movement, bleeding, entanglement — rather than guessing an injury. Use the example chips if they help." },
-  4: { title: "Is anything dangerous right now?", body: "Think traffic, water, pets — for the animal and for you. Your safety comes first, always." },
-  5: { title: "What has already been done?", body: "Even “no action taken” is useful information for the next person. Don't feel you should handle the animal." },
-  6: { title: "Where is the animal now?", body: "Still there? Contained? With someone? This becomes the start of the custody story." },
-  7: { title: "Would you like to be contacted?", body: "Completely optional. Anonymous reports are fine — skip this if you prefer." },
-  8: { title: "Photos help a lot", body: "If you have them. A photo of the animal and its surroundings gives the next person real context. Skip if you don't." },
-  9: { title: "Almost done — review", body: "Check the summary. Anything you didn't know stays honestly marked as Unknown. Choose how the report should be shared, then create it." },
-};
 
 function GuideCoach({ step, onExit }: { step: number; onExit: () => void }) {
-  const g = GUIDE_TEXTS[step];
-  if (!g) return null;
+  const { t } = useTranslation("guideCoach");
+  const has = step >= 0 && step <= 9;
+  if (!has) return null;
   return (
     <div className="notice" style={{ marginBottom: "var(--space-4)", borderColor: "var(--c-primary)" }} data-testid="guide-coach">
       <Icons.compass size={20} />
       <div style={{ flex: 1 }}>
-        <strong>{g.title}</strong>
-        <p style={{ margin: "4px 0 0", color: "var(--c-ink-soft)" }}>{g.body}</p>
+        <strong>{t(`s${step}t`)}</strong>
+        <p style={{ margin: "4px 0 0", color: "var(--c-ink-soft)" }}>{t(`s${step}b`)}</p>
       </div>
-      <button className="btn btn-quiet btn-sm" onClick={onExit}>Exit guide</button>
+      <button className="btn btn-quiet btn-sm" onClick={onExit}>{t("guideExit", { ns: "guidance" })}</button>
     </div>
   );
 }

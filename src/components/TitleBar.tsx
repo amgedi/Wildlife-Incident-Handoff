@@ -9,6 +9,7 @@
  * Only rendered inside the Tauri shell; web/PWA keeps browser chrome.
  */
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { isTauri } from "../utils/platformFile";
 import { BearPawMark } from "./BrandMark";
 
@@ -26,6 +27,7 @@ function getWindowApi(): WindowApi | null {
 
 export function TitleBar() {
   const [maximized, setMaximized] = useState(false);
+  const { t } = useTranslation("titlebar");
   const api = getWindowApi();
 
   useEffect(() => {
@@ -49,14 +51,14 @@ export function TitleBar() {
       <div className="titlebar-controls">
         <button
           className="titlebar-btn"
-          aria-label="Minimize"
+          aria-label={t("minimize")}
           onClick={() => void api.minimize()}
         >
           <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M0 5h10" stroke="currentColor" strokeWidth="1" /></svg>
         </button>
         <button
           className="titlebar-btn"
-          aria-label={maximized ? "Restore" : "Maximize"}
+          aria-label={maximized ? t("restore") : t("maximize")}
           onClick={() => void api.toggleMaximize().then(() => api.isMaximized().then(setMaximized))}
         >
           {maximized ? (
@@ -65,7 +67,7 @@ export function TitleBar() {
             <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><rect x="0.5" y="0.5" width="9" height="9" fill="none" stroke="currentColor" strokeWidth="1" /></svg>
           )}
         </button>
-        <button className="titlebar-btn titlebar-close" aria-label="Close" onClick={() => void api.close()}>
+        <button className="titlebar-btn titlebar-close" aria-label={t("closeWindow")} onClick={() => void api.close()}>
           <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M0 0l10 10M10 0L0 10" stroke="currentColor" strokeWidth="1" /></svg>
         </button>
       </div>

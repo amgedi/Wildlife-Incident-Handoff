@@ -6,6 +6,7 @@ import { SpotlightTour } from "../tutorial/SpotlightTour";
 import { putIncident } from "../../storage/repositories";
 import { AppProvider } from "../../app/AppContext";
 import { makeIncident } from "../export/exportService.test";
+import "../../i18n";
 
 function renderDetail(id: string, initialEntry = `/incidents/${id}`) {
   return render(
@@ -20,6 +21,10 @@ function renderDetail(id: string, initialEntry = `/incidents/${id}`) {
 }
 
 describe("incident tab navigation (regression: Export tab stuck)", () => {
+  function tabEl(name: string) {
+    return document.querySelector(`[data-tour-id="tab-${name.toLowerCase()}"]`) as HTMLElement | null;
+  }
+
   it("deep link ?tab=export opens the Export tab", async () => {
     const inc = makeIncident();
     await putIncident(inc);
@@ -35,16 +40,16 @@ describe("incident tab navigation (regression: Export tab stuck)", () => {
     await screen.findByText("Handoff summary");
 
     // Export -> Timeline: the old effect would snap the selection back to export.
-    fireEvent.click(screen.getByRole("tab", { name: "Timeline" }));
+    fireEvent.click(tabEl("timeline")!);
     expect(screen.getByRole("tab", { selected: true }).textContent).toBe("Timeline");
     await screen.findByText("Incident created");
 
     // Timeline -> People & handoffs
-    fireEvent.click(screen.getByRole("tab", { name: "People & handoffs" }));
+    fireEvent.click(tabEl("people")!);
     expect(screen.getByRole("tab", { selected: true }).textContent).toBe("People & handoffs");
 
     // People -> Overview
-    fireEvent.click(screen.getByRole("tab", { name: "Overview" }));
+    fireEvent.click(tabEl("overview")!);
     expect(screen.getByRole("tab", { selected: true }).textContent).toBe("Overview");
     expect(await screen.findByText("What's happening now")).toBeTruthy();
   });
@@ -54,13 +59,13 @@ describe("incident tab navigation (regression: Export tab stuck)", () => {
     await putIncident(inc);
     renderDetail(inc.id);
     await screen.findByText("What's happening now");
-    const tabs = ["Timeline", "Observations", "Attachments", "People & handoffs", "Incident details", "Export", "Overview"];
+    const tabs = ["timeline", "observations", "attachments", "people", "details", "export", "overview"];
     for (const from of tabs) {
       for (const to of tabs) {
         if (from === to) continue;
-        fireEvent.click(screen.getByRole("tab", { name: from }));
-        fireEvent.click(screen.getByRole("tab", { name: to }));
-        expect(screen.getByRole("tab", { selected: true }).textContent).toBe(to);
+        fireEvent.click(tabEl(from)!);
+        fireEvent.click(tabEl(to)!);
+        expect(tabEl(to)?.getAttribute("aria-selected")).toBe("true");
       }
     }
   });
