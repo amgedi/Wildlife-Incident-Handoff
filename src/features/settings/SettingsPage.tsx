@@ -9,7 +9,7 @@ import { downloadBackup, importBackup } from "../../storage/backupService";
 import { getAllIncidents, getAllAttachmentBlobs, estimateStorage, setSetting } from "../../storage/repositories";
 import { bytesToSize } from "../../utils/time";
 import { useEffect } from "react";
-import { APP_VERSION as appVersion, BUILD_ID as buildId, DATA_SCHEMA_VERSION as dataSchemaVersion } from "../../version";
+import { APP_VERSION as appVersion, BUILD_ID as buildId, DATA_SCHEMA_VERSION as dataSchemaVersion, APP_LICENSE } from "../../version";
 import { defaultUnitsFor } from "../../utils/units";
 import { isTauri } from "../../utils/platformFile";
 import type { DetailLevel, ExperienceMode, MotionPreference, ThemeName } from "../../types/settings";
@@ -579,7 +579,7 @@ function AboutSection() {
         <dt>Version</dt><dd>{appVersion}</dd>
         <dt>Build</dt><dd><code>{buildId}</code></dd>
         <dt>Data format</dt><dd>v{dataSchemaVersion} (schemaVersion)</dd>
-        <dt>License</dt><dd>MIT</dd>
+        <dt>License</dt><dd>{APP_LICENSE} <a href="https://www.gnu.org/licenses/agpl-3.0.txt" target="_blank" rel="noreferrer">View license</a></dd>
         <dt>Data location</dt><dd>This browser, this device</dd>
       </dl>
       <p style={{ color: "var(--c-ink-soft)", marginTop: "var(--space-4)" }}>

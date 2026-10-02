@@ -64,7 +64,7 @@ const INCIDENT_TYPE_LABELS: Record<IncidentType, string> = {
 };
 
 const ANIMAL_GROUP_LABELS: Record<string, string> = {
-  bird: "Bird", mammal: "Mammal", reptile: "Reptile", amphibian: "Amphibian", fish: "Fish", other: "Other", not_sure: "Not sure",
+  bird: "Bird", mammal: "Mammal", reptile: "Reptile", amphibian: "Amphibian", fish: "Fish", invertebrate: "Invertebrate", other: "Other", not_sure: "Not sure",
 };
 const LIFE_STAGE_LABELS: Record<string, string> = { adult: "Adult", juvenile: "Juvenile", young: "Young", unknown: "Unknown" };
 const SEX_LABELS: Record<string, string> = { male: "Male", female: "Female", unknown: "Unknown", not_recorded: "Not recorded" };

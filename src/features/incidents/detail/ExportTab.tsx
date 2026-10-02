@@ -1,7 +1,7 @@
 /** Export tab: privacy-aware handoff summaries (print, text, HTML). */
 import { useState } from "react";
 import type { Incident } from "../../../types/incident";
-import { SectionHeading } from "../../../components/ui";
+import { SectionHeading, Checkbox } from "../../../components/ui";
 import { Icons } from "../../../components/Icons";
 import { useApp } from "../../../app/AppContext";
 import {
@@ -40,31 +40,31 @@ export function ExportTab({ incident }: { incident: Incident }) {
         <div className="card" style={{ boxShadow: "none", marginTop: "var(--space-4)", padding: "var(--space-4)" }}>
           <h3 style={{ marginTop: 0 }}>What's included</h3>
           <div className="stack">
-            <CheckRow
+            <Checkbox
               label="Precise coordinates"
               checked={opts.includeCoordinates}
               onChange={() => toggle("includeCoordinates")}
-              hasData={incident.location.latitude != null}
-              warning="Included by default only in Internal exports."
+              trailing={incident.location.latitude != null ? undefined : "No coordinates recorded"}
+              hint={opts.includeCoordinates && incident.location.latitude != null ? "Included by default only in Internal exports." : undefined}
             />
-            <CheckRow
+            <Checkbox
               label="Personal phone & email"
               checked={opts.includePersonalContacts}
               onChange={() => toggle("includePersonalContacts")}
-              hasData={incident.contacts.some((c) => c.phone || c.email)}
-              warning="Contact details are private — include only when the recipient needs them."
+              trailing={incident.contacts.some((c) => c.phone || c.email) ? undefined : "None recorded"}
+              hint={opts.includePersonalContacts && incident.contacts.some((c) => c.phone || c.email) ? "Contact details are private — include only when the recipient needs them." : undefined}
             />
-            <CheckRow
+            <Checkbox
               label="Private working notes"
               checked={opts.includePrivateNotes}
               onChange={() => toggle("includePrivateNotes")}
-              hasData={incident.notes.some((n) => n.kind === "private")}
+              trailing={incident.notes.some((n) => n.kind === "private") ? undefined : "None recorded"}
             />
-            <CheckRow
+            <Checkbox
               label="Attachments index (file names & captions only)"
               checked={opts.includeAttachmentsIndex}
               onChange={() => toggle("includeAttachmentsIndex")}
-              hasData={incident.attachments.length > 0}
+              trailing={incident.attachments.length > 0 ? undefined : "None recorded"}
             />
           </div>
           {mode === "shareable" && (
@@ -95,26 +95,6 @@ export function ExportTab({ incident }: { incident: Incident }) {
           Printing uses your browser's print dialog — choose “Save as PDF” there for a PDF copy.
         </p>
       </div>
-    </div>
-  );
-}
-
-function CheckRow({
-  label, checked, onChange, hasData, warning,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: () => void;
-  hasData: boolean;
-  warning?: string;
-}) {
-  return (
-    <div>
-      <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: "0.92rem", cursor: "pointer" }}>
-        <input type="checkbox" checked={checked} onChange={onChange} />
-        {label} {!hasData && <span className="unknown-chip" style={{ fontSize: "0.7rem" }}>none recorded</span>}
-      </label>
-      {checked && warning && <p style={{ margin: "2px 0 0 26px", fontSize: "0.8rem", color: "var(--c-warn)" }}>{warning}</p>}
     </div>
   );
 }

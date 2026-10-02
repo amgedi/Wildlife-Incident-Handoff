@@ -4,6 +4,7 @@ import { REPORTER_NAV_ITEMS, PROFESSIONAL_NAV_ITEMS } from "./app/navigation";
 import { useApp } from "./app/AppContext";
 import { Icons } from "./components/Icons";
 import { BrandMark } from "./components/BrandMark";
+import { TitleBar } from "./components/TitleBar";
 import { HomePage } from "./features/home/HomePage";
 import { OnboardingPage } from "./features/onboarding/OnboardingPage";
 import { IncidentListPage } from "./features/incidents/IncidentListPage";
@@ -59,6 +60,7 @@ export function App() {
 
   return (
     <div className="app-shell">
+      <TitleBar />
       <a href="#main-content" className="sr-only">Skip to main content</a>
       <aside className="sidebar">
         <NavLink to="/" className="brand">
@@ -71,7 +73,7 @@ export function App() {
         </NavLink>
         <nav aria-label="Main navigation">
           {navItems.map((item) => (
-            <NavLink key={item.to} to={item.to} end={item.to === "/"} data-tour-id={item.tourId} className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}>
+            <NavLink key={item.to} to={item.to} end={item.end ?? item.to === "/"} data-tour-id={item.tourId} className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}>
               <item.icon size={18} />
               {item.label}
             </NavLink>

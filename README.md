@@ -5,7 +5,7 @@
 **An open-source, local-first tool for creating clear and traceable wildlife incident handoffs.**
 
 [![Version](https://img.shields.io/badge/version-0.1.0-green)](CHANGELOG.md)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
+[![License: AGPL-3.0-only](https://img.shields.io/badge/License-AGPL--3.0--only-blue)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-54%20passing-brightgreen)](#development)
 
 </div>
@@ -135,7 +135,9 @@ Beginner-friendly contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.
 
 ## License
 
-[MIT](LICENSE) — see also the note in the license file: it grants software rights, and implies nothing about veterinary authorization.
+[AGPL-3.0-only](LICENSE) (GNU Affero General Public License v3.0 only). The license grants software rights only and implies nothing about veterinary authorization.
+
+> Historical note: versions up to and including v0.1.0 were distributed under the MIT license; those historical copies remain available under the license that accompanied them. The development line from 0.2.0 onward is AGPL-3.0-only.
 
 ---
 

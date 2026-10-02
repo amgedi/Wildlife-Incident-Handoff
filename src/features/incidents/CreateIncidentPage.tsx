@@ -8,10 +8,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useApp, useSaveStatus } from "../../app/AppContext";
 import { Select } from "../../components/Select";
+import { SearchableCombobox } from "../../components/SearchableCombobox";
+import { DateTimeField } from "../../components/DateTimeField";
 import { TextField } from "../../components/ui";
 import { Icons } from "../../components/Icons";
 import {
-  ANIMAL_GROUPS, ANIMAL_LOCATIONS, HAZARDS, INCIDENT_TYPES, LIFE_STAGES,
+  ANIMAL_GROUPS, ANIMAL_SUBGROUPS, ANIMAL_LOCATIONS, HAZARDS, INCIDENT_TYPES, LIFE_STAGES,
   LOCATION_PRECISIONS, OBSERVATION_CATEGORIES, SEXES, URGENCIES,
 } from "./labels";
 import type {
@@ -46,6 +48,7 @@ interface DraftState {
   summary: string;
   animal: {
     group: AnimalGroup | null;
+    subgroup: string | null;
     species: string;
     count: string;
     lifeStage: LifeStage | null;
@@ -86,7 +89,7 @@ function emptyDraft(): DraftState {
     occurredAt: nowIso(),
     incidentType: null,
     summary: "",
-    animal: { group: null, species: "", count: "", lifeStage: null, sex: null, description: "" },
+    animal: { group: null, subgroup: null, species: "", count: "", lifeStage: null, sex: null, description: "" },
     location: { description: "", precision: "approximate", landmark: "", address: "", lat: "", lon: "", notes: "", accuracyMeters: null, capturedAt: null, fromDevice: false },
     urgency: null,
     observations: [],
@@ -218,6 +221,7 @@ export function CreateIncidentPage() {
       animal: {
         group: s.animal.group,
         species: cleanText(s.animal.species) || null,
+        subgroup: s.animal.subgroup ?? null,
         speciesConfirmed: false,
         count: s.animal.count ? parseInt(s.animal.count, 10) : null,
         lifeStage: s.animal.lifeStage,
@@ -389,12 +393,11 @@ type StepProps = { state: DraftState; update: <K extends keyof DraftState>(k: K,
 function StepWhatHappened({ state, update }: StepProps) {
   return (
     <div className="fade-in">
-      <TextField
+      <DateTimeField
         label="When was the animal found?"
-        type="datetime-local"
-        value={isoToLocalInput(state.occurredAt)}
-        onChange={(v) => update("occurredAt", localInputToIso(v) ?? nowIso())}
-        hint="Defaults to now — edit it if the animal was found earlier."
+        value={state.occurredAt}
+        onChange={(iso) => update("occurredAt", iso || nowIso())}
+        hint="Defaults to now — quick chips cover the common cases, and manual entry is always available."
       />
       <Select
         label="What kind of incident is this?"
@@ -419,14 +422,24 @@ function StepWhatHappened({ state, update }: StepProps) {
 function StepAnimal({ state, update, detail }: StepProps & { detail: string }) {
   return (
     <div className="fade-in">
-      <Select
+      <SearchableCombobox
         label="Animal type"
         value={state.animal.group}
-        options={ANIMAL_GROUPS}
-        onChange={(v) => update("animal", { ...state.animal, group: v as AnimalGroup })}
+        options={ANIMAL_GROUPS.map((g) => ({ value: g.value, label: g.label }))}
+        onChange={(v) => update("animal", { ...state.animal, group: v as AnimalGroup, subgroup: null })}
         optional
-        hint="“Not sure” is a perfectly good answer."
+        hint="“Not sure” is a perfectly good answer. Search by typing."
       />
+      {state.animal.group && ANIMAL_SUBGROUPS[state.animal.group] && (
+        <SearchableCombobox
+          label={`More specifically (${ANIMAL_GROUPS.find((g) => g.value === state.animal.group)?.label.toLowerCase()})`}
+          value={state.animal.subgroup}
+          options={ANIMAL_SUBGROUPS[state.animal.group]!.map((sg) => ({ value: sg, label: sg, group: ANIMAL_GROUPS.find((g) => g.value === state.animal.group)?.label }))}
+          onChange={(v) => update("animal", { ...state.animal, subgroup: v })}
+          optional
+          hint="Entirely optional — a broad group is enough."
+        />
+      )}
       <TextField
         label="Species (if known)"
         value={state.animal.species}

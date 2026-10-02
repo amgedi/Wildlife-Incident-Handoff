@@ -94,7 +94,7 @@ export function HomePage() {
           )}
         </div>
         <div className="hero-art" aria-hidden="true">
-          <BearPawMark size={240} tile={false} pawColor="currentColor" style={{ color: "var(--c-header-ink)", opacity: 0.12 }} />
+          <BearPawMark size={250} tile={false} style={{ color: "var(--hero-paw)", opacity: 0.1, transform: "rotate(-8deg)" }} />
         </div>
       </section>
 
@@ -135,7 +135,7 @@ export function HomePage() {
       {active.length === 0 ? (
         <div className="card">
           <EmptyState
-            icon={<Icons.paw size={44} />}
+            icon={<BearPawMark size={48} tile={false} style={{ color: "var(--brand-icon-bg)" }} />}
             title="No incidents yet"
             hint="Create your first incident to start recording observations and handoffs."
             action={

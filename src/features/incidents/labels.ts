@@ -48,9 +48,18 @@ export const ANIMAL_GROUPS: { value: AnimalGroup; label: string }[] = [
   { value: "reptile", label: "Reptile" },
   { value: "amphibian", label: "Amphibian" },
   { value: "fish", label: "Fish" },
+  { value: "invertebrate", label: "Invertebrate" },
   { value: "other", label: "Other" },
   { value: "not_sure", label: "Not sure" },
 ];
+
+/** Optional hierarchical subgroups per animal group — never required. */
+export const ANIMAL_SUBGROUPS: Record<string, string[]> = {
+  bird: ["Raptor", "Waterfowl", "Songbird", "Corvid", "Shorebird", "Seabird", "Game bird", "Other bird", "Not sure"],
+  mammal: ["Bat", "Canid", "Felid", "Bear", "Rodent", "Rabbit / hare", "Ungulate", "Mustelid", "Marine mammal", "Other mammal", "Not sure"],
+  reptile: ["Snake", "Turtle / tortoise", "Lizard", "Crocodilian", "Other reptile", "Not sure"],
+  amphibian: ["Frog / toad", "Salamander / newt", "Other amphibian"],
+};
 
 export const LIFE_STAGES: { value: LifeStage; label: string }[] = [
   { value: "adult", label: "Adult" },

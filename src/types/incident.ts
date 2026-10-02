@@ -54,6 +54,7 @@ export type AnimalGroup =
   | "reptile"
   | "amphibian"
   | "fish"
+  | "invertebrate"
   | "other"
   | "not_sure";
 
@@ -118,6 +119,8 @@ export interface AnimalInfo {
   count: number | null;
   lifeStage: LifeStage | null;
   sex: Sex | null;
+  /** Optional hierarchical subgroup, e.g. "Raptor" (additive, v0.2). */
+  subgroup?: string | null;
   /** Short human description used on cards when species is unknown, e.g. "Unknown raptor". */
   description: string | null;
 }

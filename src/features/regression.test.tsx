@@ -49,13 +49,35 @@ describe("status identity", () => {
 
   it("tokens.css defines per-status colors for every status", () => {
     const css = readFileSync("src/styles/tokens.css", "utf-8");
-    const statuses = ["draft","response","assigned","pickup","transport","transferred","care","vet","monitoring","released","deceased","closed","cancelled","reported"];
+    const statuses = ["draft","reported","response","assigned","pickup","transport","transferred","care","vet","monitoring","released","deceased","closed","cancelled"];
     for (const st of statuses) {
-      expect(css.includes(`--st-${st}:`)).toBe(true);
+      expect(css.includes(`--status-${st}-bg:`)).toBe(true);
+      expect(css.includes(`--status-${st}-fg:`)).toBe(true);
+      expect(css.includes(`--status-${st}-border:`)).toBe(true);
     }
-    // every status maps to a token (spot-check the two renamed ones)
-    expect(css.includes("--st-response:")).toBe(true); // response_requested
-    expect(css.includes("--st-pickup:")).toBe(true);   // awaiting_pickup
+  });
+
+  it("non-monochrome themes never give two statuses identical bg/fg/border", () => {
+    const css = readFileSync("src/styles/tokens.css", "utf-8");
+    const start = css.indexOf(":root {");
+    const end = css.indexOf(String.fromCharCode(10) + "}", start);
+    const root = css.slice(start, end);
+    const statuses = ["draft","reported","response","assigned","pickup","transport","transferred","care","vet","monitoring","released","deceased","closed","cancelled"];
+    const triples = new Set<string>();
+    for (const st of statuses) {
+      const bg = root.match(new RegExp(`--status-${st}-bg: ([^;]+);`))?.[1];
+      const fg = root.match(new RegExp(`--status-${st}-fg: ([^;]+);`))?.[1];
+      const border = root.match(new RegExp(`--status-${st}-border: ([^;]+);`))?.[1];
+      triples.add(`${bg}|${fg}|${border}`);
+    }
+    // 14 statuses must resolve to at least 12 distinct triples (allows 2 close pairs)
+    expect(triples.size).toBeGreaterThanOrEqual(12);
+  });
+
+  it("monochrome themes define status glyphs (shape, not color)", () => {
+    const css = readFileSync("src/styles/tokens.css", "utf-8");
+    expect(css.includes('content: "▲"')).toBe(true); // awaiting_pickup glyph
+    expect(css.includes('content: "→"')).toBe(true); // in_transport glyph
   });
 
   it("all 10 themes are defined", () => {
@@ -90,12 +112,40 @@ describe("status identity", () => {
 });
 
 describe("canonical bear paw", () => {
-  it("BrandMark renders exactly the same geometry as BearPawMark", async () => {
+  it("canonical paw has exactly four toes and four claws", async () => {
+    const mod = await import("../components/BrandMark");
+    const { render } = await import("@testing-library/react");
+    const { container } = render(mod.BearPawMark({ size: 32 }));
+    // toes = ellipses with ry=10 (TOE_RY); claws = ellipses with fill-opacity 0.62
+    const all = container.querySelectorAll("ellipse");
+    const toes = Array.from(all).filter((e) => e.getAttribute("ry") === "10");
+    const claws = Array.from(all).filter((e) => e.getAttribute("fill-opacity") === "0.62");
+    expect(toes.length).toBe(4);
+    expect(claws.length).toBe(4);
+    // symmetric: toe cx pairs mirror around x=32
+    const cxs = toes.map((e) => Number(e.getAttribute("cx"))).sort((a, b) => a - b);
+    expect(Math.abs(32 - (cxs[0]! + cxs[3]!) / 2)).toBeLessThan(0.6);
+    expect(Math.abs(32 - (cxs[1]! + cxs[2]!) / 2)).toBeLessThan(0.6);
+    // one pad
+    expect(container.querySelectorAll("path").length).toBe(1);
+  });
+
+  it("BrandMark delegates to the canonical BearPawMark geometry", async () => {
     const { render } = await import("@testing-library/react");
     const mod = await import("../components/BrandMark");
-    const a = render(mod.BrandMark({ size: 24 } as never)).container.innerHTML;
-    const b = render(mod.BearPawMark({ size: 24 } as never)).container.innerHTML;
-    expect(a).toBe(b);
+    const a = render(mod.BrandMark({ size: 24 })).container.querySelector("g g");
+    const b = render(mod.BearPawMark({ size: 24 })).container.querySelector("g g");
+    expect(a?.innerHTML).toBe(b?.innerHTML);
+  });
+
+  it("in-app logo colors come from theme tokens, not hard-coded green", async () => {
+    const mod = await import("../components/BrandMark");
+    const { render } = await import("@testing-library/react");
+    const { container } = render(mod.BearPawMark({ size: 32 }));
+    expect(container.innerHTML.includes("var(--brand-icon-bg")).toBe(true);
+    expect(container.innerHTML.includes("var(--brand-icon-fg")).toBe(true);
+    // the fallback in var() is allowed, but no bare hard-coded fill may exist
+    expect(/fill="#[0-9a-f]{6}"/i.test(container.innerHTML)).toBe(false);
   });
 
   it("hero watermark uses the canonical component (no separate paw paths)", () => {

@@ -1,33 +1,75 @@
-/** Incidents list: search, filters, pinned, archive and Trash views with safe delete. */
-import { useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+/**
+ * My Reports (Reporter) / Incidents (Professional).
+ *
+ * Search is always visible at the top with a "/" keyboard shortcut;
+ * filters live in an obvious button with a popover and applied-filter
+ * chips; each card is a compact report card whose body opens the report,
+ * with a labeled ⋯ menu for secondary actions.
+ */
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useApp } from "../../app/AppContext";
 import { Icons } from "../../components/Icons";
+import { BearPawMark } from "../../components/BrandMark";
 import { EmptyState } from "../../components/ui";
 import { Dialog } from "../../components/Dialog";
-import { useIncidents, IncidentCardFull } from "./IncidentCard";
+import { useIncidents } from "./IncidentCard";
 import { moveToTrash, restoreFromTrash, permanentlyDelete, archiveIncident, unarchiveIncident } from "../../storage/incidentService";
 import { putIncident } from "../../storage/repositories";
 import { matchesSearch } from "../../utils/text";
-import { useEffect as useEffectReact, useRef as useRefReact, useState as useStateReact } from "react";
-import { STATUS_LABELS_BY_KEY } from "./labels";
-import { INCIDENT_TYPES } from "./labels";
-import type { Incident } from "../../types/incident";
+import { STATUS_LABELS_BY_KEY, INCIDENT_TYPES, ANIMAL_GROUPS } from "./labels";
+import { animalLabel } from "../export/exportService";
+import { formatDateTime, relativeTime } from "../../utils/time";
+import type { Incident, IncidentStatus } from "../../types/incident";
 
 type View = "active" | "archive" | "trash";
-
 
 export function IncidentListPage() {
   const { incidents, refresh } = useIncidents();
   const { showToast, settings } = useApp();
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [typeFilter, setTypeFilter] = useState("all");
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [pendingDelete, setPendingDelete] = useState<Incident | null>(null);
+
+  // Filters (popover state)
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [groupFilter, setGroupFilter] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   const view = (searchParams.get("view") as View) ?? "active";
   const setView = (v: View) => setSearchParams(v === "active" ? {} : { view: v });
+  const isReporter = settings.workspace === "reporter";
+
+  // "/" focuses search when not typing in a field.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const target = e.target as HTMLElement;
+      const typing = ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) || target.isContentEditable;
+      if (e.key === "/" && !typing && !document.querySelector(".dialog-backdrop")) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+      if (e.key === "Escape" && document.activeElement === searchInputRef.current) {
+        searchInputRef.current?.blur();
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
+  const activeFilters = useMemo(() => {
+    const chips: { key: string; label: string; clear: () => void }[] = [];
+    if (statusFilter !== "all") chips.push({ key: "status", label: STATUS_LABELS_BY_KEY[statusFilter as IncidentStatus] ?? statusFilter, clear: () => setStatusFilter("all") });
+    if (typeFilter !== "all") chips.push({ key: "type", label: INCIDENT_TYPES.find((t) => t.value === typeFilter)?.label ?? typeFilter, clear: () => setTypeFilter("all") });
+    if (groupFilter !== "all") chips.push({ key: "group", label: ANIMAL_GROUPS.find((g) => g.value === groupFilter)?.label ?? groupFilter, clear: () => setGroupFilter("all") });
+    if (dateFrom) chips.push({ key: "from", label: `From ${dateFrom}`, clear: () => setDateFrom("") });
+    if (dateTo) chips.push({ key: "to", label: `Until ${dateTo}`, clear: () => setDateTo("") });
+    return chips;
+  }, [statusFilter, typeFilter, groupFilter, dateFrom, dateTo]);
 
   const filtered = useMemo(() => {
     if (!incidents) return [];
@@ -38,6 +80,13 @@ export function IncidentListPage() {
 
     if (statusFilter !== "all") list = list.filter((i) => i.status === statusFilter);
     if (typeFilter !== "all") list = list.filter((i) => i.incidentType === typeFilter);
+    if (groupFilter !== "all") list = list.filter((i) => i.animal.group === groupFilter);
+    if (dateFrom) list = list.filter((i) => (i.occurredAt ?? i.createdAt) >= dateFrom);
+    if (dateTo) {
+      const to = new Date(dateTo);
+      to.setHours(23, 59, 59, 999);
+      list = list.filter((i) => (i.occurredAt ?? i.createdAt) <= to.toISOString());
+    }
     if (query.trim()) {
       list = list.filter((i) =>
         matchesSearch(
@@ -49,6 +98,7 @@ export function IncidentListPage() {
             i.location.description,
             i.location.landmark,
             i.summary,
+            STATUS_LABELS_BY_KEY[i.status],
             i.tags.join(" "),
             ...i.contacts.map((c) => `${c.name} ${c.organization}`),
             ...i.notes.map((n) => n.text),
@@ -58,7 +108,7 @@ export function IncidentListPage() {
       );
     }
     return list.sort((a, b) => (b.pinnedAt ?? "").localeCompare(a.pinnedAt ?? "") || b.updatedAt.localeCompare(a.updatedAt));
-  }, [incidents, view, statusFilter, typeFilter, query]);
+  }, [incidents, view, statusFilter, typeFilter, groupFilter, dateFrom, dateTo, query]);
 
   async function handleTrash(incident: Incident) {
     await moveToTrash(incident);
@@ -79,10 +129,10 @@ export function IncidentListPage() {
   return (
     <main className="content" id="main-content">
       <div className="row between" style={{ marginBottom: "var(--space-4)" }}>
-        <h1 style={{ margin: 0 }}>{settings.workspace === "professional" ? "Incidents" : "My reports"}</h1>
+        <h1 style={{ margin: 0 }}>{isReporter ? "My reports" : "Incidents"}</h1>
         <Link to="/incidents/new" className="btn btn-primary">
           <Icons.plus size={16} />
-          Create incident
+          {isReporter ? "Report wildlife" : "Create incident"}
         </Link>
       </div>
 
@@ -95,42 +145,88 @@ export function IncidentListPage() {
       </div>
 
       {view === "active" && (
-        <div className="card" style={{ padding: "var(--space-4)", marginBottom: "var(--space-4)" }} data-tour-id="incident-filters">
-          <div className="field" style={{ marginBottom: "var(--space-3)" }}>
-            <label htmlFor="incident-search" style={{ fontWeight: 600, fontSize: "0.9rem" }}>Search</label>
-            <div style={{ position: "relative" }}>
-              <span style={{ position: "absolute", left: 10, top: 11, color: "var(--c-ink-faint)" }} aria-hidden="true"><Icons.search size={16} /></span>
+        <div className="card" style={{ padding: "var(--space-4)", marginBottom: "var(--space-3)" }} data-tour-id="incident-filters">
+          <div className="reports-search-row">
+            <div style={{ position: "relative", flex: 1, minWidth: 200 }}>
+              <span style={{ position: "absolute", left: 12, top: 12, color: "var(--c-ink-faint)" }} aria-hidden="true"><Icons.search size={17} /></span>
               <input
+                ref={searchInputRef}
                 id="incident-search"
-                className="input"
                 data-tour-id="incident-search"
-                style={{ paddingLeft: 34 }}
-                placeholder="Search by reference, species, location, organization, notes…"
+                className="input"
+                style={{ paddingLeft: 38, paddingRight: 44 }}
+                placeholder={isReporter ? "Search my reports…" : "Search by reference, species, location, organization, notes…"}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                aria-label={isReporter ? "Search my reports" : "Search incidents"}
               />
+              <kbd className="kbd-hint" aria-hidden="true">/</kbd>
             </div>
+            <button
+              className="btn btn-secondary"
+              aria-haspopup="dialog"
+              aria-expanded={filtersOpen}
+              onClick={() => setFiltersOpen((o) => !o)}
+              style={{ gap: 6 }}
+            >
+              <Icons.list size={15} />
+              Filters{activeFilters.length > 0 ? ` (${activeFilters.length})` : ""}
+            </button>
           </div>
-          <div className="row">
-            <div style={{ minWidth: 180 }}>
-              <label htmlFor="filter-status" className="sr-only">Filter by status</label>
-              <select id="filter-status" className="input" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                <option value="all">All statuses</option>
-                {Object.entries(STATUS_LABELS_BY_KEY).map(([v, l]) => (
-                  <option key={v} value={v}>{l}</option>
-                ))}
-              </select>
+
+          {filtersOpen && (
+            <div className="filters-popover" role="group" aria-label="Filters">
+              <div className="grid-2">
+                <div className="field">
+                  <label htmlFor="filter-status">Status</label>
+                  <select id="filter-status" className="input" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                    <option value="all">All statuses</option>
+                    {Object.entries(STATUS_LABELS_BY_KEY).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  </select>
+                </div>
+                <div className="field">
+                  <label htmlFor="filter-type">Incident type</label>
+                  <select id="filter-type" className="input" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+                    <option value="all">All types</option>
+                    {INCIDENT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
+                </div>
+                <div className="field">
+                  <label htmlFor="filter-group">Animal group</label>
+                  <select id="filter-group" className="input" value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)}>
+                    <option value="all">All animal groups</option>
+                    {ANIMAL_GROUPS.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
+                  </select>
+                </div>
+                <div className="field">
+                  <label htmlFor="filter-date">Date range</label>
+                  <div className="row" style={{ gap: 8, flexWrap: "nowrap" }}>
+                    <input id="filter-date" type="date" className="input" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} aria-label="From date" />
+                    <input type="date" className="input" value={dateTo} onChange={(e) => setDateTo(e.target.value)} aria-label="To date" />
+                  </div>
+                </div>
+              </div>
+              <div className="row between">
+                <button className="btn btn-quiet btn-sm" onClick={() => { setStatusFilter("all"); setTypeFilter("all"); setGroupFilter("all"); setDateFrom(""); setDateTo(""); }}>
+                  Clear all
+                </button>
+                <button className="btn btn-primary btn-sm" onClick={() => setFiltersOpen(false)}>Done</button>
+              </div>
             </div>
-            <div style={{ minWidth: 180 }}>
-              <label htmlFor="filter-type" className="sr-only">Filter by incident type</label>
-              <select id="filter-type" className="input" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-                <option value="all">All types</option>
-                {INCIDENT_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
-                ))}
-              </select>
+          )}
+
+          {activeFilters.length > 0 && (
+            <div className="row" style={{ marginTop: "var(--space-3)" }} aria-label="Applied filters">
+              {activeFilters.map((f) => (
+                <button key={f.key} className="filter-chip" onClick={f.clear} aria-label={`Remove filter ${f.label}`}>
+                  {f.label} <Icons.x size={12} />
+                </button>
+              ))}
+              <button className="btn btn-quiet btn-sm" onClick={() => { setStatusFilter("all"); setTypeFilter("all"); setGroupFilter("all"); setDateFrom(""); setDateTo(""); }}>
+                Clear all
+              </button>
             </div>
-          </div>
+          )}
         </div>
       )}
 
@@ -143,14 +239,16 @@ export function IncidentListPage() {
 
       {!incidents ? null : filtered.length === 0 ? (
         <div className="card">
-          {view === "active" && !query && statusFilter === "all" && typeFilter === "all" ? (
+          {view === "active" && !query && activeFilters.length === 0 ? (
             <EmptyState
-              icon={<Icons.paw size={44} />}
-              title="No incidents yet"
-              hint="Create your first incident to start recording observations and handoffs."
+              icon={<BearPawMark size={48} tile={false} style={{ color: "var(--brand-icon-bg)" }} />}
+              title={isReporter ? "No reports yet" : "No incidents yet"}
+              hint={isReporter
+                ? "Report wildlife to start recording what you see — observations, photos and handoffs."
+                : "Create your first incident to start recording observations and handoffs."}
               action={
                 <Link to="/incidents/new" className="btn btn-primary">
-                  <Icons.plus size={16} /> Create incident
+                  <Icons.plus size={16} /> {isReporter ? "Report wildlife" : "Create incident"}
                 </Link>
               }
             />
@@ -165,7 +263,7 @@ export function IncidentListPage() {
       ) : (
         <div className="card-list">
           {filtered.map((i) => (
-            <CardWithActions
+            <ReportCard
               key={i.id}
               incident={i}
               view={view}
@@ -181,7 +279,7 @@ export function IncidentListPage() {
       )}
 
       <Dialog
-        open={pendingDelete !== null} // permanent-delete confirmation
+        open={pendingDelete !== null}
         title="Delete permanently?"
         danger
         onClose={() => setPendingDelete(null)}
@@ -216,8 +314,8 @@ export function IncidentListPage() {
   );
 }
 
-/** Card with a labeled overflow actions menu (no mystery icons floating on the card). */
-function CardWithActions({
+/** Compact report card: body opens the report; ⋯ menu for secondary actions; status in the footer. */
+function ReportCard({
   incident, view, onPin, onArchive, onTrash, onUnarchive, onRestore, onDeleteForever,
 }: {
   incident: Incident;
@@ -229,61 +327,95 @@ function CardWithActions({
   onRestore: () => void;
   onDeleteForever: () => void;
 }) {
-  const [open, setOpen] = useStateReact(false);
-  const ref = useRefReact<HTMLDivElement>(null);
-  useEffectReact(() => {
-    if (!open) return;
-    const onDoc = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const last = [...incident.timeline].sort((a, b) => b.timestamp.localeCompare(a.timestamp))[0];
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDoc = (e: MouseEvent) => { if (!menuRef.current?.contains(e.target as Node)) setMenuOpen(false); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { setMenuOpen(false); menuRef.current?.querySelector<HTMLButtonElement>("button")?.focus(); }
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        const items = Array.from(menuRef.current?.querySelectorAll<HTMLButtonElement>("[role='menuitem']") ?? []);
+        const idx = items.indexOf(document.activeElement as HTMLButtonElement);
+        const next = e.key === "ArrowDown" ? Math.min(items.length - 1, idx + 1) : Math.max(0, idx - 1);
+        items[next]?.focus();
+      }
+    };
     document.addEventListener("mousedown", onDoc);
-    document.addEventListener("keydown", onKey);
-    return () => { document.removeEventListener("mousedown", onDoc); document.removeEventListener("keydown", onKey); };
-  }, [open]);
+    document.addEventListener("keydown", onKey, true);
+    return () => { document.removeEventListener("mousedown", onDoc); document.removeEventListener("keydown", onKey, true); };
+  }, [menuOpen]);
+
   return (
-    <div className="list-card-with-actions" style={{ display: "grid", gridTemplateColumns: "1fr auto", alignItems: "center" }}>
-      <IncidentCardFull incident={incident} />
-      <div className="ic-menu" ref={ref} style={{ zIndex: 5 }}>
-        <button
-          className="btn btn-quiet btn-sm"
-          aria-haspopup="menu"
-          aria-expanded={open}
-          aria-label={`Actions for ${incident.humanReference}`}
-          onClick={() => setOpen((o) => !o)}
-        >
-          Actions
-        </button>
-        {open && (
-          <div className="ic-menu-pop" role="menu" aria-label={`Actions for ${incident.humanReference}`}>
-            {view === "active" && (
-              <>
-                <button role="menuitem" onClick={() => { setOpen(false); onPin(); }}>
-                  <Icons.pin size={15} /> {incident.pinnedAt ? "Unpin" : "Pin to top"}
+    <div
+      className="report-card"
+      role="link"
+      tabIndex={0}
+      onClick={() => navigate(`/incidents/${incident.id}`)}
+      onKeyDown={(e) => { if (e.key === "Enter" && (e.target as HTMLElement) === e.currentTarget) navigate(`/incidents/${incident.id}`); }}
+      aria-label={`${animalLabel(incident)} — ${STATUS_LABELS_BY_KEY[incident.status]}`}
+    >
+      <div className="rc-top">
+        <p className="ic-title">{animalLabel(incident)}</p>
+        <div className="ic-menu" ref={menuRef}>
+          <button
+            className="btn btn-quiet btn-sm"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            aria-label={`Actions for ${incident.humanReference}`}
+            onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o); }}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
+            <Icons.list size={15} />
+          </button>
+          {menuOpen && (
+            <div className="ic-menu-pop" role="menu" aria-label={`Actions for ${incident.humanReference}`}>
+              {view === "active" && (
+                <>
+                  <button role="menuitem" onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onPin(); }}>
+                    <Icons.pin size={15} /> {incident.pinnedAt ? "Unpin" : "Pin to top"}
+                  </button>
+                  <button role="menuitem" onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onArchive(); }}>
+                    <Icons.archive size={15} /> Archive
+                  </button>
+                  <button role="menuitem" className="danger" onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onTrash(); }}>
+                    <Icons.trash size={15} /> Move to Trash
+                  </button>
+                </>
+              )}
+              {view === "archive" && (
+                <button role="menuitem" onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onUnarchive(); }}>
+                  <Icons.undo size={15} /> Unarchive
                 </button>
-                <button role="menuitem" onClick={() => { setOpen(false); onArchive(); }}>
-                  <Icons.archive size={15} /> Archive
-                </button>
-                <button role="menuitem" className="danger" onClick={() => { setOpen(false); onTrash(); }}>
-                  <Icons.trash size={15} /> Move to Trash
-                </button>
-              </>
-            )}
-            {view === "archive" && (
-              <button role="menuitem" onClick={() => { setOpen(false); onUnarchive(); }}>
-                <Icons.undo size={15} /> Unarchive
-              </button>
-            )}
-            {view === "trash" && (
-              <>
-                <button role="menuitem" onClick={() => { setOpen(false); onRestore(); }}>
-                  <Icons.undo size={15} /> Restore
-                </button>
-                <button role="menuitem" className="danger" onClick={() => { setOpen(false); onDeleteForever(); }}>
-                  <Icons.trash size={15} /> Delete permanently
-                </button>
-              </>
-            )}
-          </div>
-        )}
+              )}
+              {view === "trash" && (
+                <>
+                  <button role="menuitem" onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onRestore(); }}>
+                    <Icons.undo size={15} /> Restore
+                  </button>
+                  <button role="menuitem" className="danger" onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDeleteForever(); }}>
+                    <Icons.trash size={15} /> Delete permanently
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+      <p className="ic-meta">
+        {incident.humanReference} · {formatDateTime(incident.occurredAt ?? incident.createdAt)}
+        {incident.location.description ? ` · ${incident.location.description}` : ""}
+      </p>
+      {last && <p className="ic-updates">Last update: {last.summary} · {relativeTime(last.timestamp)}</p>}
+      <div className="rc-footer">
+        <span className="badge" data-status={incident.status}>{STATUS_LABELS_BY_KEY[incident.status]}</span>
+        <span style={{ marginLeft: "auto", color: "var(--c-ink-faint)", display: "inline-flex", paddingRight: 4 }} aria-hidden="true">
+          <Icons.chevronRight size={18} />
+        </span>
       </div>
     </div>
   );

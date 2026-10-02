@@ -2,7 +2,30 @@
 
 All notable changes to Wildlife Incident Handoff are documented here. Format based on [Keep a Changelog](https://keepachangelog.com/); versioning follows [SemVer](https://semver.org/).
 
-## 0.2.0-dev.2 — in development
+## 0.2.0-dev.3 — in development
+
+### Fixed
+- **Canonical bear paw, done properly**: one vector geometry — exactly four toes, four attached claws, one pad, symmetric — shared by the sidebar logo, hero watermark, empty states, favicon and icon pipeline. The in-app logo adapts to the active theme via `--brand-icon-bg/-fg/-border` tokens (no hard-coded green).
+- **Windows icon edges**: the desktop icon is now a proper multi-size ICO (16–256) with real alpha transparency and a transparent safe area — no square corners on taskbar/title bar.
+- **Interface Tour rewritten as an explicit state machine** (navigating → waiting-for-target → showing | failed) with generation-token cancellation: stale measurements can never repaint the spotlight, route/target readiness uses real conditions instead of fixed sleeps, and target failure shows Retry / Skip / Exit with internal diagnostics.
+- **Blue rectangle during tours**: the spotlight ring now uses its own `--tour-ring` token (no longer the focus color), and the tour focuses the callout heading — never the highlighted target.
+- **Double-active navigation**: `/incidents/new` no longer activates "My reports"/"Incidents" (exact matching); at most one primary nav item is current per page.
+- **Status colors**: explicit `--status-*-bg/fg/border` tokens for every theme and status; monochrome themes add distinct glyphs (▲ → ◆ ■ …) so status never relies on color alone.
+- **My Reports cards redesigned again**: status moved to a deliberate footer row (chip bottom-left, chevron far right), secondary actions in an in-card ⋯ menu (keyboard navigable, Escape closes, doesn't trigger navigation).
+
+### Added
+- **Obvious search**: My Reports has an always-visible search field with a `/` keyboard shortcut; Filters are an explicit button with a popover (status/type/animal group/date range) and applied-filter chips with Clear all.
+- **Modern checkbox** (real `<input type="checkbox">`, rounded, theme-aware, focus-visible) and a reorganized Export panel.
+- **Modern date/time entry**: quick chips (Now, 5/15/30 min ago, 1 hour ago, Earlier today, Yesterday), a calendar + time popover (locale-aware 12/24h), and a manual `datetime-local` fallback. Values are always stored as unambiguous ISO instants.
+- **Searchable hierarchical animal combobox** with Invertebrate and optional subgroups (Raptor, Waterfowl, Bat, Canid…); species remains free-text and unverified.
+- **Surface hierarchy tokens** (`--surface-1/2/3`, hover/selected/overlay) with explicit elevation for monochrome themes.
+
+### Changed
+- **License: AGPL-3.0-only** (from MIT). Historical note: versions up to and including v0.1.0 remain available under the MIT license that accompanied them.
+- Custom integrated desktop title bar (drag, snap, double-click maximize, and window controls preserved; web/PWA unaffected).
+- Dependency license inventory added (docs/THIRD_PARTY_NOTICES.md).
+
+## 0.2.0-dev.2 — 2026-10-02
 
 ### Fixed
 - **Incident tabs getting stuck** (root cause): a state-from-URL effect reverted the user's tab selection; the URL query is now the single source of truth, with SPA navigation on every tab click (Back/Forward and deep links work).

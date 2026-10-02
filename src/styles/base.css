@@ -32,6 +32,21 @@ code { font-family: var(--font-mono); font-size: 0.85em; background: var(--c-sur
   overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
 }
 
+/* ---------- Desktop title bar (Tauri only) ---------- */
+.titlebar {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 38px; background: var(--c-header); color: var(--c-header-ink);
+  user-select: none; -webkit-user-select: none;
+}
+.titlebar-brand { display: flex; align-items: center; gap: 10px; padding-left: 12px; font-size: 0.85rem; font-weight: 600; }
+.titlebar-controls { display: flex; height: 100%; }
+.titlebar-btn {
+  width: 46px; height: 100%; display: grid; place-items: center;
+  background: none; border: none; color: var(--c-header-ink); cursor: default;
+}
+.titlebar-btn:hover { background: rgb(255 255 255 / 0.09); }
+.titlebar-btn.titlebar-close:hover { background: var(--c-danger); color: #fff; }
+
 /* ---------- App layout ---------- */
 .app-shell { display: flex; min-height: 100vh; }
 
@@ -193,20 +208,20 @@ code { font-family: var(--font-mono); font-size: 0.85em; background: var(--c-sur
 .badge.info { background: var(--c-info-surface); color: var(--c-primary); border-color: transparent; }
 .badge.neutral { color: var(--c-ink-faint); }
 /* Distinct per-status identity (label always present; dot reinforces) */
-.badge[data-status="draft"] { background: var(--st-draft); color: var(--st-draft-ink); border-color: transparent; }
-.badge[data-status="reported"] { background: var(--st-reported); color: var(--st-reported-ink); border-color: transparent; }
-.badge[data-status="response_requested"] { background: var(--st-response); color: var(--st-response-ink); border-color: transparent; }
-.badge[data-status="responder_assigned"] { background: var(--st-assigned); color: var(--st-assigned-ink); border-color: transparent; }
-.badge[data-status="awaiting_pickup"] { background: var(--st-pickup); color: var(--st-pickup-ink); border-color: transparent; }
-.badge[data-status="in_transport"] { background: var(--st-transport); color: var(--st-transport-ink); border-color: transparent; }
-.badge[data-status="transferred"] { background: var(--st-transferred); color: var(--st-transferred-ink); border-color: transparent; }
-.badge[data-status="in_care"] { background: var(--st-care); color: var(--st-care-ink); border-color: transparent; }
-.badge[data-status="veterinary_care"] { background: var(--st-vet); color: var(--st-vet-ink); border-color: transparent; }
-.badge[data-status="monitoring"] { background: var(--st-monitoring); color: var(--st-monitoring-ink); border-color: transparent; }
-.badge[data-status="released"] { background: var(--st-released); color: var(--st-released-ink); border-color: transparent; }
-.badge[data-status="deceased"] { background: var(--st-deceased); color: var(--st-deceased-ink); border-color: transparent; }
-.badge[data-status="closed"] { background: var(--st-closed); color: var(--st-closed-ink); border-color: transparent; }
-.badge[data-status="cancelled"] { background: var(--st-cancelled); color: var(--st-cancelled-ink); border-color: transparent; }
+.badge[data-status="draft"] { background: var(--status-draft-bg); color: var(--status-draft-fg); border-color: var(--status-draft-border); }
+.badge[data-status="reported"] { background: var(--status-reported-bg); color: var(--status-reported-fg); border-color: var(--status-reported-border); }
+.badge[data-status="response_requested"] { background: var(--status-response-bg); color: var(--status-response-fg); border-color: var(--status-response-border); }
+.badge[data-status="responder_assigned"] { background: var(--status-assigned-bg); color: var(--status-assigned-fg); border-color: var(--status-assigned-border); }
+.badge[data-status="awaiting_pickup"] { background: var(--status-pickup-bg); color: var(--status-pickup-fg); border-color: var(--status-pickup-border); }
+.badge[data-status="in_transport"] { background: var(--status-transport-bg); color: var(--status-transport-fg); border-color: var(--status-transport-border); }
+.badge[data-status="transferred"] { background: var(--status-transferred-bg); color: var(--status-transferred-fg); border-color: var(--status-transferred-border); }
+.badge[data-status="in_care"] { background: var(--status-care-bg); color: var(--status-care-fg); border-color: var(--status-care-border); }
+.badge[data-status="veterinary_care"] { background: var(--status-vet-bg); color: var(--status-vet-fg); border-color: var(--status-vet-border); }
+.badge[data-status="monitoring"] { background: var(--status-monitoring-bg); color: var(--status-monitoring-fg); border-color: var(--status-monitoring-border); }
+.badge[data-status="released"] { background: var(--status-released-bg); color: var(--status-released-fg); border-color: var(--status-released-border); }
+.badge[data-status="deceased"] { background: var(--status-deceased-bg); color: var(--status-deceased-fg); border-color: var(--status-deceased-border); }
+.badge[data-status="closed"] { background: var(--status-closed-bg); color: var(--status-closed-fg); border-color: var(--status-closed-border); }
+.badge[data-status="cancelled"] { background: var(--status-cancelled-bg); color: var(--status-cancelled-fg); border-color: var(--status-cancelled-border); }
 
 .tag {
   display: inline-block; padding: 1px 8px; font-size: 0.75rem; border-radius: 4px;
@@ -228,6 +243,95 @@ code { font-family: var(--font-mono); font-size: 0.85em; background: var(--c-sur
 .incident-card .ic-meta { font-size: 0.82rem; color: var(--c-ink-faint); }
 .incident-card .ic-updates { font-size: 0.85rem; color: var(--c-ink-soft); margin-top: var(--space-1); }
 .card-list { display: grid; gap: var(--space-3); }
+
+/* Searchable combobox */
+.combo-list {
+  position: absolute; z-index: 60; margin: 4px 0 0; padding: 4px; list-style: none;
+  background: var(--c-surface); color: var(--c-ink);
+  border: 1px solid var(--c-border-strong); border-radius: var(--radius-sm);
+  box-shadow: var(--c-shadow-lift); max-height: 300px; overflow-y: auto; width: 100%;
+}
+.combo-opt { padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 0.92rem; }
+.combo-opt.active { background: var(--surface-hover, var(--c-surface-alt)); }
+.combo-opt[aria-selected="true"] { font-weight: 650; }
+.combo-group { padding: 8px 10px 2px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--c-ink-faint); }
+.combo-hint { font-size: 0.78rem; color: var(--c-ink-faint); }
+
+/* Date/time picker */
+.dt-row { display: flex; gap: 8px; }
+.dt-trigger { display: flex; align-items: center; justify-content: space-between; gap: 8px; text-align: left; }
+.dt-popover {
+  position: absolute; z-index: 70; top: calc(100% - 24px); left: 0; min-width: 300px;
+  background: var(--c-surface); color: var(--c-ink); border: 1px solid var(--c-border-strong);
+  border-radius: var(--radius-md); box-shadow: var(--c-shadow-lift); padding: var(--space-4);
+}
+.dt-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.dt-wd { text-align: center; font-size: 0.7rem; color: var(--c-ink-faint); padding: 2px 0; }
+.dt-day {
+  border: none; background: none; font: inherit; font-size: 0.85rem; padding: 6px 0;
+  border-radius: 6px; cursor: pointer; color: var(--c-ink); min-height: 32px;
+}
+.dt-day:hover { background: var(--surface-hover, var(--c-surface-alt)); }
+.dt-day.selected { background: var(--c-primary); color: var(--c-primary-ink); font-weight: 650; }
+
+/* Modern checkbox */
+.checkbox-row { display: flex; gap: 10px; align-items: flex-start; }
+.checkbox-row input[type="checkbox"].modern-checkbox {
+  appearance: none; -webkit-appearance: none;
+  width: 21px; height: 21px; margin: 1px 0 0; flex-shrink: 0;
+  border: 1.5px solid var(--c-border-strong); border-radius: 6px;
+  background: var(--c-surface); cursor: pointer; position: relative;
+  transition: background-color 140ms var(--ease), border-color 140ms var(--ease);
+}
+.checkbox-row input[type="checkbox"].modern-checkbox:hover:not(:disabled) { border-color: var(--c-primary); }
+.checkbox-row input[type="checkbox"].modern-checkbox:active:not(:disabled) { transform: scale(0.96); }
+.checkbox-row input[type="checkbox"].modern-checkbox:checked {
+  background: var(--c-primary); border-color: var(--c-primary);
+}
+.checkbox-row input[type="checkbox"].modern-checkbox:checked::after {
+  content: ""; position: absolute; left: 6px; top: 2.5px; width: 5px; height: 10px;
+  border: solid var(--c-primary-ink); border-width: 0 2px 2px 0; transform: rotate(43deg);
+}
+.checkbox-row input[type="checkbox"].modern-checkbox:disabled { opacity: 0.45; cursor: not-allowed; }
+.checkbox-row input[type="checkbox"].modern-checkbox:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+.checkbox-row label { display: flex; flex-direction: column; gap: 1px; cursor: pointer; font-size: 0.92rem; }
+.checkbox-row label.is-disabled { cursor: not-allowed; color: var(--c-ink-faint); }
+.checkbox-row .checkbox-label { font-weight: 480; }
+.checkbox-row .checkbox-trailing { font-size: 0.8rem; color: var(--c-ink-faint); }
+.checkbox-row .checkbox-hint { font-size: 0.8rem; color: var(--c-ink-faint); }
+
+/* My Reports search row + filters */
+.reports-search-row { display: flex; gap: var(--space-3); align-items: stretch; flex-wrap: wrap; }
+.kbd-hint {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  font-family: var(--font-sans); font-size: 0.75rem; color: var(--c-ink-faint);
+  border: 1px solid var(--c-border-strong); border-radius: 4px; padding: 0 6px;
+  background: var(--c-surface-alt); pointer-events: none;
+}
+.filters-popover {
+  margin-top: var(--space-3); padding: var(--space-4);
+  border: 1px solid var(--c-border); border-radius: var(--radius-md);
+  background: var(--c-surface-alt);
+}
+.filter-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--c-border-strong); border-radius: 999px;
+  background: var(--c-surface); color: var(--c-ink); font: inherit; font-size: 0.82rem;
+  padding: 4px 10px; cursor: pointer; min-height: 30px;
+}
+.filter-chip:hover { border-color: var(--c-primary); color: var(--c-primary); }
+
+/* Report card (My Reports) */
+.report-card {
+  background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md);
+  padding: var(--space-4); box-shadow: var(--c-shadow); cursor: pointer;
+  transition: box-shadow var(--motion-fast) var(--ease), transform var(--motion-fast) var(--ease), border-color var(--motion-fast) var(--ease);
+}
+.report-card:hover { box-shadow: var(--c-shadow-lift); transform: translateY(-1px); border-color: var(--c-border-strong); }
+.report-card:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+.report-card .rc-top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-2); }
+.report-card .rc-top .ic-title { margin: 0; }
+.report-card .rc-footer { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-3); }
 
 /* Card overflow actions */
 .ic-menu { position: relative; }
@@ -411,6 +515,8 @@ code { font-family: var(--font-mono); font-size: 0.85em; background: var(--c-sur
 .spotlight-dim {
   position: absolute; inset: 0; background: rgb(10 16 12 / 0.72);
 }
+.spotlight-opening { margin: -6px 0 var(--space-2); font-size: 0.8rem; color: var(--c-ink-faint); font-style: italic; }
+.spotlight-heading:focus { outline: none; }
 .spotlight-loading-label {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
   color: #fff; font-size: 0.9rem; background: rgb(10 16 12 / 0.6);

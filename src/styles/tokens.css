@@ -56,27 +56,56 @@
   --c-focus: #1e6fd9;
   --focus-ring: 2px solid var(--c-focus);
   --focus-ring-offset: 2px;
+  --tour-ring: var(--c-primary);
   --c-sidebar: #16281d;
   --c-sidebar-ink: #cfd9cd;
   --c-sidebar-active: #2f5d3f;
   --c-shadow: 0 1px 2px rgb(23 42 30 / 0.08), 0 4px 14px rgb(23 42 30 / 0.07);
   --c-shadow-lift: 0 2px 4px rgb(23 42 30 / 0.1), 0 10px 28px rgb(23 42 30 / 0.12);
 
-  /* Status identity — color + always label; chips use bg/text pairs */
-  --st-draft: #7a8677;      --st-draft-ink: #ffffff;
-  --st-reported: #2b6cb0;   --st-reported-ink: #ffffff;
-  --st-response: #b7791f;   --st-response-ink: #ffffff;
-  --st-assigned: #553c9a;   --st-assigned-ink: #ffffff;
-  --st-pickup: #c05621;     --st-pickup-ink: #ffffff;
-  --st-transport: #6b46c1;  --st-transport-ink: #ffffff;
-  --st-transferred: #0e7f8c;--st-transferred-ink: #ffffff;
-  --st-care: #276749;       --st-care-ink: #ffffff;
-  --st-vet: #702459;        --st-vet-ink: #ffffff;
-  --st-monitoring: #3182ce; --st-monitoring-ink: #ffffff;
-  --st-released: #38a169;   --st-released-ink: #0f2a18;
-  --st-deceased: #4a5568;   --st-deceased-ink: #ffffff;
-  --st-closed: #595f6d;     --st-closed-ink: #ffffff;
-  --st-cancelled: #9b2c2c;  --st-cancelled-ink: #ffffff;
+  /* Status identity — explicit bg/fg/border per status; label always present */
+  --status-draft-bg: #e8eae4;
+  --status-draft-fg: #4d5648;
+  --status-draft-border: transparent;
+  --status-reported-bg: #2b6cb0;
+  --status-reported-fg: #ffffff;
+  --status-reported-border: transparent;
+  --status-response-bg: #b7791f;
+  --status-response-fg: #ffffff;
+  --status-response-border: transparent;
+  --status-assigned-bg: #553c9a;
+  --status-assigned-fg: #ffffff;
+  --status-assigned-border: transparent;
+  --status-pickup-bg: #c05621;
+  --status-pickup-fg: #ffffff;
+  --status-pickup-border: transparent;
+  --status-transport-bg: #6b46c1;
+  --status-transport-fg: #ffffff;
+  --status-transport-border: transparent;
+  --status-transferred-bg: #0e7f8c;
+  --status-transferred-fg: #ffffff;
+  --status-transferred-border: transparent;
+  --status-care-bg: #276749;
+  --status-care-fg: #ffffff;
+  --status-care-border: transparent;
+  --status-vet-bg: #702459;
+  --status-vet-fg: #ffffff;
+  --status-vet-border: transparent;
+  --status-monitoring-bg: #3182ce;
+  --status-monitoring-fg: #ffffff;
+  --status-monitoring-border: transparent;
+  --status-released-bg: #38a169;
+  --status-released-fg: #0f2a18;
+  --status-released-border: transparent;
+  --status-deceased-bg: #4a5568;
+  --status-deceased-fg: #ffffff;
+  --status-deceased-border: transparent;
+  --status-closed-bg: #595f6d;
+  --status-closed-fg: #ffffff;
+  --status-closed-border: transparent;
+  --status-cancelled-bg: #9b2c2c;
+  --status-cancelled-fg: #ffffff;
+  --status-cancelled-border: transparent;
 }
 
 [data-theme="forest-light"] {
@@ -95,6 +124,10 @@
   --c-sidebar-active: #2f5d3f;
   --c-border: #ccd5c2;
   --c-border-strong: #aab7a0;
+  --brand-icon-bg: #dce6cc;
+  --brand-icon-fg: #2c4a34;
+  --brand-icon-border: rgb(0 0 0 / 0.15);
+  --hero-paw: var(--c-header-ink);
 }
 
 [data-theme="midnight"] {
@@ -125,6 +158,52 @@
   --c-sidebar-active: #1f4433;
   --c-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 4px 14px rgb(0 0 0 / 0.35);
   --c-shadow-lift: 0 2px 4px rgb(0 0 0 / 0.5), 0 10px 28px rgb(0 0 0 / 0.45);
+  --brand-icon-bg: #1b2c47;
+  --brand-icon-fg: #cfe0f2;
+  --brand-icon-border: rgb(255 255 255 / 0.16);
+  --hero-paw: var(--c-header-ink);
+  --status-draft-bg: #2a2f2c;
+  --status-draft-fg: #c3cdc2;
+  --status-draft-border: #3d453f;
+  --status-reported-bg: #1d3a5f;
+  --status-reported-fg: #a8cdf0;
+  --status-reported-border: #2f5f96;
+  --status-response-bg: #4a3510;
+  --status-response-fg: #f0ce82;
+  --status-response-border: #7a5a1c;
+  --status-assigned-bg: #322657;
+  --status-assigned-fg: #c7b6f2;
+  --status-assigned-border: #5b45a3;
+  --status-pickup-bg: #4e2711;
+  --status-pickup-fg: #f4b98a;
+  --status-pickup-border: #8a4a20;
+  --status-transport-bg: #3a2760;
+  --status-transport-fg: #cdb4f4;
+  --status-transport-border: #6b4bb0;
+  --status-transferred-bg: #0e3d44;
+  --status-transferred-fg: #8ad7e0;
+  --status-transferred-border: #1c6e7a;
+  --status-care-bg: #16351f;
+  --status-care-fg: #93d6a8;
+  --status-care-border: #2c6b3d;
+  --status-vet-bg: #41142f;
+  --status-vet-fg: #eaa9d1;
+  --status-vet-border: #773258;
+  --status-monitoring-bg: #152c42;
+  --status-monitoring-fg: #96c1ea;
+  --status-monitoring-border: #2c5a86;
+  --status-released-bg: #15351f;
+  --status-released-fg: #8fe0ab;
+  --status-released-border: #2c7a45;
+  --status-deceased-bg: #22262d;
+  --status-deceased-fg: #aab3c0;
+  --status-deceased-border: #3d454f;
+  --status-closed-bg: #24272e;
+  --status-closed-fg: #b6bcc7;
+  --status-closed-border: #434954;
+  --status-cancelled-bg: #3c1512;
+  --status-cancelled-fg: #f0a89f;
+  --status-cancelled-border: #7c2d26;
 }
 
 [data-theme="warm-field"] {
@@ -147,6 +226,10 @@
   --c-sidebar: #3a2e1f;
   --c-sidebar-ink: #d8cdb8;
   --c-sidebar-active: #7a5a2e;
+  --brand-icon-bg: #5b4626;
+  --brand-icon-fg: #f4ecd9;
+  --brand-icon-border: rgb(255 255 255 / 0.16);
+  --hero-paw: var(--c-header-ink);
 }
 
 [data-density="compact"] {
@@ -309,6 +392,10 @@ body::after {
   --c-info-surface: #eef1e4;
   --c-focus: #2e6f3e;
   --focus-ring: 2px solid var(--c-focus);
+  --brand-icon-bg: #4a6231;
+  --brand-icon-fg: #eff3e4;
+  --brand-icon-border: rgb(255 255 255 / 0.15);
+  --hero-paw: var(--c-header-ink);
 }
 [data-theme="ocean"] {
   --c-bg: #e9eff4;
@@ -334,6 +421,10 @@ body::after {
   --c-info-surface: #e6eef4;
   --c-focus: #1c6e8c;
   --focus-ring: 2px solid var(--c-focus);
+  --brand-icon-bg: #155a75;
+  --brand-icon-fg: #e2f1f6;
+  --brand-icon-border: rgb(255 255 255 / 0.16);
+  --hero-paw: var(--c-header-ink);
 }
 [data-theme="slate"] {
   --c-bg: #eef0f2;
@@ -359,6 +450,10 @@ body::after {
   --c-info-surface: #eaEEf3;
   --c-focus: #3563a5;
   --focus-ring: 2px solid var(--c-focus);
+  --brand-icon-bg: #3a4a63;
+  --brand-icon-fg: #e8edf4;
+  --brand-icon-border: rgb(255 255 255 / 0.15);
+  --hero-paw: var(--c-header-ink);
 }
 [data-theme="high-contrast-dark"] {
   --c-bg: #000000;
@@ -390,6 +485,52 @@ body::after {
   --c-sidebar-active: #2a4a75;
   --c-shadow: 0 0 0 1px #4a5361;
   --c-shadow-lift: 0 0 0 1px #6d7889;
+  --brand-icon-bg: #000000;
+  --brand-icon-fg: #ffffff;
+  --brand-icon-border: #ffffff;
+  --hero-paw: #ffffff;
+  --status-draft-bg: #2a2f2c;
+  --status-draft-fg: #c3cdc2;
+  --status-draft-border: #3d453f;
+  --status-reported-bg: #1d3a5f;
+  --status-reported-fg: #a8cdf0;
+  --status-reported-border: #2f5f96;
+  --status-response-bg: #4a3510;
+  --status-response-fg: #f0ce82;
+  --status-response-border: #7a5a1c;
+  --status-assigned-bg: #322657;
+  --status-assigned-fg: #c7b6f2;
+  --status-assigned-border: #5b45a3;
+  --status-pickup-bg: #4e2711;
+  --status-pickup-fg: #f4b98a;
+  --status-pickup-border: #8a4a20;
+  --status-transport-bg: #3a2760;
+  --status-transport-fg: #cdb4f4;
+  --status-transport-border: #6b4bb0;
+  --status-transferred-bg: #0e3d44;
+  --status-transferred-fg: #8ad7e0;
+  --status-transferred-border: #1c6e7a;
+  --status-care-bg: #16351f;
+  --status-care-fg: #93d6a8;
+  --status-care-border: #2c6b3d;
+  --status-vet-bg: #41142f;
+  --status-vet-fg: #eaa9d1;
+  --status-vet-border: #773258;
+  --status-monitoring-bg: #152c42;
+  --status-monitoring-fg: #96c1ea;
+  --status-monitoring-border: #2c5a86;
+  --status-released-bg: #15351f;
+  --status-released-fg: #8fe0ab;
+  --status-released-border: #2c7a45;
+  --status-deceased-bg: #22262d;
+  --status-deceased-fg: #aab3c0;
+  --status-deceased-border: #3d454f;
+  --status-closed-bg: #24272e;
+  --status-closed-fg: #b6bcc7;
+  --status-closed-border: #434954;
+  --status-cancelled-bg: #3c1512;
+  --status-cancelled-fg: #f0a89f;
+  --status-cancelled-border: #7c2d26;
 }
 [data-theme="mono-dark"] {
   --c-bg: #050505;
@@ -420,21 +561,68 @@ body::after {
   --c-sidebar-active: #2a2a2a;
   --c-shadow: 0 0 0 1px #2c2c2c;
   --c-shadow-lift: 0 0 0 1px #4a4a4a;
-  /* Monochrome: statuses become grayscale steps; labels carry meaning */
-  --st-draft: #6e6e6e;       --st-draft-ink: #ffffff;
-  --st-reported: #9e9e9e;    --st-reported-ink: #000000;
-  --st-response: #b3b3b3;    --st-response-ink: #000000;
-  --st-assigned: #8a8a8a;    --st-assigned-ink: #ffffff;
-  --st-pickup: #c9c9c9;      --st-pickup-ink: #000000;
-  --st-transport: #7d7d7d;   --st-transport-ink: #ffffff;
-  --st-transferred: #a6a6a6; --st-transferred-ink: #000000;
-  --st-care: #5c5c5c;        --st-care-ink: #ffffff;
-  --st-vet: #707070;         --st-vet-ink: #ffffff;
-  --st-monitoring: #949494;  --st-monitoring-ink: #000000;
-  --st-released: #d6d6d6;    --st-released-ink: #000000;
-  --st-deceased: #3d3d3d;    --st-deceased-ink: #ffffff;
-  --st-closed: #4f4f4f;      --st-closed-ink: #ffffff;
-  --st-cancelled: #2f2f2f;   --st-cancelled-ink: #ffffff;
+  --brand-icon-bg: #0a0a0a;
+  --brand-icon-fg: #ffffff;
+  --brand-icon-border: #5a5a5a;
+  --hero-paw: #ffffff;
+  --status-draft-bg: #242424;
+  --status-draft-fg: #e0e0e0;
+  --status-draft-border: #4a4a4a;
+  --status-reported-bg: #3a3a3a;
+  --status-reported-fg: #ffffff;
+  --status-reported-border: #5a5a5a;
+  --status-response-bg: #161616;
+  --status-response-fg: #ffffff;
+  --status-response-border: #8a8a8a;
+  --status-assigned-bg: #2e2e2e;
+  --status-assigned-fg: #ffffff;
+  --status-assigned-border: #666666;
+  --status-pickup-bg: #101010;
+  --status-pickup-fg: #ffffff;
+  --status-pickup-border: #9a9a9a;
+  --status-transport-bg: #2a2a2a;
+  --status-transport-fg: #f0f0f0;
+  --status-transport-border: #5f5f5f;
+  --status-transferred-bg: #343434;
+  --status-transferred-fg: #ffffff;
+  --status-transferred-border: #6a6a6a;
+  --status-care-bg: #1e1e1e;
+  --status-care-fg: #e6e6e6;
+  --status-care-border: #4f4f4f;
+  --status-vet-bg: #161616;
+  --status-vet-fg: #d9d9d9;
+  --status-vet-border: #757575;
+  --status-monitoring-bg: #303030;
+  --status-monitoring-fg: #ffffff;
+  --status-monitoring-border: #606060;
+  --status-released-bg: #404040;
+  --status-released-fg: #ffffff;
+  --status-released-border: #767676;
+  --status-deceased-bg: #0d0d0d;
+  --status-deceased-fg: #bdbdbd;
+  --status-deceased-border: #3a3a3a;
+  --status-closed-bg: #1a1a1a;
+  --status-closed-fg: #cfcfcf;
+  --status-closed-border: #454545;
+  --status-cancelled-bg: #060606;
+  --status-cancelled-fg: #a3a3a3;
+  --status-cancelled-border: #2f2f2f;
+  /* Monochrome status glyphs: shape carries what color cannot */
+  .badge[data-status="draft"]::before { content: "○"; background: none; width: auto; height: auto; }
+  .badge[data-status="reported"]::before { content: "●"; background: none; width: auto; height: auto; }
+  .badge[data-status="response_requested"]::before { content: "!"; background: none; width: auto; height: auto; font-weight: 800; }
+  .badge[data-status="responder_assigned"]::before { content: "◆"; background: none; width: auto; height: auto; }
+  .badge[data-status="awaiting_pickup"]::before { content: "▲"; background: none; width: auto; height: auto; }
+  .badge[data-status="in_transport"]::before { content: "→"; background: none; width: auto; height: auto; }
+  .badge[data-status="transferred"]::before { content: "⇄"; background: none; width: auto; height: auto; }
+  .badge[data-status="in_care"]::before { content: "♥"; background: none; width: auto; height: auto; }
+  .badge[data-status="veterinary_care"]::before { content: "+"; background: none; width: auto; height: auto; }
+  .badge[data-status="monitoring"]::before { content: "◐"; background: none; width: auto; height: auto; }
+  .badge[data-status="released"]::before { content: "✓"; background: none; width: auto; height: auto; }
+  .badge[data-status="deceased"]::before { content: "†"; background: none; width: auto; height: auto; }
+  .badge[data-status="closed"]::before { content: "■"; background: none; width: auto; height: auto; }
+  .badge[data-status="cancelled"]::before { content: "×"; background: none; width: auto; height: auto; }
+
 }
 [data-theme="mono-light"] {
   --c-bg: #fafafa;
@@ -465,20 +653,68 @@ body::after {
   --c-sidebar-active: #3a3a3a;
   --c-shadow: 0 0 0 1px #dcdcdc;
   --c-shadow-lift: 0 0 0 1px #b4b4b4;
-  --st-draft: #e4e4e4;       --st-draft-ink: #1a1a1a;
-  --st-reported: #bdbdbd;    --st-reported-ink: #0d0d0d;
-  --st-response: #a8a8a8;    --st-response-ink: #0d0d0d;
-  --st-assigned: #7c7c7c;    --st-assigned-ink: #ffffff;
-  --st-pickup: #949494;      --st-pickup-ink: #0d0d0d;
-  --st-transport: #6b6b6b;   --st-transport-ink: #ffffff;
-  --st-transferred: #8f8f8f; --st-transferred-ink: #ffffff;
-  --st-care: #565656;        --st-care-ink: #ffffff;
-  --st-vet: #464646;         --st-vet-ink: #ffffff;
-  --st-monitoring: #a2a2a2;  --st-monitoring-ink: #0d0d0d;
-  --st-released: #303030;    --st-released-ink: #ffffff;
-  --st-deceased: #5a5a5a;    --st-deceased-ink: #ffffff;
-  --st-closed: #7a7a7a;      --st-closed-ink: #ffffff;
-  --st-cancelled: #1d1d1d;   --st-cancelled-ink: #ffffff;
+  --brand-icon-bg: #ffffff;
+  --brand-icon-fg: #0d0d0d;
+  --brand-icon-border: #0d0d0d;
+  --hero-paw: #111111;
+  --status-draft-bg: #f0f0f0;
+  --status-draft-fg: #1a1a1a;
+  --status-draft-border: #b4b4b4;
+  --status-reported-bg: #dcdcdc;
+  --status-reported-fg: #0d0d0d;
+  --status-reported-border: #8a8a8a;
+  --status-response-bg: #ffffff;
+  --status-response-fg: #0d0d0d;
+  --status-response-border: #4a4a4a;
+  --status-assigned-bg: #e2e2e2;
+  --status-assigned-fg: #0d0d0d;
+  --status-assigned-border: #7a7a7a;
+  --status-pickup-bg: #ffffff;
+  --status-pickup-fg: #0d0d0d;
+  --status-pickup-border: #333333;
+  --status-transport-bg: #e6e6e6;
+  --status-transport-fg: #111111;
+  --status-transport-border: #707070;
+  --status-transferred-bg: #d4d4d4;
+  --status-transferred-fg: #0d0d0d;
+  --status-transferred-border: #666666;
+  --status-care-bg: #eeeeee;
+  --status-care-fg: #141414;
+  --status-care-border: #9a9a9a;
+  --status-vet-bg: #ffffff;
+  --status-vet-fg: #2a2a2a;
+  --status-vet-border: #5a5a5a;
+  --status-monitoring-bg: #e0e0e0;
+  --status-monitoring-fg: #0d0d0d;
+  --status-monitoring-border: #808080;
+  --status-released-bg: #c8c8c8;
+  --status-released-fg: #0d0d0d;
+  --status-released-border: #4a4a4a;
+  --status-deceased-bg: #fafafa;
+  --status-deceased-fg: #6b6b6b;
+  --status-deceased-border: #c4c4c4;
+  --status-closed-bg: #f4f4f4;
+  --status-closed-fg: #3d3d3d;
+  --status-closed-border: #b0b0b0;
+  --status-cancelled-bg: #111111;
+  --status-cancelled-fg: #ffffff;
+  --status-cancelled-border: #111111;
+  /* Monochrome status glyphs: shape carries what color cannot */
+  .badge[data-status="draft"]::before { content: "○"; background: none; width: auto; height: auto; }
+  .badge[data-status="reported"]::before { content: "●"; background: none; width: auto; height: auto; }
+  .badge[data-status="response_requested"]::before { content: "!"; background: none; width: auto; height: auto; font-weight: 800; }
+  .badge[data-status="responder_assigned"]::before { content: "◆"; background: none; width: auto; height: auto; }
+  .badge[data-status="awaiting_pickup"]::before { content: "▲"; background: none; width: auto; height: auto; }
+  .badge[data-status="in_transport"]::before { content: "→"; background: none; width: auto; height: auto; }
+  .badge[data-status="transferred"]::before { content: "⇄"; background: none; width: auto; height: auto; }
+  .badge[data-status="in_care"]::before { content: "♥"; background: none; width: auto; height: auto; }
+  .badge[data-status="veterinary_care"]::before { content: "+"; background: none; width: auto; height: auto; }
+  .badge[data-status="monitoring"]::before { content: "◐"; background: none; width: auto; height: auto; }
+  .badge[data-status="released"]::before { content: "✓"; background: none; width: auto; height: auto; }
+  .badge[data-status="deceased"]::before { content: "†"; background: none; width: auto; height: auto; }
+  .badge[data-status="closed"]::before { content: "■"; background: none; width: auto; height: auto; }
+  .badge[data-status="cancelled"]::before { content: "×"; background: none; width: auto; height: auto; }
+
 }
 
 /* Ambient palettes for the new themes */
@@ -508,9 +744,29 @@ body::after {
 }
 [data-theme="high-contrast-dark"] body::before,
 [data-theme="high-contrast-dark"] body::after,
+[data-theme="mono-dark"] {
+  --surface-1: #141414;
+  --surface-2: #1e1e1e;
+  --surface-3: #262626;
+  --surface-hover: #242424;
+}
 [data-theme="mono-dark"] body::before,
 [data-theme="mono-dark"] body::after,
+[data-theme="mono-light"] {
+  --surface-1: #ffffff;
+  --surface-2: #f4f4f4;
+  --surface-3: #e9e9e9;
+  --surface-hover: #f0f0f0;
+}
 [data-theme="mono-light"] body::before,
 [data-theme="mono-light"] body::after {
   content: none; /* no ambient decoration on monochrome themes */
 }
+
+/* Dark/mono theme surface separation: border + luminance, never fill alone */
+[data-theme="mono-dark"] .card { border-color: #3a3a3a; }
+[data-theme="mono-dark"] .report-card { border-color: #3a3a3a; }
+[data-theme="mono-dark"] .report-card:hover { border-color: #6a6a6a; }
+[data-theme="mono-light"] .card { border-color: #c8c8c8; }
+[data-theme="mono-light"] .report-card { border-color: #c8c8c8; }
+[data-theme="midnight"] .report-card { border-color: var(--c-border-strong); }

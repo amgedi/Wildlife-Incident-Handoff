@@ -1,10 +1,10 @@
 {
   "name": "wildlife-incident-handoff",
   "private": true,
-  "version": "0.2.0-dev.2",
+  "version": "0.2.0-dev.3",
   "description": "An open-source, local-first tool for creating clear and traceable wildlife incident handoffs.",
   "type": "module",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
@@ -14,6 +14,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@tauri-apps/api": "^2.12.1",
     "idb": "^8.0.1",
     "maplibre-gl": "^6.11.2",
     "react": "^18.3.1",

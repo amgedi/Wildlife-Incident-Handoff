@@ -158,6 +158,37 @@ export function TextField({
   );
 }
 
+/** Modern accessible checkbox — a real <input type="checkbox"> underneath. */
+export function Checkbox({
+  label, checked, onChange, disabled, hint, trailing,
+}: {
+  label: ReactNode;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+  hint?: string;
+  trailing?: ReactNode;
+}) {
+  const id = useId();
+  return (
+    <div className="checkbox-row">
+      <input
+        id={id}
+        type="checkbox"
+        className="modern-checkbox"
+        checked={checked}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+      <label htmlFor={id} className={disabled ? "is-disabled" : undefined}>
+        <span className="checkbox-label">{label}</span>
+        {trailing && <span className="checkbox-trailing">{trailing}</span>}
+        {hint && <span className="checkbox-hint">{hint}</span>}
+      </label>
+    </div>
+  );
+}
+
 /** Segmented control for small exclusive choices. */
 export function Segmented<T extends string>({
   label,

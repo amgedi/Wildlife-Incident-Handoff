@@ -1,5 +1,7 @@
 # Contributing to Wildlife Incident Handoff
 
+By contributing you agree your contributions are licensed under AGPL-3.0-only.
+
 Thank you for helping make wildlife handoffs clearer and safer! Contributions are welcome, and beginners are explicitly encouraged — this project exists partly as a learning resource.
 
 ## Getting set up
