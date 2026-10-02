@@ -34,19 +34,22 @@ type TabId = (typeof TABS)[number]["id"];
 export function IncidentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const search = useSearchParams()[0];
+  const [search, setSearchParams] = useSearchParams();
   const { showToast } = useApp();
   const [incident, setIncident] = useState<Incident | null>(null);
   const [notFound, setNotFound] = useState(false);
-  const initialTab = (search.get("tab") as TabId) ?? "overview";
-  const [tab, setTab] = useState<TabId>(
-    (TABS.some((t) => t.id === initialTab) ? initialTab : "overview") as TabId
-  );
-  // Keep the tab in sync with deep links (e.g. the product tour navigating to ?tab=timeline).
-  useEffect(() => {
-    const urlTab = search.get("tab") as TabId | null;
-    if (urlTab && TABS.some((t) => t.id === urlTab) && urlTab !== tab) setTab(urlTab);
-  }, [search, tab]);
+  // The URL query is the single source of truth for the active tab.
+  // Clicking a tab performs SPA navigation, so Back/Forward and deep links
+  // work and no effect can ever revert the user's selection (the old
+  // setTab-from-URL effect caused tabs to get "stuck" on Export).
+  const urlTab = search.get("tab");
+  const tab: TabId = (TABS.some((t) => t.id === urlTab) ? urlTab : "overview") as TabId;
+  const setTab = (next: TabId) => {
+    const params = new URLSearchParams(search);
+    if (next === "overview") params.delete("tab");
+    else params.set("tab", next);
+    setSearchParams(params, { replace: false });
+  };
   const [statusDialog, setStatusDialog] = useState(false);
   const [newStatus, setNewStatus] = useState<IncidentStatus | null>(null);
   const [statusNote, setStatusNote] = useState("");
@@ -101,7 +104,7 @@ export function IncidentDetailPage() {
     <main className="content wide" id="main-content">
       {incident.isDemo && (
         <div style={{ marginBottom: "var(--space-3)" }}>
-          <span className="demo-banner">FICTIONAL DEMO</span>
+          <span className="demo-banner" data-tour-id="demo-banner">FICTIONAL DEMO</span>
         </div>
       )}
 

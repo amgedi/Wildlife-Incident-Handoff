@@ -1,5 +1,4 @@
 /** Examples & Tutorial hub: fictional demo cases and the guided first incident. */
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Icons } from "../../components/Icons";
 import { buildDemoIncidents } from "./demoData";
@@ -9,16 +8,15 @@ import { relativeTime } from "../../utils/time";
 import { useIncidents } from "../incidents/IncidentCard";
 import { putIncident } from "../../storage/repositories";
 import { useApp } from "../../app/AppContext";
+import { buildInterfaceTourSteps, buildDemoTourSteps } from "./guidance";
 import { formatHumanReference, nextSequenceFromRefs, uuid } from "../../utils/id";
 import { nowIso } from "../../utils/time";
 import type { Incident } from "../../types/incident";
-import { SpotlightTour } from "./SpotlightTour";
 
 export function ExamplesPage() {
   const navigate = useNavigate();
-  const { showToast } = useApp();
+  const { showToast, settings, startGuidance } = useApp();
   const { incidents, refresh } = useIncidents();
-  const [tourOpen, setTourOpen] = useState(false);
   const demos = buildDemoIncidents();
 
   async function copyDemo(demo: Incident) {
@@ -67,7 +65,12 @@ export function ExamplesPage() {
         <button className="btn btn-primary" onClick={() => navigate("/tutorial")}>
           Start tutorial
         </button>
-        <button className="btn btn-secondary" onClick={() => setTourOpen(true)}>
+        <button
+          className="btn btn-secondary"
+          onClick={() => {
+            void buildInterfaceTourSteps(settings.workspace).then((steps) => startGuidance("interface-tour", steps));
+          }}
+        >
           Interface tour
         </button>
       </div>
@@ -87,7 +90,13 @@ export function ExamplesPage() {
                 <button
                   className="btn btn-secondary btn-sm"
                   onClick={() => {
-                    void putIncident(d).then(() => navigate(`/incidents/${d.id}`));
+                    // Persist the demo, open it, and launch the DEMO incident
+                    // explanation tour (a different guidance system from the
+                    // interface tour and the guided tutorial).
+                    void putIncident(d).then(() => {
+                      navigate(`/incidents/${d.id}`);
+                      setTimeout(() => startGuidance("demo-incident-tour", buildDemoTourSteps()), 150);
+                    });
                   }}
                 >
                   Open example
@@ -107,14 +116,8 @@ export function ExamplesPage() {
           “Copy into my workspace” creates a real, editable incident in your own list with a new reference number.
         </p>
       )}
-
-      {tourOpen && <SpotlightTour steps={TOUR_STEPS} onFinish={() => setTourOpen(false)} />}
     </main>
   );
 }
 
-const TOUR_STEPS = [
-  { tourId: "incident-header", title: "This is a demo incident", text: "Demo cases open in the same workspace as real incidents, but stay clearly labeled as fictional. The header shows the reference, status and the handoff action." },
-  { tourId: "tab-timeline", title: "Timeline", text: "Every event is preserved in order — including corrections.", waitMs: 400 },
-  { tourId: "tab-export", title: "Export", text: "Try a shareable export to see how privacy redaction works.", waitMs: 400 },
-];
+

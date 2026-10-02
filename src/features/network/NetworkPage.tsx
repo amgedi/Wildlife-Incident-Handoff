@@ -19,6 +19,8 @@ import {
   findDuplicateCandidates, inServiceArea, type ServiceArea,
 } from "./networkService";
 import { formatDistance } from "../../utils/units";
+import { NetworkMap } from "./NetworkMap";
+import { useNavigate } from "react-router-dom";
 import { getSetting, setSetting } from "../../storage/repositories";
 import { useEffect } from "react";
 import { changeStatus } from "../../storage/incidentService";
@@ -26,6 +28,7 @@ import { changeStatus } from "../../storage/incidentService";
 export function NetworkPage() {
   const { incidents, refresh } = useIncidents();
   const { settings, showToast } = useApp();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<"list" | "map">("list");
   const [area, setArea] = useState<ServiceArea>({ centerLat: null, centerLon: null, radiusKm: 25, label: "My service area" });
   const [loaded, setLoaded] = useState(false);
@@ -91,18 +94,14 @@ export function NetworkPage() {
 
       {tab === "map" ? (
         <div className="card" style={{ marginTop: "var(--space-4)" }}>
-          <h3 style={{ marginTop: 0 }}>Map view</h3>
-          <div className="empty-state" style={{ padding: "var(--space-6)" }}>
-            <Icons.compass size={40} />
-            <h3>Map view is planned, not shipped</h3>
-            <p style={{ maxWidth: "52ch" }}>
-              The app defines a map-provider abstraction (no vendor hard-wired) so a privacy-respecting tile provider can
-              be added for the real network. Markers would reflect broad state only — new, assigned, in response,
-              transferred, closed — and sensitive locations would stay hidden from unauthorized users.
-            </p>
-          </div>
+          <h3 style={{ marginTop: 0 }}>Map</h3>
+          <NetworkMap
+            incidents={inArea}
+            privacy="approximate"
+            onSelect={(incident) => navigate(`/incidents/${incident.id}`)}
+          />
         </div>
-      ) : (
+            ) : (
         <>
           {duplicates.length > 0 && (
             <div className="notice warning" style={{ marginTop: "var(--space-4)" }}>

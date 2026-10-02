@@ -2,14 +2,27 @@ import type { DetailLevel, ExperienceMode } from "./incident";
 
 export type { DetailLevel, ExperienceMode };
 
-export type ThemeName = "forest-dark" | "forest-light" | "midnight" | "warm-field";
+export type ThemeName =
+  | "forest-dark"
+  | "forest-light"
+  | "midnight"
+  | "warm-field"
+  | "moss"
+  | "ocean"
+  | "slate"
+  | "high-contrast-dark"
+  | "mono-dark"
+  | "mono-light";
 export type Density = "comfortable" | "compact";
 export type MotionPreference = "full" | "reduced" | "off";
 export type AmbientPreference = "on" | "reduced" | "off";
 
+export type Workspace = "reporter" | "professional";
+
 export interface AppSettings {
   schemaVersion: number;
   onboarded: boolean;
+  workspace: Workspace;
   experienceMode: ExperienceMode;
   detailLevel: DetailLevel;
   theme: ThemeName;
@@ -31,6 +44,7 @@ export interface AppSettings {
 export const DEFAULT_SETTINGS: AppSettings = {
   schemaVersion: 1,
   onboarded: false,
+  workspace: "reporter",
   experienceMode: "general",
   detailLevel: "standard",
   theme: "forest-dark",

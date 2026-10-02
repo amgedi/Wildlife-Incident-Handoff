@@ -11,6 +11,7 @@ import { bytesToSize } from "../../utils/time";
 import { useEffect } from "react";
 import { APP_VERSION as appVersion, BUILD_ID as buildId, DATA_SCHEMA_VERSION as dataSchemaVersion } from "../../version";
 import { defaultUnitsFor } from "../../utils/units";
+import { isTauri } from "../../utils/platformFile";
 import type { DetailLevel, ExperienceMode, MotionPreference, ThemeName } from "../../types/settings";
 
 const SECTIONS = [
@@ -103,6 +104,12 @@ function AppearanceSection() {
     { value: "forest-light", label: "Forest Light", swatch: ["#e3ead9", "#2f5d3f", "#eef2e9"] },
     { value: "midnight", label: "Midnight", swatch: ["#10151d", "#4f9d6e", "#e2e8ee"] },
     { value: "warm-field", label: "Warm Field", swatch: ["#4a3b28", "#7a5a2e", "#f7f2e8"] },
+    { value: "moss", label: "Moss", swatch: ["#3f5233", "#55702f", "#eceee4"] },
+    { value: "ocean", label: "Ocean", swatch: ["#123a5c", "#1c6e8c", "#e9eff4"] },
+    { value: "slate", label: "Slate", swatch: ["#2d3748", "#4a6285", "#eef0f2"] },
+    { value: "high-contrast-dark", label: "High Contrast Dark", swatch: ["#000000", "#7fb7ff", "#ffffff"] },
+    { value: "mono-dark", label: "Monochrome Dark", swatch: ["#050505", "#e8e8e8", "#f2f2f2"] },
+    { value: "mono-light", label: "Monochrome Light", swatch: ["#111111", "#171717", "#fafafa"] },
   ];
   return (
     <div className="stack">
@@ -183,6 +190,19 @@ function ExperienceSection() {
   return (
     <div className="card">
       <p style={{ color: "var(--c-ink-soft)" }}>These shape what the app shows you. They are presentation presets only — they never create or restrict permissions.</p>
+      <Segmented
+        label="Workspace"
+        value={settings.workspace}
+        onChange={(v) => updateSettings({ workspace: v })}
+        options={[
+          { value: "reporter", label: "Reporter" },
+          { value: "professional", label: "Professional / responder" },
+        ]}
+      />
+      <p className="hint">
+        Reporter keeps navigation focused on reporting and your own records. Professional adds the response dashboard and
+        network tools. Switching never deletes or alters records, and is not an authorization system.
+      </p>
       <Select label="How will you mostly use the app?" value={settings.experienceMode} options={modes} onChange={(v) => updateSettings({ experienceMode: v as ExperienceMode })} />
       <Segmented
         label="How much detail would you like?"
@@ -491,6 +511,11 @@ function AdvancedSection() {
           User observations, species names, organization names and incident references are never translated.
         </p>
       </div>
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>Status chip reference</h3>
+        <p className="hint" style={{ marginTop: 0 }}>All incident statuses side by side for visual comparison in this theme.</p>
+        <StatusFixture />
+      </div>
       <div className="notice">
         <Icons.info size={18} />
         <span>
@@ -502,7 +527,51 @@ function AdvancedSection() {
   );
 }
 
+function StatusFixture() {
+  const statuses = [
+    "draft","reported","response_requested","responder_assigned","awaiting_pickup","in_transport",
+    "transferred","in_care","veterinary_care","monitoring","released","deceased","closed","cancelled",
+  ] as const;
+  const labels: Record<string, string> = {
+    draft: "Draft", reported: "Reported", response_requested: "Response requested",
+    responder_assigned: "Responder assigned", awaiting_pickup: "Awaiting pickup", in_transport: "In transport",
+    transferred: "Transferred", in_care: "In care", veterinary_care: "Veterinary care", monitoring: "Monitoring",
+    released: "Released", deceased: "Deceased", closed: "Closed", cancelled: "Cancelled",
+  };
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+      {statuses.map((st) => (
+        <span key={st} className="badge" data-status={st}>{labels[st]}</span>
+      ))}
+    </div>
+  );
+}
+
 function AboutSection() {
+  const { settings } = useApp();
+  const [diagCopied, setDiagCopied] = useState(false);
+  async function copyDiagnostics() {
+    const [inc, blobs, est] = await Promise.all([getAllIncidents(), getAllAttachmentBlobs(), estimateStorage()]);
+    const lines = [
+      "Wildlife Incident Handoff — diagnostics",
+      `applicationVersion: ${appVersion}`,
+      `buildId: ${buildId}`,
+      `dataSchemaVersion: ${dataSchemaVersion}`,
+      `platform: ${isTauri() ? "desktop (Tauri)" : "web/PWA"}`,
+      `workspace: ${settings.workspace}`,
+      `theme: ${settings.theme}`,
+      `motion: ${settings.motion}`,
+      `ambient: ${settings.ambient}`,
+      `language: ${settings.language}`,
+      `mapProvider: maplibre-osm (OpenStreetMap raster tiles)`,
+      `incidents: ${inc.length}`,
+      `attachments: ${blobs.length}`,
+      `storageUsage: ${est ? bytesToSize(est.usage) : "not reported"}`,
+    ].join(String.fromCharCode(10));
+    await navigator.clipboard.writeText(lines);
+    setDiagCopied(true);
+    setTimeout(() => setDiagCopied(false), 2500);
+  }
   return (
     <div className="card">
       <h3 style={{ marginTop: 0 }}>Wildlife Incident Handoff</h3>
@@ -516,6 +585,12 @@ function AboutSection() {
       <p style={{ color: "var(--c-ink-soft)", marginTop: "var(--space-4)" }}>
         An open-source, local-first tool for creating clear and traceable wildlife incident handoffs.
       </p>
+      <div style={{ marginTop: "var(--space-4)" }}>
+        <button className="btn btn-secondary btn-sm" onClick={() => void copyDiagnostics()}>
+          <Icons.download size={14} /> {diagCopied ? "Copied!" : "Copy diagnostics"}
+        </button>
+        <p className="hint">Contains versions, settings and storage counts only — never incident details, names, contacts or coordinates.</p>
+      </div>
       <div className="notice">
         <Icons.info size={18} />
         <span>

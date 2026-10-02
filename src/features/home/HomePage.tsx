@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "../../app/AppContext";
 import { Icons } from "../../components/Icons";
-import { BrandMark } from "../../components/BrandMark";
+import { BrandMark, BearPawMark } from "../../components/BrandMark";
 import { EmptyState } from "../../components/ui";
 import { useIncidents, IncidentCard } from "../incidents/IncidentCard";
 import { getAllDrafts } from "../../storage/repositories";
@@ -12,9 +12,10 @@ import type { DraftRecord } from "../../storage/db";
 import { animalLabel } from "../export/exportService";
 import { relativeTime } from "../../utils/time";
 
-export function HomePage({ onStartTour }: { onStartTour: () => void }) {
+export function HomePage() {
   const { incidents } = useIncidents();
-  const { settings } = useApp();
+  const { settings, startGuidance } = useApp();
+  const isReporter = settings.workspace === "reporter";
   const navigate = useNavigate();
   const [draft, setDraft] = useState<DraftRecord | null>(null);
 
@@ -25,18 +26,26 @@ export function HomePage({ onStartTour }: { onStartTour: () => void }) {
     });
   }, []);
 
-  const { active, recent } = useMemo(() => {
-    if (!incidents) return { active: [], recent: [] };
-    const live = incidents.filter((i) => !i.deletedAt && !i.archivedAt);
+  const { active, recent, inProgress, awaiting, resolved } = useMemo(() => {
+    if (!incidents) return { active: [], recent: [], inProgress: [], awaiting: [], resolved: [] };
+    const live = incidents.filter((i) => !i.deletedAt && !i.archivedAt && !i.isDemo);
     const activeList = live
       .filter((i) => !["closed", "cancelled", "released", "deceased"].includes(i.status))
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    const awaitingList = live.filter((i) => ["reported", "response_requested"].includes(i.status));
+    const resolvedList = live
+      .filter((i) => ["released", "closed", "cancelled", "deceased"].includes(i.status))
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+      .slice(0, 3);
     return {
       active: activeList.slice(0, 3),
       recent: live
         .filter((i) => !activeList.slice(0, 3).some((a) => a.id === i.id))
         .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
         .slice(0, 6),
+      inProgress: activeList.filter((i) => !["reported", "response_requested"].includes(i.status)),
+      awaiting: awaitingList,
+      resolved: resolvedList,
     };
   }, [incidents]);
 
@@ -46,29 +55,46 @@ export function HomePage({ onStartTour }: { onStartTour: () => void }) {
     <main className="content" id="main-content">
       <section className="hero fade-in" data-tour-id="hero">
         <BrandMark size={44} />
-        <h1 style={{ marginTop: "var(--space-4)" }}>Wildlife Incident Handoff</h1>
-        <p style={{ fontSize: "1.05rem" }}>
-          {settings.displayName ? `Welcome back, ${settings.displayName}. ` : ""}Clear information. Safer handoffs.
-          Record what you observed, keep the whole story in order, and pass the case on without losing context.
-        </p>
+        {isReporter ? (
+          <>
+            <h1 style={{ marginTop: "var(--space-4)" }}>Found wildlife that may need help?</h1>
+            <p style={{ fontSize: "1.05rem" }}>
+              Record what you see, step by step. Nothing is shared without your say-so — and "Unknown" is always
+              a valid answer.
+            </p>
+          </>
+        ) : (
+          <>
+            <h1 style={{ marginTop: "var(--space-4)" }}>Wildlife Incident Handoff</h1>
+            <p style={{ fontSize: "1.05rem" }}>
+              {settings.displayName ? `Welcome back, ${settings.displayName}. ` : ""}Clear information. Safer handoffs.
+              Record what was observed, keep the whole story in order, and pass the case on without losing context.
+            </p>
+          </>
+        )}
         <div className="hero-actions">
           <Link to="/incidents/new" className="btn btn-primary btn-lg" data-tour-id="hero-create">
             <Icons.plus size={18} />
-            Create incident
+            {isReporter ? "Report wildlife" : "Create incident"}
           </Link>
-          <Link to="/incidents" className="btn btn-secondary btn-lg" data-tour-id="hero-open" style={{ background: "rgb(255 255 255 / 0.12)", color: "inherit", borderColor: "rgb(255 255 255 / 0.3)" }}>
+          <Link to="/incidents" className="btn btn-secondary btn-lg btn-hero-secondary" data-tour-id="hero-open">
             <Icons.list size={18} />
-            Open incidents
+            {isReporter ? "My reports" : "Open incidents"}
           </Link>
           {!settings.tourCompleted && (
-            <button className="btn btn-ghost btn-lg" style={{ color: "rgb(255 255 255 / 0.85)" }} onClick={onStartTour}>
+            <button className="btn btn-ghost btn-lg btn-hero-ghost" onClick={() => {
+              void import("../tutorial/guidance").then(async ({ buildInterfaceTourSteps }) => {
+                const steps = await buildInterfaceTourSteps(settings.workspace);
+                startGuidance("interface-tour", steps);
+              });
+            }}>
               <Icons.compass size={18} />
               Take the tour
             </button>
           )}
         </div>
         <div className="hero-art" aria-hidden="true">
-          <Icons.paw size={260} />
+          <BearPawMark size={240} tile={false} pawColor="currentColor" style={{ color: "var(--c-header-ink)", opacity: 0.12 }} />
         </div>
       </section>
 
@@ -89,7 +115,7 @@ export function HomePage({ onStartTour }: { onStartTour: () => void }) {
         </div>
       )}
 
-      <div className="card" style={{ marginTop: "var(--space-5)", display: "flex", gap: "var(--space-4)", alignItems: "center", flexWrap: "wrap" }}>
+      <div className="card" style={{ marginTop: "var(--space-5)", display: "flex", gap: "var(--space-4)", alignItems: "center", flexWrap: "wrap" }} data-tour-id="guide-me-card">
         <Icons.help size={22} style={{ color: "var(--c-primary)", flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 220 }}>
           <h3 style={{ margin: 0 }}>Not sure what to do?</h3>
@@ -103,7 +129,9 @@ export function HomePage({ onStartTour }: { onStartTour: () => void }) {
         </Link>
       </div>
 
-      <h2 className="section-label" style={{ marginTop: "var(--space-6)" }}>Continue working</h2>
+      <h2 className="section-label" style={{ marginTop: "var(--space-6)" }}>
+        {isReporter ? "Your reports" : "Continue working"}
+      </h2>
       {active.length === 0 ? (
         <div className="card">
           <EmptyState
@@ -133,6 +161,29 @@ export function HomePage({ onStartTour }: { onStartTour: () => void }) {
             {animalLabel(first)} — {first.nextStep ? `Next step: ${first.nextStep}` : "No next step recorded yet."}
           </p>
           <Link className="btn btn-secondary btn-sm" to={`/incidents/${first.id}`}>Continue</Link>
+        </div>
+      )}
+
+      {isReporter && (inProgress.length > 0 || awaiting.length > 0 || resolved.length > 0) && (
+        <div className="grid-2" style={{ marginTop: "var(--space-4)" }}>
+          <div className="card" style={{ padding: "var(--space-4)" }}>
+            <h3>In progress ({inProgress.length})</h3>
+            <p style={{ margin: 0, color: "var(--c-ink-soft)", fontSize: "0.88rem" }}>Someone is helping or the case is being handed over.</p>
+          </div>
+          <div className="card" style={{ padding: "var(--space-4)" }}>
+            <h3>Awaiting response ({awaiting.length})</h3>
+            <p style={{ margin: 0, color: "var(--c-ink-soft)", fontSize: "0.88rem" }}>Recorded and waiting for a responder to pick it up.</p>
+          </div>
+          <div className="card" style={{ padding: "var(--space-4)", gridColumn: "1 / -1" }}>
+            <h3>Resolved ({resolved.length})</h3>
+            {resolved.length === 0 ? (
+              <p style={{ margin: 0, color: "var(--c-ink-faint)", fontSize: "0.88rem" }}>Closed reports appear here.</p>
+            ) : (
+              <div className="card-list" style={{ marginTop: 8 }}>
+                {resolved.map((i) => <IncidentCard key={i.id} incident={i} />)}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

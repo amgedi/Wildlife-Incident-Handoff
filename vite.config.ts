@@ -12,7 +12,8 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg", "icons/*.png", "robots.txt"],
+      injectRegister: null, // registered manually in main.tsx (skipped inside Tauri)
+      includeAssets: ["favicon.svg", "icons/*.png"],
       manifest: {
         name: "Wildlife Incident Handoff",
         short_name: "Incident Handoff",
@@ -32,6 +33,7 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
         navigateFallback: "/index.html",
         runtimeCaching: [],
+        cleanupOutdatedCaches: true,
       },
     }),
   ],

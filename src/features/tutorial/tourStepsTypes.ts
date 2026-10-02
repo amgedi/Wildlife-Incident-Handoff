@@ -7,6 +7,8 @@ export interface TourAction {
 }
 
 export interface TourStepV2 {
+  /** Unique step id within its guidance system, e.g. "interface-search". */
+  id: string;
   /** Stable data-tour-id of the element to highlight. */
   tourId: string;
   /** Selector fallback when the tour-id element isn't rendered. */

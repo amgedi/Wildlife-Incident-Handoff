@@ -5,11 +5,13 @@ import { STATUS_LABELS_BY_KEY } from "../features/incidents/labels";
 import type { IncidentStatus } from "../types/incident";
 
 export function StatusBadge({ status }: { status: IncidentStatus }) {
-  const openStates: IncidentStatus[] = ["reported", "response_requested", "responder_assigned", "awaiting_pickup"];
-  const urgentStates: IncidentStatus[] = ["in_transport"];
-  const doneStates: IncidentStatus[] = ["released", "closed", "cancelled", "deceased"];
-  const cls = openStates.includes(status) ? "open" : urgentStates.includes(status) ? "urgent" : doneStates.includes(status) ? "neutral" : "info";
-  return <span className={`badge ${cls}`}>{STATUS_LABELS_BY_KEY[status]}</span>;
+  // Distinct per-status identity via data-status (see tokens.css).
+  // Color is never the only signal: the label text is always present.
+  return (
+    <span className="badge" data-status={status}>
+      {STATUS_LABELS_BY_KEY[status]}
+    </span>
+  );
 }
 
 export function UnknownChip({ children = "Unknown" }: { children?: string }) {

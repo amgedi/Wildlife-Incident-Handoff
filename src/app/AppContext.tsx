@@ -15,6 +15,8 @@ import {
 import { DEFAULT_SETTINGS, type AppSettings } from "../types/settings";
 import { getSetting, setSetting } from "../storage/repositories";
 import { setLocale } from "../i18n";
+import { markGuidanceComplete, type GuidanceSystemId } from "../features/tutorial/guidance";
+import type { TourStepV2 } from "../features/tutorial/tourStepsTypes";
 
 interface ToastItem {
   id: number;
@@ -24,11 +26,22 @@ interface ToastItem {
   leaving?: boolean;
 }
 
+interface GuidanceRun {
+  systemId: GuidanceSystemId;
+  steps: TourStepV2[];
+}
+
 interface AppContextValue {
   settings: AppSettings;
   updateSettings: (patch: Partial<AppSettings>) => void;
   showToast: (message: string, options?: { actionLabel?: string; onAction?: () => void }) => void;
   storageReady: boolean;
+  /** Currently running guidance system (spotlight tours), if any. */
+  guidance: GuidanceRun | null;
+  /** Start a named guidance system with explicit steps. Completion is
+   *  persisted under that system's own key — never any other. */
+  startGuidance: (systemId: GuidanceSystemId, steps: TourStepV2[]) => void;
+  endGuidance: (markComplete: boolean) => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -45,6 +58,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [storageReady, setStorageReady] = useState(false);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [guidance, setGuidance] = useState<GuidanceRun | null>(null);
 
   useEffect(() => {
     getSetting<AppSettings>("app-settings").then((stored) => {
@@ -89,9 +103,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     []
   );
 
+  const startGuidance = useCallback((systemId: GuidanceSystemId, steps: TourStepV2[]) => {
+    setGuidance({ systemId, steps });
+  }, []);
+  const endGuidance = useCallback((markComplete: boolean) => {
+    setGuidance((current) => {
+      if (current && markComplete) void markGuidanceComplete(current.systemId);
+      return null;
+    });
+  }, []);
+
   const value = useMemo(
-    () => ({ settings, updateSettings, showToast, storageReady }),
-    [settings, updateSettings, showToast, storageReady]
+    () => ({ settings, updateSettings, showToast, storageReady, guidance, startGuidance, endGuidance }),
+    [settings, updateSettings, showToast, storageReady, guidance, startGuidance, endGuidance]
   );
 
   return (

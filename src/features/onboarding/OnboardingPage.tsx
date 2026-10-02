@@ -35,7 +35,13 @@ export function OnboardingPage() {
   const [detail, setDetail] = useState<DetailLevel>("standard");
 
   const finish = () => {
-    updateSettings({ onboarded: true, experienceMode: mode, detailLevel: detail });
+    const professional: ExperienceMode[] = ["rescue", "rehab", "vet", "conservation"];
+    updateSettings({
+      onboarded: true,
+      experienceMode: mode,
+      detailLevel: detail,
+      workspace: professional.includes(mode) ? "professional" : "reporter",
+    });
     navigate("/");
   };
 

@@ -9,6 +9,7 @@ import { useIncidents, IncidentCardFull } from "./IncidentCard";
 import { moveToTrash, restoreFromTrash, permanentlyDelete, archiveIncident, unarchiveIncident } from "../../storage/incidentService";
 import { putIncident } from "../../storage/repositories";
 import { matchesSearch } from "../../utils/text";
+import { useEffect as useEffectReact, useRef as useRefReact, useState as useStateReact } from "react";
 import { STATUS_LABELS_BY_KEY } from "./labels";
 import { INCIDENT_TYPES } from "./labels";
 import type { Incident } from "../../types/incident";
@@ -18,7 +19,7 @@ type View = "active" | "archive" | "trash";
 
 export function IncidentListPage() {
   const { incidents, refresh } = useIncidents();
-  const { showToast } = useApp();
+  const { showToast, settings } = useApp();
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -78,7 +79,7 @@ export function IncidentListPage() {
   return (
     <main className="content" id="main-content">
       <div className="row between" style={{ marginBottom: "var(--space-4)" }}>
-        <h1 style={{ margin: 0 }}>Incidents</h1>
+        <h1 style={{ margin: 0 }}>{settings.workspace === "professional" ? "Incidents" : "My reports"}</h1>
         <Link to="/incidents/new" className="btn btn-primary">
           <Icons.plus size={16} />
           Create incident
@@ -164,50 +165,23 @@ export function IncidentListPage() {
       ) : (
         <div className="card-list">
           {filtered.map((i) => (
-            <div key={i.id} style={{ position: "relative" }} className="list-card-with-actions">
-              <IncidentCardFull incident={i} />
-              <div className="row" style={{ position: "absolute", top: 8, right: 8 }} role="group" aria-label={`Actions for ${i.humanReference}`}>
-                {view === "active" && (
-                  <>
-                    <button
-                      className="btn btn-quiet btn-sm"
-                      title={i.pinnedAt ? "Unpin" : "Pin to top"}
-                      aria-label={i.pinnedAt ? `Unpin ${i.humanReference}` : `Pin ${i.humanReference}`}
-                      onClick={() => void putIncident({ ...i, pinnedAt: i.pinnedAt ? null : new Date().toISOString() }).then(refresh)}
-                    >
-                      <Icons.pin size={15} style={{ opacity: i.pinnedAt ? 1 : 0.45 }} />
-                    </button>
-                    <button className="btn btn-quiet btn-sm" title="Archive" aria-label={`Archive ${i.humanReference}`} onClick={() => void archiveIncident(i).then(refresh).then(() => showToast("Incident archived"))}>
-                      <Icons.archive size={15} />
-                    </button>
-                    <button className="btn btn-quiet btn-sm" title="Move to Trash" aria-label={`Move ${i.humanReference} to Trash`} onClick={() => void handleTrash(i)}>
-                      <Icons.trash size={15} />
-                    </button>
-                  </>
-                )}
-                {view === "archive" && (
-                  <button className="btn btn-quiet btn-sm" onClick={() => void unarchiveIncident(i).then(refresh).then(() => showToast("Incident unarchived"))}>
-                    <Icons.undo size={15} /> Unarchive
-                  </button>
-                )}
-                {view === "trash" && (
-                  <>
-                    <button className="btn btn-quiet btn-sm" onClick={() => void restoreFromTrash(i).then(refresh).then(() => showToast("Restored from Trash"))}>
-                      <Icons.undo size={15} /> Restore
-                    </button>
-                    <button className="btn btn-quiet btn-sm" style={{ color: "var(--c-danger)" }} onClick={() => setPendingDelete(i)}>
-                      <Icons.trash size={15} /> Delete forever
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
+            <CardWithActions
+              key={i.id}
+              incident={i}
+              view={view}
+              onPin={() => void putIncident({ ...i, pinnedAt: i.pinnedAt ? null : new Date().toISOString() }).then(refresh)}
+              onArchive={() => void archiveIncident(i).then(refresh).then(() => showToast("Incident archived"))}
+              onTrash={() => void handleTrash(i)}
+              onUnarchive={() => void unarchiveIncident(i).then(refresh).then(() => showToast("Incident unarchived"))}
+              onRestore={() => void restoreFromTrash(i).then(refresh).then(() => showToast("Restored from Trash"))}
+              onDeleteForever={() => setPendingDelete(i)}
+            />
           ))}
         </div>
       )}
 
       <Dialog
-        open={pendingDelete !== null}
+        open={pendingDelete !== null} // permanent-delete confirmation
         title="Delete permanently?"
         danger
         onClose={() => setPendingDelete(null)}
@@ -239,5 +213,78 @@ export function IncidentListPage() {
         </p>
       </Dialog>
     </main>
+  );
+}
+
+/** Card with a labeled overflow actions menu (no mystery icons floating on the card). */
+function CardWithActions({
+  incident, view, onPin, onArchive, onTrash, onUnarchive, onRestore, onDeleteForever,
+}: {
+  incident: Incident;
+  view: View;
+  onPin: () => void;
+  onArchive: () => void;
+  onTrash: () => void;
+  onUnarchive: () => void;
+  onRestore: () => void;
+  onDeleteForever: () => void;
+}) {
+  const [open, setOpen] = useStateReact(false);
+  const ref = useRefReact<HTMLDivElement>(null);
+  useEffectReact(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("mousedown", onDoc); document.removeEventListener("keydown", onKey); };
+  }, [open]);
+  return (
+    <div className="list-card-with-actions" style={{ display: "grid", gridTemplateColumns: "1fr auto", alignItems: "center" }}>
+      <IncidentCardFull incident={incident} />
+      <div className="ic-menu" ref={ref} style={{ zIndex: 5 }}>
+        <button
+          className="btn btn-quiet btn-sm"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          aria-label={`Actions for ${incident.humanReference}`}
+          onClick={() => setOpen((o) => !o)}
+        >
+          Actions
+        </button>
+        {open && (
+          <div className="ic-menu-pop" role="menu" aria-label={`Actions for ${incident.humanReference}`}>
+            {view === "active" && (
+              <>
+                <button role="menuitem" onClick={() => { setOpen(false); onPin(); }}>
+                  <Icons.pin size={15} /> {incident.pinnedAt ? "Unpin" : "Pin to top"}
+                </button>
+                <button role="menuitem" onClick={() => { setOpen(false); onArchive(); }}>
+                  <Icons.archive size={15} /> Archive
+                </button>
+                <button role="menuitem" className="danger" onClick={() => { setOpen(false); onTrash(); }}>
+                  <Icons.trash size={15} /> Move to Trash
+                </button>
+              </>
+            )}
+            {view === "archive" && (
+              <button role="menuitem" onClick={() => { setOpen(false); onUnarchive(); }}>
+                <Icons.undo size={15} /> Unarchive
+              </button>
+            )}
+            {view === "trash" && (
+              <>
+                <button role="menuitem" onClick={() => { setOpen(false); onRestore(); }}>
+                  <Icons.undo size={15} /> Restore
+                </button>
+                <button role="menuitem" className="danger" onClick={() => { setOpen(false); onDeleteForever(); }}>
+                  <Icons.trash size={15} /> Delete permanently
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

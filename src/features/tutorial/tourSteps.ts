@@ -26,16 +26,19 @@ export async function buildMainTourSteps(): Promise<TourStepV2[]> {
   const detail = incidentId ? `/incidents/${incidentId}` : "/incidents";
   return [
     {
+      id: "tour-home",
       tourId: "nav-home",
       title: "Home",
       text: "Your starting point: resume open incidents and see what needs attention.",
     },
     {
+      id: "tour-create",
       tourId: "nav-create",
       title: "Create incident",
       text: "A guided wizard walks you through recording what you observed, step by step. Unknown is always a valid answer.",
     },
     {
+      id: "tour-incidents",
       tourId: "nav-incidents",
       title: "Incidents",
       text: "This is where all your incidents live — active, closed and archived. Let's open it.",
@@ -43,17 +46,20 @@ export async function buildMainTourSteps(): Promise<TourStepV2[]> {
       waitMs: 700,
     },
     {
+      id: "tour-search",
       tourId: "incident-search",
       title: "Search",
       text: "Search by incident reference, species, location, organization or notes — anything you wrote.",
       waitMs: 900,
     },
     {
+      id: "tour-filters",
       tourId: "incident-filters",
       title: "Filters",
       text: "Narrow the list by status and incident type. Closed and archived cases stay searchable here instead of cluttering the home screen.",
     },
     {
+      id: "tour-timeline",
       tourId: "tab-timeline",
       title: "Timeline",
       text: "Inside an incident, the Timeline keeps every update in chronological order — observations, photos, corrections. Nothing is overwritten. Opening a real example now…",
@@ -61,6 +67,7 @@ export async function buildMainTourSteps(): Promise<TourStepV2[]> {
       waitMs: 1200,
     },
     {
+      id: "tour-people",
       tourId: "tab-people",
       title: "People & handoffs",
       text: "Record who takes responsibility: transfers, custody history and receiving organizations live here.",
@@ -68,12 +75,14 @@ export async function buildMainTourSteps(): Promise<TourStepV2[]> {
       waitMs: 900,
     },
     {
+      id: "tour-handoff",
       tourId: "handoff-button",
       title: "Transfer / hand off",
       text: "This button records a handoff — who it came from, who receives, method, condition and items transferred.",
       waitMs: 600,
     },
     {
+      id: "tour-export",
       tourId: "tab-export",
       title: "Export",
       text: "Generate a print-ready handoff summary, or a privacy-safe shareable version with location and contacts removed.",
@@ -81,6 +90,7 @@ export async function buildMainTourSteps(): Promise<TourStepV2[]> {
       waitMs: 900,
     },
     {
+      id: "tour-settings",
       tourId: "nav-settings",
       title: "Settings",
       text: "Themes, motion, accessibility, privacy and backups all live here. Your data stays on this device.",

@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { REPORTER_NAV_ITEMS, PROFESSIONAL_NAV_ITEMS } from "./app/navigation";
 import { useApp } from "./app/AppContext";
 import { Icons } from "./components/Icons";
 import { BrandMark } from "./components/BrandMark";
@@ -13,23 +14,13 @@ import { SettingsPage } from "./features/settings/SettingsPage";
 import { NetworkPage } from "./features/network/NetworkPage";
 import { TutorialPage } from "./features/tutorial/TutorialPage";
 import { SpotlightTour } from "./features/tutorial/SpotlightTour";
-import { buildMainTourSteps } from "./features/tutorial/tourSteps";
-import type { TourStepV2 } from "./features/tutorial/tourStepsTypes";
 
-const NAV_ITEMS = [
-  { to: "/", label: "Home", icon: Icons.home, tourId: "nav-home" },
-  { to: "/incidents", label: "Incidents", icon: Icons.list, tourId: "nav-incidents" },
-  { to: "/network", label: "Response network", icon: Icons.handoff, tourId: "nav-network" },
-  { to: "/examples", label: "Examples & tutorial", icon: Icons.book, tourId: "nav-examples" },
-  { to: "/settings", label: "Settings", icon: Icons.settings, tourId: "nav-settings" },
-];
+
 
 
 
 export function App() {
-  const { settings, updateSettings, storageReady } = useApp();
-  const [tourOpen, setTourOpen] = useState(false);
-  const [tourSteps, setTourSteps] = useState<TourStepV2[] | null>(null);
+  const { settings, storageReady, guidance, startGuidance, endGuidance } = useApp();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -56,11 +47,13 @@ export function App() {
     );
   }
 
+  const navItems = settings.workspace === "professional" ? PROFESSIONAL_NAV_ITEMS : REPORTER_NAV_ITEMS;
   const runTour = () => {
-    void buildMainTourSteps().then((steps) => {
+    void import("./features/tutorial/guidance").then(async ({ buildInterfaceTourSteps }) => {
+      const steps = await buildInterfaceTourSteps(settings.workspace);
+      endGuidance(false);
       navigate("/");
-      setTourSteps(steps);
-      setTourOpen(true);
+      setTimeout(() => startGuidance("interface-tour", steps), 60);
     });
   };
 
@@ -77,18 +70,8 @@ export function App() {
           </span>
         </NavLink>
         <nav aria-label="Main navigation">
-          {NAV_ITEMS.slice(0, 2).map((item) => (
+          {navItems.map((item) => (
             <NavLink key={item.to} to={item.to} end={item.to === "/"} data-tour-id={item.tourId} className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}>
-              <item.icon size={18} />
-              {item.label}
-            </NavLink>
-          ))}
-          <NavLink to="/incidents/new" data-tour-id="nav-create" className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}>
-            <Icons.plus size={18} />
-            Create incident
-          </NavLink>
-          {NAV_ITEMS.slice(2).map((item) => (
-            <NavLink key={item.to} to={item.to} data-tour-id={item.tourId} className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}>
               <item.icon size={18} />
               {item.label}
             </NavLink>
@@ -107,7 +90,7 @@ export function App() {
           <strong style={{ fontSize: "0.95rem" }}>Wildlife Incident Handoff</strong>
         </header>
         <Routes>
-          <Route path="/" element={<HomePage onStartTour={runTour} />} />
+          <Route path="/" element={<HomePage />} />
           <Route path="/incidents" element={<IncidentListPage />} />
           <Route path="/incidents/new" element={<CreateIncidentPage />} />
           <Route path="/incidents/:id" element={<IncidentDetailPage />} />
@@ -115,7 +98,7 @@ export function App() {
           <Route path="/tutorial" element={<TutorialPage />} />
           <Route path="/network" element={<NetworkPage />} />
           <Route path="/settings" element={<SettingsPage />} />
-          <Route path="*" element={<HomePage onStartTour={runTour} />} />
+          <Route path="*" element={<HomePage />} />
         </Routes>
       </div>
 
@@ -126,17 +109,21 @@ export function App() {
         </NavLink>
         <NavLink to="/incidents" className={({ isActive }) => (isActive ? "active" : "")} data-tour-id="nav-incidents">
           <Icons.list size={20} />
-          Incidents
+          {settings.workspace === "professional" ? "Incidents" : "My reports"}
         </NavLink>
         <NavLink to="/incidents/new" data-tour-id="nav-create">
-          <span style={{ display: "grid", placeItems: "center", width: 40, height: 40, borderRadius: "50%", background: "var(--c-primary)", color: "#fff", marginTop: -14 }}>
+          <span style={{ display: "grid", placeItems: "center", width: 40, height: 40, borderRadius: "50%", background: "var(--c-primary)", color: "var(--c-primary-ink)", marginTop: -14 }}>
             <Icons.plus size={22} />
           </span>
-          Create
+          {settings.workspace === "professional" ? "Create" : "Report"}
+        </NavLink>
+        <NavLink to="/network" className={({ isActive }) => (isActive ? "active" : "")} style={{ display: settings.workspace === "professional" ? undefined : "none" }} data-tour-id="nav-network">
+          <Icons.handoff size={20} />
+          Network
         </NavLink>
         <NavLink to="/examples" className={({ isActive }) => (isActive ? "active" : "")}>
           <Icons.book size={20} />
-          Learn
+          Help
         </NavLink>
         <NavLink to="/settings" className={({ isActive }) => (isActive ? "active" : "")} data-tour-id="nav-settings">
           <Icons.settings size={20} />
@@ -144,7 +131,13 @@ export function App() {
         </NavLink>
       </nav>
 
-      {tourOpen && tourSteps && <SpotlightTour steps={tourSteps} onFinish={() => { setTourOpen(false); setTourSteps(null); updateSettings({ tourCompleted: true }); }} />}
+      {guidance && (
+        <SpotlightTour
+          key={guidance.systemId}
+          steps={guidance.steps}
+          onFinish={() => endGuidance(true)}
+        />
+      )}
     </div>
   );
 }
