@@ -43,7 +43,7 @@ export function animalLabel(incident: Incident): string {
   if (a.species) return a.species;
   const bits: string[] = [];
   if (a.description) bits.push(a.description);
-  if (a.group && a.group !== "not_sure") bits.push(a.group);
+  if (a.group && a.group !== "not_sure" && !(a.description ?? "").toLowerCase().includes(a.group)) bits.push(a.group);
   return bits.length > 0 ? bits.join(" — ") : "Unidentified animal";
 }
 

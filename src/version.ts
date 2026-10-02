@@ -1,2 +1,2 @@
-/** Application version. Bumped to 0.1.0 at release acceptance. */
-export const APP_VERSION = "0.1.0-dev.1";
+/** Application version — 0.1.0 released 2026-10-01. */
+export const APP_VERSION = "0.1.0";

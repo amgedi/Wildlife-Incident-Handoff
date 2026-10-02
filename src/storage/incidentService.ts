@@ -87,6 +87,14 @@ export async function createIncident(
   return incident;
 }
 
+const STATUS_EVENT_LABELS: Record<IncidentStatus, string> = {
+  draft: "Draft", reported: "Reported", response_requested: "Response requested",
+  responder_assigned: "Responder assigned", awaiting_pickup: "Awaiting pickup",
+  in_transport: "In transport", transferred: "Transferred", in_care: "In care",
+  veterinary_care: "Veterinary care", monitoring: "Monitoring", released: "Released",
+  deceased: "Deceased", closed: "Closed", cancelled: "Cancelled",
+};
+
 export async function changeStatus(
   incident: Incident,
   newStatus: IncidentStatus,
@@ -97,7 +105,7 @@ export async function changeStatus(
   const event = makeEvent(
     incident.id,
     "status_changed",
-    `Status changed from "${incident.status}" to "${newStatus}"`,
+    `Status changed from ${STATUS_EVENT_LABELS[incident.status]} to ${STATUS_EVENT_LABELS[newStatus]}`,
     { actor, details: note ?? null }
   );
   const updated = touch({ ...incident, status: newStatus, timeline: [...incident.timeline, event] });
