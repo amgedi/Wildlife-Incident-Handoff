@@ -88,7 +88,11 @@
     "drafts": "Brouillons",
     "draftStarted": "Signalement inachevé · commencé {{when}}",
     "draftContinue": "Continuer",
-    "draftDiscard": "Abandonner"
+    "draftDiscard": "Abandonner",
+    "noNewAction": "Aucune nouvelle action enregistrée.",
+    "awaitingResponseShort": "En attente de réponse",
+    "inProgressShort": "En cours",
+    "resolvedShort": "Résolus"
   },
   "reports": {
     "title": "Mes signalements",
@@ -428,5 +432,47 @@
     "possibleDuplicate": "Signalement peut-être en double",
     "possibleDuplicates": "Signalements peut-être en double",
     "duplicateNote": " — ces signalements se ressemblent par lieu, heure et description. Aucune fusion automatique : à examiner."
+  },
+  "guide": {
+    "whatHappened": {
+      "title": "Commençons par ce qui s'est passé",
+      "body": "La date est déjà remplie — modifiez-la si l'animal a été trouvé plus tôt. Choisissez le type de situation si possible, ou « Je ne sais pas ». Puis décrivez ce qui s'est passé avec vos mots."
+    },
+    "animal": {
+      "title": "Quel animal est-ce ?",
+      "body": "Seulement si vous le savez. « Je ne sais pas » est une réponse tout à fait normale ici — une brève description comme « petit oiseau brun » vaut mieux qu'une espèce devinée."
+    },
+    "location": {
+      "title": "Où se trouve-t-il ?",
+      "body": "Vous pouvez utiliser la position de votre appareil (avec votre permission) ou simplement décrire le lieu. « Au bord de la route, près du vieux moulin » est parfaitement suffisant."
+    },
+    "observations": {
+      "title": "Qu'avez-vous vu ?",
+      "body": "Décrivez ce que vous voyez — mouvement, saignement, enchevêtrement — sans deviner une blessure. Les exemples peuvent aider."
+    },
+    "hazards": {
+      "title": "Y a-t-il un danger immédiat ?",
+      "body": "Pensez circulation, eau, animaux domestiques — pour l'animal et pour vous. Votre sécurité passe toujours avant tout."
+    },
+    "actionsDone": {
+      "title": "Qu'a-t-on déjà fait ?",
+      "body": "Même « aucune action » est une information utile pour la personne suivante. Ne vous sentez pas obligé de manipuler l'animal."
+    },
+    "animalNow": {
+      "title": "Où est l'animal maintenant ?",
+      "body": "Encore là ? Contenu ? Avec quelqu'un ? Cela devient le début de l'historique de garde."
+    },
+    "contacts": {
+      "title": "Souhaitez-vous être contacté ?",
+      "body": "Tout à fait facultatif. Les signalements anonymes sont acceptés — passez si vous préférez."
+    },
+    "photos": {
+      "title": "Les photos aident beaucoup",
+      "body": "Si vous en avez. Une photo de l'animal et de son environnement donne un vrai contexte à la personne suivante. Sinon, passez."
+    },
+    "review": {
+      "title": "Presque terminé — vérification",
+      "body": "Vérifiez le résumé. Ce que vous ne saviez pas reste honnêtement marqué Inconnu. Choisissez le partage du signalement, puis créez-le."
+    }
   }
 }

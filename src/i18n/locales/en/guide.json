@@ -1,0 +1,42 @@
+{
+  "whatHappened": {
+    "title": "Let's start with what happened",
+    "body": "The date is already filled in — change it if the animal was found earlier. Pick the kind of incident if you can, or choose “Not sure”. Then describe what happened in your own words."
+  },
+  "animal": {
+    "title": "What animal is it?",
+    "body": "Only if you know. “Not sure” is a completely normal answer here — a short description like “small brown bird” is more useful than a guessed species."
+  },
+  "location": {
+    "title": "Where is it?",
+    "body": "You can use your device location (with your permission) or just describe the place. “Roadside near the old mill” is a perfectly good location."
+  },
+  "observations": {
+    "title": "What did you see?",
+    "body": "Describe what you can see — movement, bleeding, entanglement — rather than guessing an injury. Use the example chips if they help."
+  },
+  "hazards": {
+    "title": "Is anything dangerous right now?",
+    "body": "Think traffic, water, pets — for the animal and for you. Your safety comes first, always."
+  },
+  "actionsDone": {
+    "title": "What has already been done?",
+    "body": "Even “no action taken” is useful information for the next person. Don't feel you should handle the animal."
+  },
+  "animalNow": {
+    "title": "Where is the animal now?",
+    "body": "Still there? Contained? With someone? This becomes the start of the custody story."
+  },
+  "contacts": {
+    "title": "Would you like to be contacted?",
+    "body": "Completely optional. Anonymous reports are fine — skip this if you prefer."
+  },
+  "photos": {
+    "title": "Photos help a lot",
+    "body": "If you have them. A photo of the animal and its surroundings gives the next person real context. Skip if you don't."
+  },
+  "review": {
+    "title": "Almost done — review",
+    "body": "Check the summary. Anything you didn't know stays honestly marked as Unknown. Choose how the report should be shared, then create it."
+  }
+}

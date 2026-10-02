@@ -24,6 +24,7 @@ import enReports from "./locales/en/reports.json";
 import enWizard from "./locales/en/wizard.json";
 import enSettings from "./locales/en/settings.json";
 import enGuidance from "./locales/en/guidance.json";
+import enGuide from "./locales/en/guide.json";
 import enWorkspace from "./locales/en/workspace.json";
 import enProfessional from "./locales/en/professional.json";
 import enStatus from "./locales/en/status.json";
@@ -39,6 +40,7 @@ export const EN_NAMESPACES = {
   wizard: enWizard,
   settings: enSettings,
   guidance: enGuidance,
+  guide: enGuide,
   workspace: enWorkspace,
   professional: enProfessional,
   status: enStatus,

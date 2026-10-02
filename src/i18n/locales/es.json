@@ -88,7 +88,11 @@
     "drafts": "Borradores",
     "draftStarted": "Reporte sin terminar · iniciado {{when}}",
     "draftContinue": "Continuar",
-    "draftDiscard": "Descartar"
+    "draftDiscard": "Descartar",
+    "noNewAction": "Ninguna acción nueva registrada.",
+    "awaitingResponseShort": "Esperando respuesta",
+    "inProgressShort": "En curso",
+    "resolvedShort": "Resueltos"
   },
   "reports": {
     "title": "Mis reportes",
@@ -428,5 +432,47 @@
     "possibleDuplicate": "Posible caso duplicado",
     "possibleDuplicates": "Posibles casos duplicados",
     "duplicateNote": " — estos casos se parecen por lugar, hora y descripción. No se fusionan automáticamente: revísalos."
+  },
+  "guide": {
+    "whatHappened": {
+      "title": "Empecemos por lo que ocurrió",
+      "body": "La fecha ya está rellenada — cámbiala si el animal se encontró antes. Elige el tipo de situación si puedes, o «No estoy seguro». Luego describe lo que ocurrió con tus palabras."
+    },
+    "animal": {
+      "title": "¿Qué animal es?",
+      "body": "Solo si lo sabes. «No estoy seguro» es una respuesta totalmente normal aquí — una breve descripción como «pajarito marrón» vale más que una especie adivinada."
+    },
+    "location": {
+      "title": "¿Dónde está?",
+      "body": "Puedes usar la ubicación de tu dispositivo (con tu permiso) o simplemente describir el lugar. «A la orilla de la carretera, junto al molino viejo» es perfectamente válido."
+    },
+    "observations": {
+      "title": "¿Qué viste?",
+      "body": "Describe lo que ves — movimiento, sangrado, enredo — sin adivinar una lesión. Los ejemplos pueden ayudar."
+    },
+    "hazards": {
+      "title": "¿Hay algún peligro ahora mismo?",
+      "body": "Piensa en tráfico, agua, mascotas — para el animal y para ti. Tu seguridad siempre va primero."
+    },
+    "actionsDone": {
+      "title": "¿Qué se ha hecho ya?",
+      "body": "Incluso «ninguna acción» es información útil para la siguiente persona. No sientas que debas manipular al animal."
+    },
+    "animalNow": {
+      "title": "¿Dónde está el animal ahora?",
+      "body": "¿Sigue ahí? ¿Contenido? ¿Con alguien? Esto inicia la historia de custodia."
+    },
+    "contacts": {
+      "title": "¿Te gustaría que te contacten?",
+      "body": "Completamente opcional. Los reportes anónimos están bien — omite esto si lo prefieres."
+    },
+    "photos": {
+      "title": "Las fotos ayudan mucho",
+      "body": "Si las tienes. Una foto del animal y su entorno da contexto real a la siguiente persona. Si no, omite este paso."
+    },
+    "review": {
+      "title": "Casi listo — revisión",
+      "body": "Revisa el resumen. Lo que no sabías queda honestamente marcado como Desconocido. Elige cómo compartir el reporte y créalo."
+    }
   }
 }

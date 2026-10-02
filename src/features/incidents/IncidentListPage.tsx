@@ -27,6 +27,15 @@ import type { Incident, IncidentStatus } from "../../types/incident";
 
 type View = "active" | "archive" | "trash";
 
+
+/** Map Reporter summary-card categories to status filters (deep-linkable). */
+function statusesForCategory(category: string | null): string[] | null {
+  if (category === "awaiting") return ["reported", "response_requested"];
+  if (category === "active") return ["responder_assigned", "awaiting_pickup", "in_transport", "transferred", "in_care", "veterinary_care", "monitoring"];
+  if (category === "resolved") return ["released", "closed", "cancelled", "deceased"];
+  return null;
+}
+
 export function IncidentListPage() {
   const { incidents, refresh } = useIncidents();
   const { showToast, settings } = useApp();
@@ -39,14 +48,16 @@ export function IncidentListPage() {
   const [drafts, setDrafts] = useState<DraftRecord[]>([]);
   const [reloadDrafts, setReloadDrafts] = useState(0);
 
-  // Filters (popover state)
+  // Filters (popover state); deep-linkable via ?status=
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>(() => (searchParams.get("status") as string) ?? "all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [groupFilter, setGroupFilter] = useState<string>("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
+  const categoryParam = searchParams.get("category");
+  const categoryStatuses = statusesForCategory(categoryParam);
   const view = (searchParams.get("view") as View) ?? "active";
   const setView = (v: View) => setSearchParams(v === "active" ? {} : { view: v });
   const isReporter = settings.workspace === "reporter";
@@ -90,7 +101,8 @@ export function IncidentListPage() {
     else if (view === "trash") list = list.filter((i) => i.deletedAt);
     else list = list.filter((i) => !i.archivedAt && !i.deletedAt);
 
-    if (statusFilter !== "all") list = list.filter((i) => i.status === statusFilter);
+    if (categoryStatuses) list = list.filter((i) => categoryStatuses.includes(i.status));
+    else if (statusFilter !== "all") list = list.filter((i) => i.status === statusFilter);
     if (typeFilter !== "all") list = list.filter((i) => i.incidentType === typeFilter);
     if (groupFilter !== "all") list = list.filter((i) => i.animal.group === groupFilter);
     if (dateFrom) list = list.filter((i) => (i.occurredAt ?? i.createdAt) >= dateFrom);
@@ -387,7 +399,10 @@ function ReportCard({
       aria-label={`${animalLabel(incident)} — ${t(incident.status, { ns: "status" })}`}
     >
       <div className="rc-top">
-        <p className="ic-title">{animalLabel(incident)}</p>
+        <div className="rc-title-row">
+          <p className="ic-title">{animalLabel(incident)}</p>
+          <span className="badge" data-status={incident.status}>{t(incident.status, { ns: "status" })}</span>
+        </div>
         <div className="ic-menu" ref={menuRef}>
           <button
             className="btn btn-quiet btn-sm"
@@ -439,7 +454,9 @@ function ReportCard({
       </p>
       {last && <p className="ic-updates">Last update: {last.summary} · {relativeTime(last.timestamp)}</p>}
       <div className="rc-footer">
-        <span className="badge" data-status={incident.status}>{t(incident.status, { ns: "status" })}</span>
+        <span style={{ color: "var(--c-ink-faint)", fontSize: "0.85rem" }}>
+          {incident.custody.some((c) => !c.endedAt) ? "" : t("professional:noResponder")}
+        </span>
         <span style={{ marginLeft: "auto", color: "var(--c-ink-faint)", display: "inline-flex", paddingRight: 4 }} aria-hidden="true">
           <Icons.chevronRight size={18} />
         </span>

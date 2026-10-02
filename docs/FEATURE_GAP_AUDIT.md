@@ -35,6 +35,15 @@ Deep product audit across both workspaces. Categories: IMPLEMENTED / SHOULD ADD 
 4. **Keyboard shortcuts help screen** — only `/` and Escape exist; Help → Keyboard shortcuts should list them (spec §55).
 5. **Fr/es human review** — complete catalogs are machine-assisted; a native-speaker review pass is required before claiming "verified".
 
+## RESOLVED IN 0.2.0-dev.6 (previously "add now")
+
+- ✅ First-run language + contact profile (onboarding steps 1 & 4, Settings → Contact details).
+- ✅ Reporter dashboard hierarchy: clickable summary cards (Awaiting response / In progress / Resolved) directly under the hero, deep-linking to filtered My Reports; zero-count cards visually quieter.
+- ✅ Professional operational dashboard: KPI row (new/unassigned/assigned/in response/awaiting transfer/open), Needs-attention queue, aging buckets (<30min → 4+h), response-performance medians from event timestamps, reports-over-time chart (24h/7d/30d, lightweight SVG), status/animal/type distributions, transfer metrics. All via the `incidentAnalytics` service (deterministic, timezone-safe, local-data only, honestly labeled LOCAL PREVIEW, empty state when no data).
+- ✅ Map reliability: states distinguished (loading / ready / offline / provider-failed / no-coordinates), Retry map button, offline position fallback listing stored coordinates per incident (no third-party tile caching).
+- ✅ Guide Me integrity: readable per-step keys, complete en/fr/es catalogs, readiness guard (never flashes raw keys while a lazy pack loads).
+- ✅ Selection chips: sentence case, visible ✓ selected state, draft persistence, "No action taken" exclusivity.
+
 ## SHOULD ADD LATER (real but deferred)
 
 - Real response-network backend (auth/orgs/consent/audit) — dedicated milestone; preview is honest local-only.

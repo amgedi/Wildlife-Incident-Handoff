@@ -641,3 +641,51 @@ code { font-family: var(--font-mono); font-size: 0.85em; background: var(--c-sur
 .language-badge { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em; padding: 1px 6px; border-radius: 4px; }
 .language-badge.complete { background: var(--c-ok-surface); color: var(--c-ok); }
 .language-badge.beta { background: var(--c-warn-surface); color: var(--c-warn); }
+
+/* Selection chip selected state: check icon + strong fill (beyond 1px difference) */
+.chip[aria-pressed="true"]::before,
+.chip.selected::before {
+  content: "✓";
+  font-weight: 800;
+  margin-right: 4px;
+}
+
+/* Reporter summary cards (clickable navigation widgets) */
+.summary-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); }
+@media (max-width: 700px) { .summary-cards { grid-template-columns: 1fr; } }
+.summary-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md);
+  padding: var(--space-4); cursor: pointer; font: inherit; text-align: left; color: var(--c-ink);
+  box-shadow: var(--c-shadow);
+  transition: box-shadow var(--motion-fast) var(--ease), transform var(--motion-fast) var(--ease), border-color var(--motion-fast) var(--ease);
+}
+.summary-card:hover { box-shadow: var(--c-shadow-lift); transform: translateY(-1px); border-color: var(--c-primary); }
+.summary-card .summary-count { font-size: 1.6rem; font-weight: 750; color: var(--c-primary); line-height: 1.1; }
+.summary-card .summary-label { font-weight: 650; font-size: 0.95rem; }
+.summary-card .summary-hint { font-size: 0.8rem; color: var(--c-ink-faint); }
+.summary-card.zero .summary-count { color: var(--c-ink-faint); font-weight: 500; }
+.summary-card.zero { opacity: 0.75; }
+
+/* KPI cards (professional dashboard) */
+.kpi-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--space-3); }
+@media (max-width: 1000px) { .kpi-row { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 560px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
+.kpi-card {
+  background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4); box-shadow: var(--c-shadow);
+  display: flex; flex-direction: column; gap: 0;
+}
+.kpi-card .kpi-value { font-size: 1.5rem; font-weight: 750; color: var(--c-ink); line-height: 1.15; }
+.kpi-card .kpi-label { font-size: 0.76rem; color: var(--c-ink-faint); font-weight: 600; letter-spacing: 0.03em; }
+.attention-item { width: 100%; justify-content: flex-start; }
+
+/* Offline position view markers */
+.map-marker.offline { display: inline-flex; width: 18px; height: 18px; border-radius: 50%; background: var(--c-primary); color: #fff; align-items: center; justify-content: center; font-size: 10px; }
+.map-marker.offline[data-state="closed"] { background: var(--st-closed, #595f6d); }
+
+/* Incident card header: title + status chip on the same line (wrap gracefully) */
+.rc-title-row {
+  display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; min-width: 0;
+}
+.rc-title-row .ic-title { margin: 0; }

@@ -2,7 +2,25 @@
 
 All notable changes to Wildlife Incident Handoff are documented here. Format based on [Keep a Changelog](https://keepachangelog.com/); versioning follows [SemVer](https://semver.org/).
 
-## 0.2.0-dev.5 — in development
+## 0.2.0-dev.6 — in development
+
+### Fixed
+- **Guide Me showed raw translation keys (`s0t`, `s0b`)** — root cause: the Guide Me coach used a `guideCoach` namespace that never existed in the English bundle (only partially in fr/es), so every lookup returned the key itself. Replaced with a complete `guide` namespace with readable per-step keys (`guide.whatHappened.title` …), registered in the English bundle, translated for fr/es, and with a readiness guard so a lazy language pack can never flash raw keys ("Preparing guide…" instead).
+
+### Added
+- **First-run setup expanded**: language selection (system-suggested, all 13 catalog languages) and an optional contact profile (name/phone/email/preferred method; organization for professional users). Clearly local-only — prefilled into reports but never shared automatically; share consent stays explicit at review.
+- **Settings → Contact details**: edit/clear saved profile with "Stored locally on this device" notice.
+- **Reporter dashboard hierarchy**: clickable summary cards (Awaiting response / In progress / Resolved) directly under the hero, deep-linking to filtered My Reports (`?category=`); zero-count cards render quieter; safety content moved to the end; "No new action recorded." replaces the misleading next-step phrasing.
+- **Professional operational dashboard** (local preview, honestly labeled): KPI row (new / unassigned / assigned / in response / awaiting transfer / open total), Needs-attention queue (old unassigned, missing location, duplicates, handoffs waiting — each deep-links), aging buckets (<30 min → 4+ h), response-performance medians computed from event timestamps (median to assignment/pickup/transfer — "Not enough data yet" when insufficient), reports-over-time chart (24 h / 7 d / 30 d, lightweight SVG, accessible labels), open-by-status / animal-group / incident-type distributions, transfer metrics with receiving organizations, "Updated just now" reactive timestamps.
+- **incidentAnalytics service**: all dashboard metrics derive deterministically from real records and event timestamps (timezone-safe local-day bucketing, memoized) — the same API a future network provider can feed.
+- **Map reliability**: states distinguished (loading / ready / offline / provider-failed / no-coordinates), Retry-map button without leaving the page, offline position fallback listing each incident's stored coordinates subject to privacy, no third-party tile caching.
+- **Selection chips**: sentence-case labels, visible ✓ selected state (fill + border + check), "No action taken" exclusivity (selecting it clears other actions and vice versa).
+- **Professional incident cards**: status chip sits inline with the title (wraps gracefully), separate from Accept/Review actions.
+
+### Tests
+- 146 → 176 (+30): guide integrity, analytics determinism/timezone safety, chips, distributions, needs-attention, time series.
+
+## 0.2.0-dev.5 — 2026-10-02
 
 ### Fixed
 - **CRITICAL desktop shell regression (dev.4)**: the custom title bar participated in the same horizontal flex row as the sidebar — root cause: a silently failed CSS replace left the old `.app-shell { display: flex }` (row) rule in place and never added the `.app-body` flex rules. The shell is now an explicit two-row model: `.app-shell` (100dvh, column, overflow hidden) → titlebar row (fixed 38px, full width) → `.app-body` (flex row, min-size 0) → sidebar (fixed 232px, left) + main area (fills remaining width, owns vertical scrolling). Verified geometrically in the REAL EXE across window sizes (900×650 → 1920×1080), maximized, restored, continuous resize, and a 6-page sweep (titlebar left/width = viewport, sidebar.x = 0, main.x = sidebar right, main.right = viewport, no horizontal overflow). Screenshots captured from the compiled EXE (home + settings). Window controls verified: minimize/maximize/restore/close via titlebar buttons.

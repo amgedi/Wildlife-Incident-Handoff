@@ -11,6 +11,7 @@ import { Select } from "../../components/Select";
 import { SearchableCombobox } from "../../components/SearchableCombobox";
 import { DateTimeField } from "../../components/DateTimeField";
 import { useTranslation } from "react-i18next";
+import { i18n } from "../../i18n";
 import { TextField } from "../../components/ui";
 import { Icons } from "../../components/Icons";
 import {
@@ -100,9 +101,9 @@ function emptyDraft(): DraftState {
 }
 
 const OBSERVATION_EXAMPLES_GOOD = [
-  "unable to fly", "one wing hangs lower", "eyes closed most of the time",
-  "moving slowly", "bleeding visible near leg", "tangled in fishing line",
-  "calling repeatedly", "no visible movement",
+  "Unable to fly", "One wing hangs lower", "Eyes closed most of the time",
+  "Moving slowly", "Bleeding visible near leg", "Tangled in fishing line",
+  "Calling repeatedly", "No visible movement",
 ];
 
 const ACTION_SUGGESTIONS = [
@@ -665,6 +666,13 @@ function StepHazards({ state, update }: StepProps) {
   );
 }
 
+function toggleAction(actions: string[], a: string): string[] {
+  const NO_ACTION = "No action taken";
+  if (actions.includes(a)) return actions.filter((x) => x !== a);
+  if (a === NO_ACTION) return [NO_ACTION];
+  return [...actions.filter((x) => x !== NO_ACTION), a];
+}
+
 function StepActions({ state, update }: StepProps) {
   return (
     <div className="fade-in">
@@ -678,7 +686,7 @@ function StepActions({ state, update }: StepProps) {
             className="chip"
             aria-pressed={state.actions.includes(a)}
             onClick={() =>
-              update("actions", state.actions.includes(a) ? state.actions.filter((x) => x !== a) : [...state.actions, a])
+              update("actions", toggleAction(state.actions, a))
             }
           >
             {a}
@@ -863,16 +871,28 @@ function StepPhotos({ state, update, showToast }: StepProps & { showToast: (m: s
 }
 
 
+const GUIDE_STEP_KEYS = ['whatHappened', 'animal', 'location', 'observations', 'hazards', 'actionsDone', 'animalNow', 'contacts', 'photos', 'review'] as const;
+
 function GuideCoach({ step, onExit }: { step: number; onExit: () => void }) {
-  const { t } = useTranslation("guideCoach");
+  const { t, ready } = useTranslation("guide");
   const has = step >= 0 && step <= 9;
   if (!has) return null;
+  // Never render raw keys while a lazy language pack loads.
+  if (!ready || !i18n.hasLoadedNamespace("guide")) {
+    return (
+      <div className="notice" style={{ marginBottom: "var(--space-4)", borderColor: "var(--c-primary)" }} data-testid="guide-coach">
+        <Icons.compass size={20} />
+        <div style={{ flex: 1 }}><strong>{t("loading", { ns: "common", defaultValue: "Preparing guide…" })}</strong></div>
+        <button className="btn btn-quiet btn-sm" onClick={onExit}>{t("guideExit", { ns: "guidance" })}</button>
+      </div>
+    );
+  }
   return (
     <div className="notice" style={{ marginBottom: "var(--space-4)", borderColor: "var(--c-primary)" }} data-testid="guide-coach">
       <Icons.compass size={20} />
       <div style={{ flex: 1 }}>
-        <strong>{t(`s${step}t`)}</strong>
-        <p style={{ margin: "4px 0 0", color: "var(--c-ink-soft)" }}>{t(`s${step}b`)}</p>
+        <strong>{t(`${GUIDE_STEP_KEYS[step]}.title`)}</strong>
+        <p style={{ margin: "4px 0 0", color: "var(--c-ink-soft)" }}>{t(`${GUIDE_STEP_KEYS[step]}.body`)}</p>
       </div>
       <button className="btn btn-quiet btn-sm" onClick={onExit}>{t("guideExit", { ns: "guidance" })}</button>
     </div>

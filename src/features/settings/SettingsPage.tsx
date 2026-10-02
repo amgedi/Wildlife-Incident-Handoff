@@ -20,6 +20,7 @@ const SECTIONS = [
   { id: "appearance", labelKey: "appearance", icon: Icons.eye, keywords: "theme appearance dark light density motion" },
   { id: "experience", labelKey: "experience", icon: Icons.compass, keywords: "experience mode detail level profile workspace" },
   { id: "accessibility", labelKey: "accessibility", icon: Icons.heart, keywords: "accessibility motion reduced contrast keyboard" },
+  { id: "profile", labelKey: "profile", icon: Icons.heart, keywords: "profile contact name phone email organization" },
   { id: "defaults", labelKey: "defaults", icon: Icons.list, keywords: "incident defaults location precision name" },
   { id: "privacy", labelKey: "privacy", icon: Icons.shield, keywords: "privacy location contacts shareable" },
   { id: "storage", labelKey: "storage", icon: Icons.archive, keywords: "backup storage import export where is my data" },
@@ -87,6 +88,7 @@ export function SettingsPage() {
           {section === "appearance" && <AppearanceSection />}
           {section === "experience" && <ExperienceSection />}
           {section === "accessibility" && <AccessibilitySection />}
+          {section === "profile" && <ProfileSection />}
           {section === "defaults" && <DefaultsSection />}
           {section === "privacy" && <PrivacySection />}
           {section === "storage" && <StorageSection />}
@@ -292,7 +294,6 @@ function PrivacySection() {
         </label>
         <p className="hint">Recommended off. Even with this on, each export shows exactly what's included before you save or print.</p>
       </div>
-      <SavedContactCard />
       <div className="notice">
         <Icons.shield size={18} />
         <span>Wildlife locations can be sensitive (e.g. protected species or private land). Use “Sensitive location” for
@@ -302,43 +303,6 @@ function PrivacySection() {
   );
 }
 
-function SavedContactCard() {
-  const { settings, updateSettings, showToast } = useApp();
-  const saved = settings.savedReporterContact;
-  return (
-    <div className="card">
-      <h3 style={{ marginTop: 0 }}>Remembered contact details</h3>
-      {saved && (saved.name || saved.phone || saved.email) ? (
-        <>
-          <p style={{ color: "var(--c-ink-soft)", fontSize: "0.92rem" }}>
-            You asked the app to remember your contact details to prefill new reports. They are stored only in this
-            browser, shown before anything is saved or shared, and never added automatically.
-          </p>
-          <dl className="kv">
-            {saved.name && (<><dt>Name</dt><dd>{saved.name}</dd></>)}
-            {saved.phone && (<><dt>Phone</dt><dd>{saved.phone}</dd></>)}
-            {saved.email && (<><dt>Email</dt><dd>{saved.email}</dd></>)}
-          </dl>
-          <button
-            className="btn btn-secondary btn-sm"
-            onClick={() => {
-              updateSettings({ savedReporterContact: null });
-              void setSetting("saved-reporter-contact", null);
-              showToast("Remembered contact details cleared");
-            }}
-          >
-            <Icons.trash size={14} /> Clear remembered details
-          </button>
-        </>
-      ) : (
-        <p style={{ color: "var(--c-ink-faint)", fontSize: "0.92rem", margin: 0 }}>
-          Nothing remembered. If you tick “Remember my contact details on this device” while creating a report, you can
-          review and clear them here.
-        </p>
-      )}
-    </div>
-  );
-}
 
 function StorageSection() {
   const { settings, updateSettings, showToast } = useApp();
@@ -553,6 +517,67 @@ function AdvancedSection() {
           If there is immediate danger to people, contact your local emergency service. Emergency numbers differ by
           country — this app intentionally does not display a specific number.
         </span>
+      </div>
+    </div>
+  );
+}
+
+function ProfileSection() {
+  const { settings, updateSettings, showToast } = useApp();
+  const { t } = useTranslation("settings");
+  const saved = settings.savedReporterContact;
+  const [draft, setDraft] = useState(saved ?? { name: "", phone: "", email: "", preferred: "no_preference" });
+
+  return (
+    <div className="stack">
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>{t("profileTitle", { defaultValue: "Contact details" })}</h3>
+        <p style={{ color: "var(--c-ink-soft)" }}>
+          {t("profileBlurb", { defaultValue: "Saved details pre-fill new reports for convenience. You always choose whether they are actually included when creating or sharing a report — nothing is sent or shared automatically." })}
+        </p>
+        <div className="notice" style={{ margin: "var(--space-3) 0" }}>{t("profileLocal", { defaultValue: "Stored locally on this device." })}</div>
+        <div className="grid-2">
+          <TextField label={t("profileName", { defaultValue: "Name" })} value={draft.name} onChange={(v) => setDraft({ ...draft, name: v })} optional />
+          <TextField label={t("profilePhone", { defaultValue: "Phone" })} type="tel" value={draft.phone} onChange={(v) => setDraft({ ...draft, phone: v })} optional hint="International format welcome, e.g. +44 7700 900123" />
+          <TextField label={t("profileEmail", { defaultValue: "Email" })} type="email" value={draft.email} onChange={(v) => setDraft({ ...draft, email: v })} optional />
+          <Select
+            label={t("profilePreferred", { defaultValue: "Preferred contact method" })}
+            value={draft.preferred}
+            onChange={(v) => setDraft({ ...draft, preferred: v })}
+            options={[
+              { value: "phone", label: t("profileMPhone", { defaultValue: "Phone" }) },
+              { value: "text", label: t("profileMText", { defaultValue: "Text" }) },
+              { value: "email", label: t("profileMEmail", { defaultValue: "Email" }) },
+              { value: "no_preference", label: t("profileMNone", { defaultValue: "No preference" }) },
+            ]}
+            optional
+          />
+        </div>
+        <div className="row" style={{ marginTop: "var(--space-3)" }}>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={() => {
+              const has = draft.name || draft.phone || draft.email;
+              updateSettings({ savedReporterContact: has ? draft : null });
+              if (has) void setSetting("saved-reporter-contact", draft);
+              else void setSetting("saved-reporter-contact", null);
+              showToast(t("profileSaved", { defaultValue: "Contact details saved" }));
+            }}
+          >
+            {t("profileSave", { defaultValue: "Save details" })}
+          </button>
+          <button
+            className="btn btn-quiet btn-sm"
+            onClick={() => {
+              setDraft({ name: "", phone: "", email: "", preferred: "no_preference" });
+              updateSettings({ savedReporterContact: null });
+              void setSetting("saved-reporter-contact", null);
+              showToast(t("profileCleared", { defaultValue: "Saved contact details cleared" }));
+            }}
+          >
+            <Icons.trash size={14} /> {t("profileClear", { defaultValue: "Clear" })}
+          </button>
+        </div>
       </div>
     </div>
   );

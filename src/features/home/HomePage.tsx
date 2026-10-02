@@ -96,6 +96,38 @@ export function HomePage() {
         </div>
       </section>
 
+      {isReporter && (
+        <div className="summary-cards" style={{ marginTop: "var(--space-5)" }}>
+          <button
+            className={`summary-card${awaiting.length === 0 ? " zero" : ""}`}
+            onClick={() => navigate("/incidents?category=awaiting")}
+            aria-label={t("home:awaitingResponse", { count: awaiting.length })}
+          >
+            <span className="summary-count">{awaiting.length}</span>
+            <span className="summary-label">{t("home:awaitingResponseShort", { defaultValue: "Awaiting response" })}</span>
+            <span className="summary-hint">{t("home:awaitingHint")}</span>
+          </button>
+          <button
+            className={`summary-card${inProgress.length === 0 ? " zero" : ""}`}
+            onClick={() => navigate("/incidents?category=active")}
+            aria-label={t("home:inProgress", { count: inProgress.length })}
+          >
+            <span className="summary-count">{inProgress.length}</span>
+            <span className="summary-label">{t("home:inProgressShort", { defaultValue: "In progress" })}</span>
+            <span className="summary-hint">{t("home:inProgressHint")}</span>
+          </button>
+          <button
+            className={`summary-card${resolved.length === 0 ? " zero" : ""}`}
+            onClick={() => navigate("/incidents?category=resolved")}
+            aria-label={t("home:resolved", { count: resolved.length })}
+          >
+            <span className="summary-count">{resolved.length}</span>
+            <span className="summary-label">{t("home:resolvedShort", { defaultValue: "Resolved" })}</span>
+            <span className="summary-hint">{t("home:resolvedHint")}</span>
+          </button>
+        </div>
+      )}
+
       {draft && (
         <div className="notice warning" style={{ marginTop: "var(--space-5)" }} data-tour-id="draft-recovery">
           <Icons.edit size={20} />
@@ -154,32 +186,9 @@ export function HomePage() {
         <div className="card" style={{ marginTop: "var(--space-4)" }}>
           <h3>Latest active incident</h3>
           <p style={{ color: "var(--c-ink-soft)" }}>
-            {animalLabel(first)} — {first.nextStep ? t("workspace:nextStep") + ": " + first.nextStep : t("home:noNextStep")}
+            {animalLabel(first)} — {first.nextStep ? t("workspace:nextStep") + ": " + first.nextStep : t("home:noNewAction")}
           </p>
           <Link className="btn btn-secondary btn-sm" to={`/incidents/${first.id}`}>Continue</Link>
-        </div>
-      )}
-
-      {isReporter && (inProgress.length > 0 || awaiting.length > 0 || resolved.length > 0) && (
-        <div className="grid-2" style={{ marginTop: "var(--space-4)" }}>
-          <div className="card" style={{ padding: "var(--space-4)" }}>
-            <h3>{t("home:inProgress", { count: inProgress.length })}</h3>
-            <p style={{ margin: 0, color: "var(--c-ink-soft)", fontSize: "0.88rem" }}>{t("home:inProgressHint")}</p>
-          </div>
-          <div className="card" style={{ padding: "var(--space-4)" }}>
-            <h3>{t("home:awaitingResponse", { count: awaiting.length })}</h3>
-            <p style={{ margin: 0, color: "var(--c-ink-soft)", fontSize: "0.88rem" }}>{t("home:awaitingHint")}</p>
-          </div>
-          <div className="card" style={{ padding: "var(--space-4)", gridColumn: "1 / -1" }}>
-            <h3>{t("home:resolved", { count: resolved.length })}</h3>
-            {resolved.length === 0 ? (
-              <p style={{ margin: 0, color: "var(--c-ink-faint)", fontSize: "0.88rem" }}>{t("home:resolvedHint")}</p>
-            ) : (
-              <div className="card-list" style={{ marginTop: 8 }}>
-                {resolved.map((i) => <IncidentCard key={i.id} incident={i} />)}
-              </div>
-            )}
-          </div>
         </div>
       )}
 
@@ -198,6 +207,18 @@ export function HomePage() {
         </div>
       )}
 
+      <div className="card" style={{ marginTop: "var(--space-6)", borderColor: "var(--c-warn)" }}>
+        <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
+          <Icons.warning size={18} style={{ color: "var(--c-warn)" }} />
+          {t("home:safetyTitle")}
+        </h3>
+        <ul style={{ margin: 0, paddingLeft: 20, color: "var(--c-ink-soft)", fontSize: "0.92rem" }}>
+          <li>{t("home:safetyDistance")}</li>
+          <li>{t("home:safetyPeople")}</li>
+          <li>{t("home:safetyHandling")}</li>
+          <li>{t("home:safetyProfessional")}</li>
+        </ul>
+      </div>
     </main>
   );
 }
