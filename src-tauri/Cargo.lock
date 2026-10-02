@@ -4299,7 +4299,7 @@ dependencies = [
 
 [[package]]
 name = "wildlife-incident-handoff"
-version = "0.2.0-dev.4"
+version = "0.2.0-dev.5"
 dependencies = [
  "serde",
  "serde_json",

@@ -2,7 +2,13 @@
 
 All notable changes to Wildlife Incident Handoff are documented here. Format based on [Keep a Changelog](https://keepachangelog.com/); versioning follows [SemVer](https://semver.org/).
 
-## 0.2.0-dev.4 — in development
+## 0.2.0-dev.5 — in development
+
+### Fixed
+- **CRITICAL desktop shell regression (dev.4)**: the custom title bar participated in the same horizontal flex row as the sidebar — root cause: a silently failed CSS replace left the old `.app-shell { display: flex }` (row) rule in place and never added the `.app-body` flex rules. The shell is now an explicit two-row model: `.app-shell` (100dvh, column, overflow hidden) → titlebar row (fixed 38px, full width) → `.app-body` (flex row, min-size 0) → sidebar (fixed 232px, left) + main area (fills remaining width, owns vertical scrolling). Verified geometrically in the REAL EXE across window sizes (900×650 → 1920×1080), maximized, restored, continuous resize, and a 6-page sweep (titlebar left/width = viewport, sidebar.x = 0, main.x = sidebar right, main.right = viewport, no horizontal overflow). Screenshots captured from the compiled EXE (home + settings). Window controls verified: minimize/maximize/restore/close via titlebar buttons.
+- Shell structure + CSS contract regression tests added (src/shell.test.ts); real-EXE geometry verifier added (scripts/shell-verify.mjs).
+
+## 0.2.0-dev.4 — 2026-10-02
 
 ### Fixed
 - **Desktop title bar spans the full window width** — it was nested inside the flex row; the shell is now titlebar-above-body (sidebar + content below it), with window controls at the true top-right and Windows-sized hit areas.
