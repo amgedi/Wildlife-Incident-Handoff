@@ -6,6 +6,7 @@
 import type { Incident } from "../../types/incident";
 import { formatDateTime } from "../../utils/time";
 import { escapeHtml } from "../../utils/text";
+import { saveFile } from "../../utils/platformFile";
 import { labelFor, STATUS_LABELS_BY_KEY, ANIMAL_LOCATIONS, URGENCIES, HAZARDS, LOCATION_PRECISIONS } from "../incidents/labels";
 
 export interface ExportOptions {
@@ -229,17 +230,20 @@ ul{margin:.2rem 0;padding-left:1.1rem}li{margin:.15rem 0}footer{margin-top:2rem;
 <footer>Generated ${escapeHtml(formatDateTime(new Date().toISOString()))} — Wildlife Incident Handoff</footer></body></html>`;
 }
 
-export function downloadPlainText(incident: Incident, options: ExportOptions): void {
+export async function downloadPlainText(incident: Incident, options: ExportOptions): Promise<"saved" | "cancelled" | "browser"> {
   const text = buildPlainText(incident, options);
-  downloadTextFile(`handoff-${incident.humanReference}.txt`, text, "text/plain");
+  return downloadTextFile(`handoff-${incident.humanReference}.txt`, text, "text/plain");
 }
 
-export function downloadHtml(incident: Incident, options: ExportOptions): void {
+export async function downloadHtml(incident: Incident, options: ExportOptions): Promise<"saved" | "cancelled" | "browser"> {
   const html = buildHtml(incident, options);
-  downloadTextFile(`handoff-${incident.humanReference}.html`, html, "text/html");
+  return downloadTextFile(`handoff-${incident.humanReference}.html`, html, "text/html");
 }
 
-export function downloadTextFile(fileName: string, content: string, mimeType: string): void {
+export async function downloadTextFile(fileName: string, content: string, mimeType: string): Promise<"saved" | "cancelled" | "browser"> {
+  const ext = fileName.slice(fileName.lastIndexOf("."));
+  const result = await saveFile(content, fileName, ext);
+  if (result !== "browser") return result;
   const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -249,6 +253,7 @@ export function downloadTextFile(fileName: string, content: string, mimeType: st
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
+  return "browser";
 }
 
 export function printSummary(incident: Incident, options: ExportOptions): void {

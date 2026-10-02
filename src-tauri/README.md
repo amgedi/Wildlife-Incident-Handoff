@@ -20,6 +20,18 @@ npx tauri build                     # produces:
 npx tauri dev                       # desktop window on the dev server
 ```
 
+## Verified on the first real build (Windows x64)
+
+- `npx tauri build` produced both the portable exe and the NSIS installer.
+- Launch: native window, no terminal, no browser; bear-paw icon on exe/title bar/taskbar.
+- Smoke test (scripts/desktop-smoke.mjs, via WebView2 remote debugging):
+  onboarding, guided wizard incident creation, About build identity,
+  Guide Me entry all pass; incidents persist across restart.
+- Single instance: second launch focuses the existing window.
+- Installer: Start Menu shortcut + Add/Remove Programs entry with correct
+  name/version; silent install/uninstall (/S) verified; incident data
+  (%LOCALAPPDATA%\org.wildlifeincidenthandoff.app) survives uninstall.
+
 ## Release checklist
 
 - [ ] `src-tauri/icons/` generated from the canonical bear-paw mark

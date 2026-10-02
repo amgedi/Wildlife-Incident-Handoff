@@ -78,10 +78,16 @@ export function ExportTab({ incident }: { incident: Incident }) {
           <button className="btn btn-primary" onClick={() => { printSummary(incident, opts); }}>
             <Icons.print size={16} /> Print / save as PDF
           </button>
-          <button className="btn btn-secondary" onClick={() => { downloadPlainText(incident, opts); showToast("Text summary exported"); }}>
+          <button className="btn btn-secondary" onClick={async () => {
+            const r = await downloadPlainText(incident, opts);
+            if (r !== "cancelled") showToast("Text summary exported");
+          }}>
             <Icons.download size={16} /> Download text
           </button>
-          <button className="btn btn-secondary" onClick={() => { downloadHtml(incident, opts); showToast("HTML summary exported"); }}>
+          <button className="btn btn-secondary" onClick={async () => {
+            const r = await downloadHtml(incident, opts);
+            if (r !== "cancelled") showToast("HTML summary exported");
+          }}>
             <Icons.download size={16} /> Download HTML
           </button>
         </div>

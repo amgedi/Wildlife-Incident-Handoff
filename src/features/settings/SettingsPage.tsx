@@ -367,9 +367,11 @@ function StorageSection() {
           <button
             className="btn btn-primary"
             onClick={async () => {
-              await downloadBackup(appVersion);
-              updateSettings({ lastBackupAt: new Date().toISOString() });
-              showToast("Backup exported");
+              const r = await downloadBackup(appVersion);
+              if (r !== "cancelled") {
+                updateSettings({ lastBackupAt: new Date().toISOString() });
+                showToast("Backup exported");
+              }
             }}
           >
             <Icons.download size={16} /> Create backup

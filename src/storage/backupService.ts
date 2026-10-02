@@ -9,6 +9,7 @@ import { SCHEMA_VERSION } from "../types/incident";
 import { validateBackup, validateIncidentRecord, emptyImportResult } from "../utils/validation";
 import { cleanText, safeFileName } from "../utils/text";
 import { nowIso } from "../utils/time";
+import { saveFile } from "../utils/platformFile";
 import {
   getAllIncidents,
   bulkPutIncidents,
@@ -37,11 +38,11 @@ export async function createBackup(applicationVersion: string): Promise<BackupFo
   };
 }
 
-export async function downloadBackup(applicationVersion: string): Promise<void> {
+export async function downloadBackup(applicationVersion: string): Promise<"saved" | "cancelled" | "browser"> {
   const backup = await createBackup(applicationVersion);
   const json = JSON.stringify(backup, null, 2);
   const blob = new Blob([json], { type: "application/json" });
-  downloadBlob(blob, `wildlife-incident-handoff-backup-${dateStamp()}.json`);
+  return downloadBlob(blob, `wildlife-incident-handoff-backup-${dateStamp()}.json`);
 }
 
 export async function importBackup(raw: unknown): Promise<ImportResult> {
@@ -129,7 +130,9 @@ export function base64ToBlob(base64: string, mimeType: string): Blob {
   return new Blob([bytes], { type: mimeType });
 }
 
-export function downloadBlob(blob: Blob, fileName: string): void {
+export async function downloadBlob(blob: Blob, fileName: string): Promise<"saved" | "cancelled" | "browser"> {
+  const result = await saveFile(blob, safeFileName(fileName), ".json");
+  if (result !== "browser") return result;
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -138,6 +141,7 @@ export function downloadBlob(blob: Blob, fileName: string): void {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
+  return "browser";
 }
 
 export { cleanText };
