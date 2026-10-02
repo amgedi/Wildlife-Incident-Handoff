@@ -85,9 +85,10 @@ export function SpotlightTour({ steps, startIndex = 0, onFinish }: SpotlightProp
 
     const begin = async () => {
       setTarget({ kind: "loading", label: step.title });
-      const targetPath = step.route ?? "/";
-      if (window.location.pathname + window.location.search !== targetPath) {
-        nav(targetPath);
+      // Only navigate when the step explicitly declares a route; steps that
+      // describe the current page must never yank navigation back.
+      if (step.route && window.location.pathname + window.location.search !== step.route) {
+        nav(step.route);
       }
       if (step.waitMs) await new Promise((res) => setTimeout(res, step.waitMs));
       const deadline = Date.now() + 3000;

@@ -2,6 +2,24 @@
 
 All notable changes to Wildlife Incident Handoff are documented here. Format based on [Keep a Changelog](https://keepachangelog.com/); versioning follows [SemVer](https://semver.org/).
 
+## 0.2.0-dev.2 — in development
+
+### Fixed
+- **Incident tabs getting stuck** (root cause): a state-from-URL effect reverted the user's tab selection; the URL query is now the single source of truth, with SPA navigation on every tab click (Back/Forward and deep links work).
+- **Interface tour wiring**: "Interface tour", "Start tutorial" and demo explanations are now three architecturally separate guidance systems (own ids, step builders, entry points, persistence keys); completing one never completes another.
+- **Sluggishness**: removed `backdrop-filter` from cards (continuous re-blur over the animated ambient), removed `will-change`, rAF-batched and throttled spotlight re-measurement.
+- **Stray orange highlight**: spotlight ring and focus system now use one theme-aware `--focus-ring` token with `:focus-visible` semantics (keyboard focus unaffected).
+- **Incident card layout**: intentional flex layout with the status chip and chevron grouped at the right edge; secondary actions moved into a labeled overflow menu.
+
+### Added
+- **Workspace modes**: Reporter (default) and Professional/responder — separate navigation, home and labels; switched in Settings and chosen during onboarding. Presentation only; never permissions.
+- **10 themes** including true Monochrome Dark/Light and High Contrast Dark; distinct per-status chip identities with a side-by-side fixture in Settings → Advanced; hero contrast fixed for light themes via header-ink tokens.
+- **Map view** (professional): MapLibre GL with OpenStreetMap raster tiles (no API key), per-status marker shapes + colors, privacy-aware marker positions (approximate fuzzed to ~1 km, sensitive heavily fuzzed), offline notice.
+- **Copy diagnostics** in About (versions, settings, storage counts only).
+- Canonical `BearPawMark` component; new forest-paw artwork across favicon, PWA, desktop and social preview.
+- Service worker caches are versioned and cleaned; the service worker is never registered inside the desktop app.
+- Tests: 76 → 111.
+
 ## 0.2.0-dev.1 — in development
 
 ### Added

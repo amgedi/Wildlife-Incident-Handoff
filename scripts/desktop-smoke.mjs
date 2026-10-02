@@ -28,6 +28,7 @@ class Cdp {
   }
 }
 
+import { readFileSync } from "fs";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function evalJs(cdp, expression) {
@@ -79,6 +80,14 @@ async function main() {
   const ws = await connect(page.webSocketDebuggerUrl);
   const cdp = new Cdp(ws);
   await cdp.send("Runtime.enable");
+  // Purge any service worker/caches left by older desktop builds.
+  await evalJs(cdp, `(async () => {
+    const regs = await navigator.serviceWorker?.getRegistrations?.() ?? [];
+    for (const r of regs) await r.unregister();
+    const keys = await caches.keys();
+    for (const k of keys) await caches.delete(k);
+    return true;
+  })()`);
   const results = [];
   const record = (name, pass, note = "") => { results.push({ name, pass }); console.log((pass ? "PASS" : "FAIL") + " | " + name + (note ? " | " + note : "")); };
 
@@ -116,7 +125,8 @@ async function main() {
   await clickFinder(cdp, `Array.from(document.querySelectorAll('nav[aria-label="Settings sections"] button')).find(b => b.textContent.includes('About'))`, "About");
   await sleep(500);
   const about = await evalJs(cdp, `document.querySelector('main')?.textContent || ''`);
-  record("About: version 0.2.0-dev.1", about.includes("0.2.0-dev.1"));
+  const expectedVersion = JSON.parse(readFileSync("package.json", "utf-8")).version;
+  record("About: version " + expectedVersion, about.includes(expectedVersion));
   record("About: build id", /wih-/.test(about));
   record("About: schema v1", about.includes("v1 (schemaVersion)"));
 

@@ -139,6 +139,7 @@ export async function buildInterfaceTourSteps(workspace: "reporter" | "professio
     {
       id: "interface-guide",
       tourId: "guide-me-card",
+      route: "/",
       title: "Guide me",
       text: reporter
         ? "If you're ever unsure what to do, Guide me walks you through a real report one friendly step at a time."

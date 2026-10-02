@@ -215,15 +215,15 @@ code { font-family: var(--font-mono); font-size: 0.85em; background: var(--c-sur
 
 /* ---------- Incident cards ---------- */
 .incident-card {
-  display: grid; grid-template-columns: 1fr auto; gap: var(--space-2) var(--space-4); align-items: center;
+  display: flex; gap: var(--space-4); align-items: center;
   background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md);
   padding: var(--space-4) var(--space-5) var(--space-4) var(--space-4);
   box-shadow: var(--c-shadow); text-decoration: none; color: var(--c-ink);
   transition: box-shadow var(--motion-fast) var(--ease), transform var(--motion-fast) var(--ease);
 }
 .incident-card:hover { box-shadow: var(--c-shadow-lift); transform: translateY(-1px); }
-.incident-card .ic-body { min-width: 0; grid-column: 1; }
-.incident-card .ic-side { grid-column: 2; grid-row: 1 / span 99; display: flex; align-items: center; gap: var(--space-2); align-self: center; }
+.incident-card .ic-body { flex: 1; min-width: 0; }
+.incident-card .ic-side { display: flex; align-items: center; gap: var(--space-2); flex-shrink: 0; }
 .incident-card .ic-title { font-weight: 650; font-size: 1rem; margin: 0 0 2px; }
 .incident-card .ic-meta { font-size: 0.82rem; color: var(--c-ink-faint); }
 .incident-card .ic-updates { font-size: 0.85rem; color: var(--c-ink-soft); margin-top: var(--space-1); }
