@@ -2,6 +2,14 @@
 
 All notable changes to Wildlife Incident Handoff are documented here. Format based on [Keep a Changelog](https://keepachangelog.com/); versioning follows [SemVer](https://semver.org/).
 
+## 0.2.0-dev.16 — tutorial content fix
+
+### Fixed
+- **Tutorial went nonsensical right after the Search/Filters steps** (user-reported). Root cause: the steps after "Filters" reused wrong translation keys — the incident-header step showed the home step's title ("Your starting point") with timeline body text, the People step and reporter Status step reused home/timeline/filters keys likewise. Every step now has its own correct title and text ("Inside an incident", "People & handoffs", "Report statuses"), with new keys translated in all five production languages. Verified live: the full 11-step professional tour reads Search → Filters → Inside an incident → Timeline → People & handoffs → Export → Guide me → Settings with zero target failures.
+
+### Tests
+- 297 passing (keys asserted per locale).
+
 ## 0.2.0-dev.15 — trust pass: sync integrity, device identity, conflicts, hardening
 
 Focus: "Would I trust this app with real incident history on multiple devices?"

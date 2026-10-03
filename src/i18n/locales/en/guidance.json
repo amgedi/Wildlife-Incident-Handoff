@@ -42,5 +42,11 @@
   "demoTitle3": "Nothing mixes with your reports",
   "demoText3": "Nothing here enters your real reports unless you choose “Copy into my workspace” back on the examples page.",
   "guidedFirstIncident": "Guided first incident",
-  "guidedBlurb": "A short interactive walkthrough using a fictional case: you've received a report of a bird beside a road, unable to fly."
+  "guidedBlurb": "A short interactive walkthrough using a fictional case: you've received a report of a bird beside a road, unable to fly.",
+  "tourIncidentTitle": "Inside an incident",
+  "tourHeaderText": "This is the incident header: the status chip, current custody and the next step always live here, so anyone can see where the case stands at a glance.",
+  "tourPeopleTitle": "People & handoffs",
+  "tourPeopleText": "Record who takes responsibility: transfers, custody history and receiving organizations live here.",
+  "tourStatusTitle": "Report statuses",
+  "tourStatusText": "The status chip shows where the report stands — from Reported through In care to Released. Help → Statuses explains every one."
 }

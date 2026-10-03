@@ -565,7 +565,13 @@
     "demoTitle3": "Nada se mezcla con tus reportes",
     "demoText3": "Nada de esto entra en tus reportes reales salvo que elijas «Copiar a mi espacio» en la página de ejemplos.",
     "guidedFirstIncident": "Primer reporte guiado",
-    "guidedBlurb": "Un recorrido interactivo breve con un caso ficticio: un ave junto a una carretera, incapaz de volar."
+    "guidedBlurb": "Un recorrido interactivo breve con un caso ficticio: un ave junto a una carretera, incapaz de volar.",
+    "tourIncidentTitle": "Dentro de un incidente",
+    "tourHeaderText": "Esta es la cabecera del incidente: la situación, la guarda actual y el próximo paso siempre están aquí, para ver de un vistazo dónde está el caso.",
+    "tourPeopleTitle": "Personas y traspasos",
+    "tourPeopleText": "Registre quién asume la responsabilidad: los traspasos, el historial de guarda y las organizaciones receptoras están aquí.",
+    "tourStatusTitle": "Estados del informe",
+    "tourStatusText": "La etiqueta de estado muestra dónde está el informe: de Reportado a En cuidado y Liberado. Ayuda → Estados explica cada uno."
   },
   "status": {
     "draft": "Borrador",

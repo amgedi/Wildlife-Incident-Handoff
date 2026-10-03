@@ -565,7 +565,13 @@
     "demoTitle3": "Rien ne se mélange à vos signalements",
     "demoText3": "Rien n'entre dans vos vrais signalements sauf si vous choisissez « Copier dans mon espace » sur la page des exemples.",
     "guidedFirstIncident": "Premier signalement guidé",
-    "guidedBlurb": "Une courte visite interactive avec un cas fictif : un oiseau incapable de voler au bord d'une route."
+    "guidedBlurb": "Une courte visite interactive avec un cas fictif : un oiseau incapable de voler au bord d'une route.",
+    "tourIncidentTitle": "Dans un incident",
+    "tourHeaderText": "Voici l'en-tête de l'incident : le statut, l'obhut actuelle et la prochaine étape se trouvent toujours ici, pour comprendre d'un coup d'œil où en est le dossier.",
+    "tourPeopleTitle": "Personnes et passations",
+    "tourPeopleText": "Notez qui prend en charge : transferts, historique de garde et organisations réceptrices sont ici.",
+    "tourStatusTitle": "Statuts du signalement",
+    "tourStatusText": "La puce de statut montre où en est le signalement — de Signalé à Soins jusqu'à Relâché. Aide → Statuts détaille chacun."
   },
   "status": {
     "draft": "Brouillon",

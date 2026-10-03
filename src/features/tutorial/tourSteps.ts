@@ -69,7 +69,7 @@ export async function buildMainTourSteps(): Promise<TourStepV2[]> {
     {
       id: "tour-people",
       tourId: "tab-people",
-      titleKey: "tourHomeTitle",
+      titleKey: "tourPeopleTitle",
       text: "Record who takes responsibility: transfers, custody history and receiving organizations live here.",
       route: `${detail}?tab=people`,
       waitMs: 900,
@@ -77,7 +77,7 @@ export async function buildMainTourSteps(): Promise<TourStepV2[]> {
     {
       id: "tour-handoff",
       tourId: "handoff-button",
-      titleKey: "tourHomeTitle",
+      titleKey: "tourPeopleTitle",
       text: "This button records a handoff — who it came from, who receives, method, condition and items transferred.",
       waitMs: 600,
     },

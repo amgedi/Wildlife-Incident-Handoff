@@ -92,8 +92,8 @@ export async function buildInterfaceTourSteps(workspace: "reporter" | "professio
     {
       id: "interface-report-header",
       tourId: "incident-header",
-      titleKey: "tourHomeTitle",
-      textKey: "tourTimelineText",
+      titleKey: "tourIncidentTitle",
+      textKey: "tourHeaderText",
       route: detail,
       waitMs: 1200,
     },
@@ -109,14 +109,14 @@ export async function buildInterfaceTourSteps(workspace: "reporter" | "professio
       ? {
           id: "interface-status",
           tourId: "incident-header",
-          titleKey: "tourHomeTitle",
-          textKey: "tourFiltersText",
+          titleKey: "tourStatusTitle",
+          textKey: "tourStatusText",
         }
       : {
           id: "interface-people",
           tourId: "tab-people",
-          titleKey: "tourHomeTitle",
-          textKey: "tourTimelineText",
+          titleKey: "tourPeopleTitle",
+          textKey: "tourPeopleText",
           route: `${detail}?tab=people`,
           waitMs: 900,
         },

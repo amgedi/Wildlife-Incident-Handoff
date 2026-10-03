@@ -477,7 +477,13 @@
     "demoTitle3": "Nichts mischt sich mit Ihren Meldungen",
     "demoText3": "Nichts davon gelangt in Ihre echten Meldungen, außer Sie wählen auf der Beispielseite „In meinen Arbeitsbereich kopieren“.",
     "guidedFirstIncident": "Geführter erster Vorfall",
-    "guidedBlurb": "Eine kurze interaktive Einführung anhand eines fiktiven Falls: Ein Vogel wurde neben einer Straße gemeldet, unfähig zu fliegen."
+    "guidedBlurb": "Eine kurze interaktive Einführung anhand eines fiktiven Falls: Ein Vogel wurde neben einer Straße gemeldet, unfähig zu fliegen.",
+    "tourIncidentTitle": "Innerhalb eines Vorfalls",
+    "tourHeaderText": "Dies ist die Vorfall-Kopfzeile: Status, aktuelle Obhut und der nächste Schritt stehen immer hier — der Fallstand ist auf einen Blick erkennbar.",
+    "tourPeopleTitle": "Personen und Übergaben",
+    "tourPeopleText": "Halten Sie fest, wer die Verantwortung übernimmt: Übergaben, Obhutsverlauf und empfangende Organisationen finden Sie hier.",
+    "tourStatusTitle": "Meldungsstatus",
+    "tourStatusText": "Der Status-Chip zeigt, wo die Meldung steht — von Gemeldet über In Betreuung bis Ausgewildert. Hilfe → Statuswerte erklärt alle."
   },
   "onboarding": {
     "tagline": "Klare Informationen. Sicherere Übergaben.",

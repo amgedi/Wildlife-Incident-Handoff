@@ -477,7 +477,13 @@
     "demoTitle3": "Nada se mistura aos seus relatos",
     "demoText3": "Nada daqui entra nos seus relatos reais, a menos que você escolha “Copiar para meu espaço de trabalho” na página de exemplos.",
     "guidedFirstIncident": "Primeira ocorrência guiada",
-    "guidedBlurb": "Um passo a passo interativo com um caso fictício: você recebeu o relato de um pássaro à beira de uma estrada, impossibilitado de voar."
+    "guidedBlurb": "Um passo a passo interativo com um caso fictício: você recebeu o relato de um pássaro à beira de uma estrada, impossibilitado de voar.",
+    "tourIncidentTitle": "Dentro de uma ocorrência",
+    "tourHeaderText": "Este é o cabeçalho da ocorrência: situação, guarda atual e o próximo passo ficam sempre aqui, para ver de relance onde o caso está.",
+    "tourPeopleTitle": "Pessoas e passagens",
+    "tourPeopleText": "Registre quem assume a responsabilidade: transferências, histórico de guarda e organizações receptoras ficam aqui.",
+    "tourStatusTitle": "Situações do relato",
+    "tourStatusText": "O selo de situação mostra onde o relato está — de Relatado a Em cuidado e Solto. Ajuda → Situações explica cada um."
   },
   "onboarding": {
     "tagline": "Informação clara. Passagens mais seguras.",
