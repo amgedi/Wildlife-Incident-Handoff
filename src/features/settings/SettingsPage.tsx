@@ -38,11 +38,16 @@ const SECTIONS = [
 
 type SectionId = (typeof SECTIONS)[number]["id"];
 
-export function SettingsPage() {
+function StandaloneFallback({ section }: { section: SectionId }) {
+  void section;
+  return null;
+}
+
+export function SettingsPage({ standaloneSection }: { standaloneSection?: SectionId } = {}) {
   const [searchParams] = useSearchParams();
   const requested = searchParams.get("section") as SectionId | null;
   const validRequested = requested && SECTIONS.some((x) => x.id === requested) ? requested : null;
-  const [section, setSection] = useState<SectionId>(validRequested ?? "appearance");
+  const [section, setSection] = useState<SectionId>(standaloneSection ?? validRequested ?? "appearance");
   const [query, setQuery] = useState("");
   useEffect(() => {
     if (validRequested) setSection(validRequested);
@@ -56,6 +61,17 @@ export function SettingsPage() {
 
   const activeMeta = SECTIONS.find((s) => s.id === section)!;
   const ts = useTranslation("settings").t;
+
+  // Standalone mode (e.g. /profile): one section, no rail, no search.
+  if (standaloneSection) {
+    return (
+      <main className="content" id="main-content" style={{ maxWidth: 900 }}>
+        <h1>{ts(standaloneSection, { defaultValue: standaloneSection })}</h1>
+        {standaloneSection === "profile" && <ProfileSection />}
+        {standaloneSection !== "profile" && <StandaloneFallback section={standaloneSection} />}
+      </main>
+    );
+  }
 
   return (
     <main className="content" id="main-content" style={{ maxWidth: 1080 }}>

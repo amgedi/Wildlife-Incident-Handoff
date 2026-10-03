@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useApp } from "../app/AppContext";
 import { Icons } from "./Icons";
 
-export function NotificationBell() {
+export function NotificationBell({ withLabel = false }: { withLabel?: boolean } = {}) {
   const {
     notifications, unreadNotifications, refreshNotifications,
     markNotificationRead, markAllNotificationsRead, clearNotifications,
@@ -38,13 +38,14 @@ export function NotificationBell() {
   return (
     <div ref={wrapRef} style={{ position: "relative", display: "inline-flex" }}>
       <button
-        className="btn btn-quiet btn-sm"
+        className={withLabel ? "nav-item nav-bell-item" : "btn btn-quiet btn-sm"}
         aria-label={t("notifBellLabel", { defaultValue: "Notifications", count: unreadNotifications })}
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
         style={{ position: "relative" }}
       >
         <Icons.bell size={18} />
+        {withLabel && <span>{t("notifBellLabel", { defaultValue: "Notifications" })}</span>}
         {unreadNotifications > 0 && (
           <span
             aria-hidden="true"

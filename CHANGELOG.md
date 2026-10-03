@@ -2,6 +2,23 @@
 
 All notable changes to Wildlife Incident Handoff are documented here. Format based on [Keep a Changelog](https://keepachangelog.com/); versioning follows [SemVer](https://semver.org/).
 
+## 0.2.0-dev.12 — shell feedback pass (bell, profile tab, EXE map CSP, logo toning)
+
+Direct response to hands-on feedback from running the packaged EXE.
+
+### Fixed
+- **Map did not work in the desktop EXE (root cause: production CSP)** — the Tauri CSP (`img-src 'self' data: blob:`) blocked OpenStreetMap tile requests and MapLibre's blob workers in packaged builds while the browser dev server (no CSP) worked. CSP now explicitly allows `https://tile.openstreetmap.org` images/connections and `blob:` workers/scripts. **Verified in the real EXE**: tiles render on the dashboard map (screenshots/after/exe-map-check.png).
+- **Settings and Profile both highlighted at once** — Profile lived at `/settings?section=profile`, so both nav items matched the same path. Profile is now its own destination: `/profile` renders the profile section standalone (no settings rail/search), and only one footer item is ever active.
+- **Notification bell floated alone above the sidebar footer** — it now lives inside the footer navigation as a labeled "Notifications" item (Help · Notifications · Settings · Profile), badge included, keyboard/touch reachable like any nav item; the popover is unchanged.
+- **Needs-attention "Review" action felt detached** (top-right corner) — the action now sits on the card's bottom row beside "Oldest: …", directly with the content it belongs to.
+- Bell button inherited the browser's default gray background (first `<button>` to use the anchor-styled `nav-item` class) — background/border/font reset added.
+
+### Changed
+- **Logo toned down in-app**: the home hero brand tile and the large decorative watermark paw are gone — the product is identified by the desktop titlebar and the compact sidebar identity mark (plus onboarding/first-run), per the "brand confident, not repetitive" rule.
+
+### Tests
+- 257 passing (hero-watermark test inverted to assert the toned-down home; saved-view nav expectation updated for `/profile`).
+
 ## 0.2.0-dev.11 — new brand identity
 
 ### Added

@@ -9,7 +9,8 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "../../app/AppContext";
 import { Icons } from "../../components/Icons";
-import { BrandMark, BearPawMark } from "../../components/BrandMark";
+import { BearPawMark } from "../../components/BrandMark";
+
 import { EmptyState } from "../../components/ui";
 import { StatusBadge } from "../../components/ui";
 import { useIncidents, IncidentCard } from "../incidents/IncidentCard";
@@ -214,7 +215,6 @@ export function HomePage() {
   return (
     <main className="content" id="main-content">
       <section className="hero fade-in" data-tour-id="hero">
-        <BrandMark size={44} />
         <h1 style={{ marginTop: "var(--space-4)" }}>
           {firstNamePro
             ? t("home:welcomeShort", { name: firstName, defaultValue: "Welcome, {{name}}", interpolation: { escapeValue: false } })
@@ -253,9 +253,6 @@ export function HomePage() {
               {t("navigation:takeTheTour")}
             </button>
           )}
-        </div>
-        <div className="hero-art" aria-hidden="true">
-          <BearPawMark size={250} tile={false} style={{ color: "var(--hero-paw)", opacity: 0.1, transform: "rotate(-8deg)" }} />
         </div>
       </section>
 

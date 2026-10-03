@@ -148,9 +148,10 @@ describe("canonical bear paw", () => {
     expect(/fill="#[0-9a-f]{6}"/i.test(container.innerHTML)).toBe(false);
   });
 
-  it("hero watermark uses the canonical component (no separate paw paths)", () => {
+  it("home hero no longer repeats the brand mark (logo toning, 0.2.0-dev.12)", () => {
     const src = readFileSync("src/features/home/HomePage.tsx", "utf-8");
-    expect(src.includes("BearPawMark")).toBe(true);
-    expect(src.includes("hero-art")).toBe(true);
+    // The titlebar + sidebar already identify the product; the hero must not.
+    expect(src.includes("hero-art")).toBe(false);
+    expect(src.includes("<BrandMark")).toBe(false);
   });
 });

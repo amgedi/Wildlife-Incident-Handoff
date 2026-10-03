@@ -76,7 +76,7 @@ describe("workspace navigation separation", () => {
 
   it("low-frequency destinations live in the footer nav for both workspaces", () => {
     const footer = FOOTER_NAV_ITEMS.map((i) => i.to);
-    expect(footer).toEqual(["/help", "/settings", "/settings?section=profile"]);
+    expect(footer).toEqual(["/help", "/settings", "/profile"]);
     expect(REPORTER_NAV_ITEMS.map((i) => i.to)).not.toContain("/help");
     expect(PROFESSIONAL_NAV_ITEMS.map((i) => i.to)).not.toContain("/settings");
   });

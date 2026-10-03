@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { REPORTER_NAV_ITEMS, PROFESSIONAL_NAV_ITEMS, FOOTER_NAV_ITEMS } from "./app/navigation";
@@ -111,10 +111,14 @@ export function App() {
   const footerList = (
     <>
       {FOOTER_NAV_ITEMS.map((item) => (
-        <NavLink key={item.to} to={item.to} data-tour-id={item.tourId} className={({ isActive }) => `nav-item nav-item-footer${isActive ? " active" : ""}`}>
-          <item.icon size={17} />
-          {t(item.labelKey, { ns: "navigation" })}
-        </NavLink>
+        <Fragment key={item.to}>
+          {/* The bell lives IN the footer nav as a labeled item — never floating alone. */}
+          {item.tourId === "nav-settings" && <NotificationBell withLabel />}
+          <NavLink to={item.to} data-tour-id={item.tourId} className={({ isActive }) => `nav-item nav-item-footer${isActive ? " active" : ""}`}>
+            <item.icon size={17} />
+            {t(item.labelKey, { ns: "navigation" })}
+          </NavLink>
+        </Fragment>
       ))}
     </>
   );
@@ -143,7 +147,6 @@ export function App() {
             {navList}
           </nav>
           <nav aria-label={t("navigation:footerNav", { defaultValue: "Help and settings" })} className="nav-footer">
-            <span className="nav-footer-bell"><NotificationBell /></span>
             {footerList}
           </nav>
         </aside>
@@ -167,6 +170,7 @@ export function App() {
           <Route path="/tutorial" element={<ErrorBoundary><TutorialPage /></ErrorBoundary>} />
           <Route path="/network" element={<ErrorBoundary><NetworkPage /></ErrorBoundary>} />
           <Route path="/settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
+          <Route path="/profile" element={<ErrorBoundary><SettingsPage standaloneSection="profile" /></ErrorBoundary>} />
           <Route path="*" element={<ErrorBoundary><HomePage /></ErrorBoundary>} />
         </Routes>
       </div>

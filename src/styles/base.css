@@ -818,8 +818,9 @@ body.drawer-open { overflow: hidden; }
 }
 .attn-card {
   display: grid; grid-template-columns: auto 1fr auto; grid-template-areas:
-    "icon count action"
-    "reason reason time";
+    "icon count count"
+    "reason reason reason"
+    "time time action";
   align-items: center; column-gap: 10px; row-gap: 2px;
   text-align: left; font: inherit; color: var(--c-ink); cursor: pointer;
   padding: var(--space-3) var(--space-4);
@@ -1095,3 +1096,8 @@ h3 { font-size: 1rem; }
   .help-shell { grid-template-columns: 1fr; }
   .help-rail { position: static; }
 }
+
+
+/* Labeled notification bell inside the sidebar footer nav (0.2.0-dev.12). */
+.nav-bell-item { width: 100%; position: relative; background: transparent; border: none; font: inherit; }
+.nav-bell-item[aria-expanded="true"] { background: var(--c-sidebar-active); color: #fff; }

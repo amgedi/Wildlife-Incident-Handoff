@@ -24,7 +24,7 @@ export const REPORTER_NAV_ITEMS: NavItem[] = [
 export const FOOTER_NAV_ITEMS: NavItem[] = [
   { to: "/help", labelKey: "help", icon: Icons.book, tourId: "nav-help" },
   { to: "/settings", labelKey: "settings", icon: Icons.settings, tourId: "nav-settings" },
-  { to: "/settings?section=profile", labelKey: "profile", icon: Icons.user, tourId: "nav-profile" },
+  { to: "/profile", labelKey: "profile", icon: Icons.user, tourId: "nav-profile" },
 ];
 
 export const PROFESSIONAL_NAV_ITEMS: NavItem[] = [
