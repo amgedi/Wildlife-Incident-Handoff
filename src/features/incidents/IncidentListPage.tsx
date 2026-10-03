@@ -16,7 +16,7 @@ import { EmptyState } from "../../components/ui";
 import { Dialog } from "../../components/Dialog";
 import { useIncidents } from "./IncidentCard";
 import { moveToTrash, restoreFromTrash, permanentlyDelete, archiveIncident, unarchiveIncident } from "../../storage/incidentService";
-import { putIncident } from "../../storage/repositories";
+import { putIncident, getSetting, setSetting } from "../../storage/repositories";
 import { matchesSearch } from "../../utils/text";
 import { getAllDrafts, deleteDraft } from "../../storage/repositories";
 import type { DraftRecord } from "../../storage/db";
@@ -26,6 +26,16 @@ import { formatDateTime, relativeTime } from "../../utils/time";
 import type { Incident, IncidentStatus } from "../../types/incident";
 
 type View = "active" | "archive" | "trash";
+
+/** P81 — a named, locally-persisted filter set ("Unassigned >2h", "Birds", …). */
+interface SavedView {
+  id: string;
+  name: string;
+  filters: { status: string; type: string; group: string; dateFrom: string; dateTo: string };
+}
+
+const SAVED_VIEWS_KEY = "incident-saved-views";
+const RENDER_STEP = 100; // P82 — bounded DOM; "Load more" reveals the rest
 
 
 /** Map Reporter summary-card categories to status filters (deep-linkable). */
@@ -55,6 +65,9 @@ export function IncidentListPage() {
   const [groupFilter, setGroupFilter] = useState<string>("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [savedViews, setSavedViews] = useState<SavedView[]>([]);
+  const [newViewName, setNewViewName] = useState("");
+  const [renderLimit, setRenderLimit] = useState(RENDER_STEP);
 
   const categoryParam = searchParams.get("category");
   const categoryStatuses = statusesForCategory(categoryParam);
@@ -66,6 +79,48 @@ export function IncidentListPage() {
     if (view !== "active") return;
     getAllDrafts().then((d) => setDrafts([...d].sort((a, b) => b.savedAt.localeCompare(a.savedAt))));
   }, [view, reloadDrafts]);
+
+  // P81 — saved views live in the local settings store.
+  useEffect(() => {
+    getSetting<SavedView[]>(SAVED_VIEWS_KEY).then((v) => {
+      if (Array.isArray(v)) setSavedViews(v);
+    });
+  }, []);
+
+  // P82 — new filter context restarts the bounded render window.
+  useEffect(() => {
+    setRenderLimit(RENDER_STEP);
+  }, [statusFilter, typeFilter, groupFilter, dateFrom, dateTo, query, view]);
+
+  const saveCurrentView = async () => {
+    const name = newViewName.trim();
+    if (!name) return;
+    const sv: SavedView = {
+      id: (crypto.randomUUID?.() ?? `view-${Date.now()}`),
+      name,
+      filters: { status: statusFilter, type: typeFilter, group: groupFilter, dateFrom, dateTo },
+    };
+    const next = [...savedViews, sv];
+    setSavedViews(next);
+    await setSetting(SAVED_VIEWS_KEY, next);
+    setNewViewName("");
+    showToast(t("reports:viewSaved", { defaultValue: "View saved" }));
+  };
+
+  const applySavedView = (v: SavedView) => {
+    setStatusFilter(v.filters.status);
+    setTypeFilter(v.filters.type);
+    setGroupFilter(v.filters.group);
+    setDateFrom(v.filters.dateFrom);
+    setDateTo(v.filters.dateTo);
+  };
+
+  const removeSavedView = async (id: string) => {
+    const next = savedViews.filter((v) => v.id !== id);
+    setSavedViews(next);
+    await setSetting(SAVED_VIEWS_KEY, next);
+    showToast(t("reports:viewRemoved", { defaultValue: "View removed" }));
+  };
 
   // "/" focuses search when not typing in a field.
   useEffect(() => {
@@ -230,11 +285,27 @@ export function IncidentListPage() {
                   </div>
                 </div>
               </div>
-              <div className="row between">
-                <button className="btn btn-quiet btn-sm" onClick={() => { setStatusFilter("all"); setTypeFilter("all"); setGroupFilter("all"); setDateFrom(""); setDateTo(""); }}>
-                  {t("reports:clearAll")}
-                </button>
-                <button className="btn btn-primary btn-sm" onClick={() => setFiltersOpen(false)}>{t("done")}</button>
+              <div className="row between" style={{ marginTop: "var(--space-3)", flexWrap: "wrap", gap: 8 }}>
+                <div className="row" style={{ gap: 6 }}>
+                  <input
+                    className="input"
+                    style={{ width: 180 }}
+                    placeholder={t("reports:savedViewName", { defaultValue: "View name" })}
+                    aria-label={t("reports:savedViewName", { defaultValue: "View name" })}
+                    value={newViewName}
+                    onChange={(e) => setNewViewName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") void saveCurrentView(); }}
+                  />
+                  <button className="btn btn-secondary btn-sm" onClick={() => void saveCurrentView()} disabled={!newViewName.trim()}>
+                    {t("reports:saveView", { defaultValue: "Save view" })}
+                  </button>
+                </div>
+                <div className="row" style={{ gap: 8 }}>
+                  <button className="btn btn-quiet btn-sm" onClick={() => { setStatusFilter("all"); setTypeFilter("all"); setGroupFilter("all"); setDateFrom(""); setDateTo(""); }}>
+                    {t("reports:clearAll")}
+                  </button>
+                  <button className="btn btn-primary btn-sm" onClick={() => setFiltersOpen(false)}>{t("done")}</button>
+                </div>
               </div>
             </div>
           )}
@@ -251,6 +322,30 @@ export function IncidentListPage() {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {view === "active" && savedViews.length > 0 && (
+        <div className="row" style={{ marginBottom: "var(--space-3)", flexWrap: "wrap", gap: 8 }} aria-label={t("reports:savedViews", { defaultValue: "Saved views" })} data-testid="saved-views">
+          <span className="section-label" style={{ margin: 0 }}>{t("reports:savedViews", { defaultValue: "Saved views" })}</span>
+          {savedViews.map((v) => (
+            <span key={v.id} className="filter-chip" style={{ gap: 6 }}>
+              <button
+                onClick={() => applySavedView(v)}
+                aria-label={t("reports:applyView", { defaultValue: "Apply view {{name}}", name: v.name })}
+                style={{ background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit", color: "inherit" }}
+              >
+                {v.name}
+              </button>
+              <button
+                onClick={() => void removeSavedView(v.id)}
+                aria-label={t("reports:removeView", { defaultValue: "Remove view {{name}}", name: v.name })}
+                style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "inline-flex", color: "inherit" }}
+              >
+                <Icons.x size={12} />
+              </button>
+            </span>
+          ))}
         </div>
       )}
 
@@ -302,21 +397,33 @@ export function IncidentListPage() {
           )}
         </div>
       ) : (
-        <div className="card-list">
-          {filtered.map((i) => (
-            <ReportCard
-              key={i.id}
-              incident={i}
-              view={view}
-              onPin={() => void putIncident({ ...i, pinnedAt: i.pinnedAt ? null : new Date().toISOString() }).then(refresh)}
-              onArchive={() => void archiveIncident(i).then(refresh).then(() => showToast(t("reports:archivedToast")))}
-              onTrash={() => void handleTrash(i)}
-              onUnarchive={() => void unarchiveIncident(i).then(refresh).then(() => showToast(t("reports:unarchivedToast")))}
-              onRestore={() => void restoreFromTrash(i).then(refresh).then(() => showToast(t("reports:restoredToast")))}
-              onDeleteForever={() => setPendingDelete(i)}
-            />
-          ))}
-        </div>
+        <>
+          <div className="card-list">
+            {filtered.slice(0, renderLimit).map((i) => (
+              <ReportCard
+                key={i.id}
+                incident={i}
+                view={view}
+                onPin={() => void putIncident({ ...i, pinnedAt: i.pinnedAt ? null : new Date().toISOString() }).then(refresh)}
+                onArchive={() => void archiveIncident(i).then(refresh).then(() => showToast(t("reports:archivedToast")))}
+                onTrash={() => void handleTrash(i)}
+                onUnarchive={() => void unarchiveIncident(i).then(refresh).then(() => showToast(t("reports:unarchivedToast")))}
+                onRestore={() => void restoreFromTrash(i).then(refresh).then(() => showToast(t("reports:restoredToast")))}
+                onDeleteForever={() => setPendingDelete(i)}
+              />
+            ))}
+          </div>
+          {filtered.length > renderLimit && (
+            <div className="card" style={{ marginTop: "var(--space-3)", textAlign: "center" }}>
+              <p className="hint" style={{ margin: 0 }}>
+                {t("reports:showingOf", { defaultValue: "Showing {{shown}} of {{total}} reports", shown: renderLimit, total: filtered.length })}
+              </p>
+              <button className="btn btn-secondary btn-sm" style={{ marginTop: 8 }} onClick={() => setRenderLimit((n) => n + RENDER_STEP)}>
+                {t("reports:loadMore", { defaultValue: "Load more" })}
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       <Dialog

@@ -153,5 +153,6 @@
   "roleChoose": "Which role are you adding?",
   "roleVerifyReq": "Verification (connected mode): {{req}}",
   "roleAddConfirm": "Add role",
-  "devPreviewLocales": "Developer preview: show incomplete languages and the pseudo-locale"
+  "devPreviewLocales": "Developer preview: show incomplete languages and the pseudo-locale",
+  "mapProviderPolicy": "Public community infrastructure — the app only requests viewport tiles, never uploads incident data, and falls back to the offline provider instead of retrying aggressively."
 }

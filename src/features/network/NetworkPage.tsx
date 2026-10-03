@@ -8,13 +8,14 @@
  * to every widget; widgets emphasize by active professional role (preview
  * roles tailor presentation only — they never authorize anything).
  */
-import { Suspense, lazy, useEffect, useMemo, useState } from "react";
+import { Fragment, Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useApp } from "../../app/AppContext";
 import { useTranslation } from "react-i18next";
 import { useIncidents } from "../incidents/IncidentCard";
 import { Icons } from "../../components/Icons";
 import { EmptyState, StatusBadge, TextField } from "../../components/ui";
+import { Dialog } from "../../components/Dialog";
 import { Select } from "../../components/Select";
 import { animalLabel } from "../export/exportService";
 import { relativeTime } from "../../utils/time";
@@ -47,6 +48,23 @@ interface DashboardFilters {
 
 const EMPTY_FILTERS: DashboardFilters = { status: "", animalGroup: "", incidentType: "", assigned: "any", time: "all" };
 
+// ---- Dashboard customization (P80) -----------------------------------------
+// Widgets are individually show/hide-able and reorderable; the layout is
+// persisted locally. "Needs attention" can be hidden but never silently —
+// a confirmation explains what is being turned off. The map is the primary
+// operational context and cannot be hidden.
+
+type WidgetId =
+  | "map" | "attention" | "activity" | "kpis" | "pipeline" | "performance"
+  | "aging" | "trend" | "statusDist" | "animalDist" | "typeDist" | "workload";
+
+const DASHBOARD_LAYOUT_KEY = "network-dashboard-layout";
+
+interface DashboardLayout {
+  order: WidgetId[];
+  hidden: WidgetId[];
+}
+
 export function NetworkPage() {
   const { incidents, refresh } = useIncidents();
   const { settings, showToast } = useApp();
@@ -63,6 +81,9 @@ export function NetworkPage() {
   const [loaded, setLoaded] = useState(false);
   const [range, setRange] = useState<1 | 7 | 30 | 90>(7);
   const [now, setNow] = useState(() => new Date());
+  const [layout, setLayout] = useState<DashboardLayout | null>(null);
+  const [customizeOpen, setCustomizeOpen] = useState(false);
+  const [confirmHideAttention, setConfirmHideAttention] = useState(false);
   const org = LOCAL_ORG_REGISTRY[0];
   const firstName = (settings.professionalProfile?.name || settings.displayName || "").trim().split(/\s+/)[0];
   const isVerified = getAuthorizationState().status === "verified";
@@ -72,6 +93,9 @@ export function NetworkPage() {
     getSetting<ServiceArea>("network-service-area").then((saved) => {
       if (saved) setArea(saved);
       setLoaded(true);
+    });
+    getSetting<DashboardLayout>(DASHBOARD_LAYOUT_KEY).then((saved) => {
+      if (saved && Array.isArray(saved.order) && Array.isArray(saved.hidden)) setLayout(saved);
     });
   }, []);
 
@@ -173,6 +197,30 @@ export function NetworkPage() {
         ? "transfer-first"
         : "map-first";
 
+  // P80 — effective widget order: saved layout wins; otherwise role-recommended.
+  const recommendedOrder: WidgetId[] =
+    rolePriority === "attention-first"
+      ? ["attention", "map", "activity", "kpis", "pipeline", "performance", "aging", "trend", "statusDist", "animalDist", "typeDist", "workload"]
+      : rolePriority === "transfer-first"
+        ? ["map", "attention", "activity", "kpis", "pipeline", "aging", "performance", "trend", "statusDist", "animalDist", "typeDist", "workload"]
+        : ["map", "attention", "activity", "kpis", "pipeline", "performance", "aging", "trend", "statusDist", "animalDist", "typeDist", "workload"];
+  const widgetOrder: WidgetId[] = layout?.order ?? recommendedOrder;
+  const hiddenWidgets = useMemo(() => new Set<WidgetId>(layout?.hidden ?? []), [layout]);
+
+  const persistLayout = (next: DashboardLayout) => {
+    setLayout(next);
+    void setSetting(DASHBOARD_LAYOUT_KEY, next);
+  };
+  const moveWidget = (id: WidgetId, dir: -1 | 1) => {
+    if (!layout) return; // reordering implies a customized layout
+    const order = [...layout.order];
+    const idx = order.indexOf(id);
+    const to = idx + dir;
+    if (idx < 0 || to < 0 || to >= order.length) return;
+    [order[idx], order[to]] = [order[to]!, order[idx]!];
+    persistLayout({ order, hidden: [...layout.hidden] });
+  };
+
   const attentionCards = useMemo(() => {
     const cards: Array<{ key: string; icon: JSX.Element; count: number; reason: string; severity: "alert" | "warn" | "info"; action: string; to: string; time?: string }> = [];
     if (kpis.unassigned > 0) {
@@ -242,15 +290,17 @@ export function NetworkPage() {
       </div>
       <div style={{ marginTop: "var(--space-3)", flex: 1 }}>
         {settings.mapTilesEnabled === false ? (
-          <p className="hint">{t("mapDisabled", { defaultValue: "Online maps are off (Settings → Map). Showing local incident positions instead:" })}{" "}
-            <ul style={{ paddingLeft: 18 }}>
-              {inArea.slice(0, 6).map((i) => (
-                <li key={i.id}>
-                  <Link to={`/incidents/${i.id}`}>{i.humanReference}</Link> — {i.location.description || animalLabel(i)}
-                </li>
-              ))}
-            </ul>
-          </p>
+          <Suspense fallback={<p style={{ color: "var(--c-ink-faint)" }}>…</p>}>
+            <NetworkMap
+              incidents={inArea}
+              privacy="approximate"
+              compact
+              serviceArea={area}
+              fitMode="service-area"
+              offline
+              onSelect={(incident) => navigate(`/incidents/${incident.id}`)}
+            />
+          </Suspense>
         ) : (
           <Suspense fallback={<p style={{ color: "var(--c-ink-faint)" }}>…</p>}>
             <NetworkMap
@@ -278,7 +328,7 @@ export function NetworkPage() {
           <span>{t("attentionClear", { defaultValue: "Nothing needs attention right now." })}</span>
         </div>
       ) : (
-        <div className="attn-grid" style={{ gridTemplateColumns: "1fr" }}>
+        <div className="attn-grid" style={{ gridTemplateColumns: "1fr", flex: 1 }}>
           {attentionCards.map((c) => (
             <button key={c.key} className={`attn-card severity-${c.severity}`} onClick={() => navigate(c.to)}>
               <span className="attn-icon" aria-hidden="true">{c.icon}</span>
@@ -290,30 +340,216 @@ export function NetworkPage() {
           ))}
         </div>
       )}
-      <div className="card ops-panel" style={{ marginTop: "var(--space-3)", flex: 1 }}>
-        <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
-          <Icons.activity size={16} /> {t("liveActivity", { defaultValue: "Live activity" })}
-        </h3>
-        {feed.length === 0 ? (
-          <p className="hint">{t("feedEmpty", { defaultValue: "Timeline events from your records will appear here." })}</p>
-        ) : (
-          <ol className="ops-feed" aria-label={t("liveActivity", { defaultValue: "Live activity" })}>
-            {feed.slice(0, 9).map((e, idx) => (
-              <li key={`${e.incidentId}-${idx}`}>
-                <button onClick={() => navigate(`/incidents/${e.incidentId}`)} className="ops-feed-item">
-                  <span className="ops-feed-time">{new Date(e.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-                  <span className="ops-feed-body">
-                    <span className="ops-feed-event">{e.summary}</span>
-                    <span className="ops-feed-ref">{e.incidentRef}{e.animalLabel ? ` · ${e.animalLabel}` : ""}</span>
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ol>
-        )}
-      </div>
     </section>
   );
+
+  const activityWidget = (
+    <div className="card ops-panel ops-span-4" style={{ display: "flex", flexDirection: "column" }}>
+      <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
+        <Icons.activity size={16} /> {t("liveActivity", { defaultValue: "Live activity" })}
+      </h3>
+      {feed.length === 0 ? (
+        <p className="hint" style={{ flex: 1 }}>{t("feedEmpty", { defaultValue: "Timeline events from your records will appear here." })}</p>
+      ) : (
+        <ol className="ops-feed" aria-label={t("liveActivity", { defaultValue: "Live activity" })} style={{ flex: 1 }}>
+          {feed.slice(0, 9).map((e, idx) => (
+            <li key={`${e.incidentId}-${idx}`}>
+              <button onClick={() => navigate(`/incidents/${e.incidentId}`)} className="ops-feed-item">
+                <span className="ops-feed-time">{new Date(e.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                <span className="ops-feed-body">
+                  <span className="ops-feed-event">{e.summary}</span>
+                  <span className="ops-feed-ref">{e.incidentRef}{e.animalLabel ? ` · ${e.animalLabel}` : ""}</span>
+                </span>
+              </button>
+            </li>
+          ))}
+        </ol>
+      )}
+    </div>
+  );
+
+  const kpisWidget = (
+    <div className="kpi-row kpi-strip ops-span-12">
+      <KpiCard label={t("kpiNewReports", { defaultValue: "New reports" })} value={newWithDelta.value} delta={newWithDelta.delta} accent />
+      <KpiCard label={t("kpiUnassigned", { defaultValue: "Unassigned" })} value={kpis.unassigned} context={metrics.oldestUnassignedHours != null ? t("kpiOldestShort", { defaultValue: "oldest {{t}}", t: formatH(metrics.oldestUnassignedHours) }) : undefined} />
+      <KpiCard label={t("kpiActiveResponse", { defaultValue: "Active response" })} value={kpis.responderAssigned + kpis.inResponse} />
+      <KpiCard label={t("kpiAwaitingHandoff", { defaultValue: "Awaiting handoff" })} value={kpis.awaitingTransfer} />
+      <KpiCard label={t("kpiOpenTotal", { defaultValue: "Open total" })} value={kpis.openTotal} />
+      <KpiCard label={t("kpiResolvedToday", { defaultValue: "Resolved today" })} value={metrics.resolvedToday} />
+    </div>
+  );
+
+  const pipelineWidget = (
+    <div className="card ops-panel ops-span-8">
+      <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
+        <Icons.zap size={16} /> {t("pipelineTitle", { defaultValue: "Response flow" })}
+      </h3>
+      <div className="pipeline" role="list" aria-label={t("pipelineTitle", { defaultValue: "Response flow" })}>
+        {pipeline.map((s) => (
+          <button key={s.key} role="listitem" className={`pipeline-stage${s.count === 0 ? " is-zero" : ""}`} onClick={() => navigate(s.to)}>
+            <span className="pipeline-count"><AnimatedNumber value={s.count} /></span>
+            <span className="pipeline-label">{s.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  const performanceWidget = (
+    <div className="card ops-panel ops-span-6">
+      <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
+        <Icons.zap size={16} /> {t("performance", { defaultValue: "Response performance" })}
+      </h3>
+      {metrics.sufficientData ? (
+        <dl className="kv">
+          {metrics.medianHoursToAssignment != null && (<><dt>{t("perfAssign", { defaultValue: "Median time to assignment" })}</dt><dd>{formatH(metrics.medianHoursToAssignment)}</dd></>)}
+          {metrics.medianHoursToPickup != null && (<><dt>{t("perfPickup", { defaultValue: "Median time to pickup" })}</dt><dd>{formatH(metrics.medianHoursToPickup)}</dd></>)}
+          {metrics.medianHoursToTransfer != null && (<><dt>{t("perfTransfer", { defaultValue: "Median time to transfer" })}</dt><dd>{formatH(metrics.medianHoursToTransfer)}</dd></>)}
+          {metrics.oldestUnassignedHours != null && (<><dt>{t("perfOldest", { defaultValue: "Oldest unassigned" })}</dt><dd>{formatH(metrics.oldestUnassignedHours)}</dd></>)}
+          <dt>{t("perfOpenedToday", { defaultValue: "Opened today" })}</dt><dd>{metrics.openedToday}</dd>
+          <dt>{t("perfResolvedToday", { defaultValue: "Resolved today" })}</dt><dd>{metrics.resolvedToday}</dd>
+        </dl>
+      ) : (
+        <p style={{ color: "var(--c-ink-faint)" }}>{t("notEnoughData", { defaultValue: "Not enough data yet" })}</p>
+      )}
+    </div>
+  );
+
+  const agingWidget = (
+    <div className="card ops-panel ops-span-6">
+      <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
+        <Icons.clock size={16} /> {t("caseAging", { defaultValue: "Case aging" })}
+      </h3>
+      <div style={{ marginTop: "var(--space-3)" }}>
+        <AgingStrip buckets={aging} onPick={() => navigate("/incidents?category=active")} />
+      </div>
+      <h3 style={{ marginTop: "var(--space-4)" }}>{t("transfers", { defaultValue: "Transfers" })}</h3>
+      <dl className="kv">
+        <dt>{t("transferAwaiting", { defaultValue: "Awaiting transfer" })}</dt><dd>{transfer.awaitingTransfer}</dd>
+        <dt>{t("transferToday", { defaultValue: "Transferred today" })}</dt><dd>{transfer.transferredToday}</dd>
+        {transfer.medianWaitHours != null && (<><dt>{t("transferMedianWait", { defaultValue: "Median wait" })}</dt><dd>{formatH(transfer.medianWaitHours)}</dd></>)}
+        <dt>{t("transferOrgs", { defaultValue: "Receiving organizations" })}</dt><dd>{transfer.receivingOrganizations.length === 0 ? "—" : transfer.receivingOrganizations.join(", ")}</dd>
+      </dl>
+    </div>
+  );
+
+  const trendWidget = (
+    <div className="card ops-panel ops-span-12">
+      <div className="row between">
+        <h3 style={{ margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+          <Icons.activity size={16} /> {t("reportsOverTime", { defaultValue: "Reports over time" })}
+        </h3>
+        <div className="segmented" role="group" aria-label="Time range">
+          {([1, 7, 30, 90] as const).map((d) => (
+            <button key={d} aria-pressed={range === d} onClick={() => setRange(d)}>{d === 1 ? "24 hours" : `${d} days`}</button>
+          ))}
+        </div>
+      </div>
+      <div style={{ marginTop: "var(--space-3)" }}>
+        <TrendChart points={series} />
+      </div>
+    </div>
+  );
+
+  const statusDistWidget = (
+    <div className="card ops-panel ops-span-4">
+      <h3 style={{ marginTop: 0 }}>{t("openByStatus", { defaultValue: "Open by status" })}</h3>
+      <BarDistribution entries={statusDist} onPick={() => navigate("/incidents?category=active")} />
+    </div>
+  );
+
+  const animalDistWidget = (
+    <div className="card ops-panel ops-span-4">
+      <h3 style={{ marginTop: 0 }}>{t("animalGroups", { defaultValue: "Animal groups" })}</h3>
+      {animalUnknownDominant ? (
+        <div>
+          <p style={{ fontSize: "0.8rem", letterSpacing: "0.06em", color: "var(--c-warn)", textTransform: "uppercase", margin: "0 0 6px" }}>
+            {t("dataQuality", { defaultValue: "Data quality" })}
+          </p>
+          <p style={{ margin: 0, color: "var(--c-ink-soft)", fontSize: "0.92rem" }}>
+            {t("animalQualityNote", { defaultValue: "Animal group is missing for most reports." })}{" "}
+            ({animalUnknownCount}/{filtered.length})
+          </p>
+          <button className="btn btn-secondary btn-sm" style={{ marginTop: 10 }} onClick={() => navigate("/incidents?category=active")}>
+            {t("reviewMissingData", { defaultValue: "Review missing data" })}
+          </button>
+        </div>
+      ) : (
+        <BarDistribution entries={animalDist} onPick={() => navigate("/incidents")} />
+      )}
+    </div>
+  );
+
+  const typeDistWidget = (
+    <div className="card ops-panel ops-span-4">
+      <h3 style={{ marginTop: 0 }}>{t("incidentTypes", { defaultValue: "Incident types" })}</h3>
+      <BarDistribution entries={typeDist} onPick={() => navigate("/incidents")} />
+      <p style={{ color: "var(--c-ink-faint)", fontSize: "0.78rem", margin: "var(--space-2) 0 0" }}>
+        {t("typeNote", { defaultValue: "Categories reflect what reporters selected — no cause is implied beyond the record." })}
+      </p>
+    </div>
+  );
+
+  const workloadWidget = workload.length > 0 ? (
+    <div className="card ops-panel ops-span-12">
+      <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
+        <Icons.users size={16} /> {t("workload", { defaultValue: "Responder workload" })}
+      </h3>
+      <p className="hint" style={{ marginBottom: 8 }}>{t("workloadNote", { defaultValue: "Operational capacity visibility — no rankings or productivity scoring." })}</p>
+      <div className="ops-table-wrap">
+        <table className="ops-table">
+          <thead>
+            <tr>
+              <th scope="col">{t("wlResponder", { defaultValue: "Responder" })}</th>
+              <th scope="col">{t("wlAssigned", { defaultValue: "Assigned cases" })}</th>
+              <th scope="col">{t("wlActive", { defaultValue: "Active cases" })}</th>
+              <th scope="col">{t("wlCompletedToday", { defaultValue: "Completed today" })}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {workload.map((w) => (
+              <tr key={w.actor}>
+                <td>{w.actor}</td>
+                <td>{w.assignedCases}</td>
+                <td>{w.activeCases}</td>
+                <td>{w.completedToday}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  ) : null;
+
+  const widgetNodes: Record<WidgetId, JSX.Element | null> = {
+    map: mapPanel,
+    attention: attentionPanel,
+    activity: activityWidget,
+    kpis: kpisWidget,
+    pipeline: pipelineWidget,
+    performance: performanceWidget,
+    aging: agingWidget,
+    trend: trendWidget,
+    statusDist: statusDistWidget,
+    animalDist: animalDistWidget,
+    typeDist: typeDistWidget,
+    workload: workloadWidget,
+  };
+
+  const widgetLabels: Record<WidgetId, string> = {
+    map: t("widgetMap", { defaultValue: "Service area map" }),
+    attention: t("needsAttention", { defaultValue: "Needs attention" }),
+    activity: t("liveActivity", { defaultValue: "Live activity" }),
+    kpis: t("widgetPulse", { defaultValue: "Operational pulse" }),
+    pipeline: t("pipelineTitle", { defaultValue: "Response flow" }),
+    performance: t("performance", { defaultValue: "Response performance" }),
+    aging: t("caseAging", { defaultValue: "Case aging" }),
+    trend: t("reportsOverTime", { defaultValue: "Reports over time" }),
+    statusDist: t("openByStatus", { defaultValue: "Open by status" }),
+    animalDist: t("animalGroups", { defaultValue: "Animal groups" }),
+    typeDist: t("incidentTypes", { defaultValue: "Incident types" }),
+    workload: t("workload", { defaultValue: "Responder workload" }),
+  };
 
   return (
     <main className="content wide" id="main-content">
@@ -354,6 +590,14 @@ export function NetworkPage() {
           </div>
           <button className="btn btn-ghost btn-sm" aria-pressed={opsView} onClick={() => setOpsView((v) => !v)} title="Esc exits">
             <Icons.monitor size={14} /> {t("opsView", { defaultValue: "Operations view" })}
+          </button>
+          <button
+            className="btn btn-ghost btn-sm"
+            data-testid="customize-dashboard"
+            aria-haspopup="dialog"
+            onClick={() => setCustomizeOpen(true)}
+          >
+            <Icons.list size={14} /> {t("customize", { defaultValue: "Customize" })}
           </button>
         </div>
       </div>
@@ -406,152 +650,13 @@ export function NetworkPage() {
         </div>
       ) : (
         <div className="ops-12" style={{ marginTop: "var(--space-4)" }}>
-          {/* Map as primary context; role emphasis orders map vs attention (P55). */}
-          {rolePriority === "attention-first" ? (
-            <>{attentionPanel}{mapPanel}</>
-          ) : (
-            <>{mapPanel}{attentionPanel}</>
-          )}
-
-          {/* Operational pulse (P45) — honest deltas only. */}
-          <div className="kpi-row kpi-strip ops-span-12">
-            <KpiCard label={t("kpiNewReports", { defaultValue: "New reports" })} value={newWithDelta.value} delta={newWithDelta.delta} accent />
-            <KpiCard label={t("kpiUnassigned", { defaultValue: "Unassigned" })} value={kpis.unassigned} context={metrics.oldestUnassignedHours != null ? t("kpiOldestShort", { defaultValue: "oldest {{t}}", t: formatH(metrics.oldestUnassignedHours) }) : undefined} />
-            <KpiCard label={t("kpiActiveResponse", { defaultValue: "Active response" })} value={kpis.responderAssigned + kpis.inResponse} />
-            <KpiCard label={t("kpiAwaitingHandoff", { defaultValue: "Awaiting handoff" })} value={kpis.awaitingTransfer} />
-            <KpiCard label={t("kpiOpenTotal", { defaultValue: "Open total" })} value={kpis.openTotal} />
-            <KpiCard label={t("kpiResolvedToday", { defaultValue: "Resolved today" })} value={metrics.resolvedToday} />
-          </div>
-
-          {/* Response flow pipeline (P46). */}
-          <div className="card ops-panel ops-span-12">
-            <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
-              <Icons.zap size={16} /> {t("pipelineTitle", { defaultValue: "Response flow" })}
-            </h3>
-            <div className="pipeline" role="list" aria-label={t("pipelineTitle", { defaultValue: "Response flow" })}>
-              {pipeline.map((s) => (
-                <button key={s.key} role="listitem" className={`pipeline-stage${s.count === 0 ? " is-zero" : ""}`} onClick={() => navigate(s.to)}>
-                  <span className="pipeline-count"><AnimatedNumber value={s.count} /></span>
-                  <span className="pipeline-label">{s.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Performance (P48) + aging (P49). */}
-          <div className="card ops-panel ops-span-6">
-            <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
-              <Icons.zap size={16} /> {t("performance", { defaultValue: "Response performance" })}
-            </h3>
-            {metrics.sufficientData ? (
-              <dl className="kv">
-                {metrics.medianHoursToAssignment != null && (<><dt>{t("perfAssign", { defaultValue: "Median time to assignment" })}</dt><dd>{formatH(metrics.medianHoursToAssignment)}</dd></>)}
-                {metrics.medianHoursToPickup != null && (<><dt>{t("perfPickup", { defaultValue: "Median time to pickup" })}</dt><dd>{formatH(metrics.medianHoursToPickup)}</dd></>)}
-                {metrics.medianHoursToTransfer != null && (<><dt>{t("perfTransfer", { defaultValue: "Median time to transfer" })}</dt><dd>{formatH(metrics.medianHoursToTransfer)}</dd></>)}
-                {metrics.oldestUnassignedHours != null && (<><dt>{t("perfOldest", { defaultValue: "Oldest unassigned" })}</dt><dd>{formatH(metrics.oldestUnassignedHours)}</dd></>)}
-                <dt>{t("perfOpenedToday", { defaultValue: "Opened today" })}</dt><dd>{metrics.openedToday}</dd>
-                <dt>{t("perfResolvedToday", { defaultValue: "Resolved today" })}</dt><dd>{metrics.resolvedToday}</dd>
-              </dl>
-            ) : (
-              <p style={{ color: "var(--c-ink-faint)" }}>{t("notEnoughData", { defaultValue: "Not enough data yet" })}</p>
-            )}
-          </div>
-          <div className="card ops-panel ops-span-6">
-            <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
-              <Icons.clock size={16} /> {t("caseAging", { defaultValue: "Case aging" })}
-            </h3>
-            <div style={{ marginTop: "var(--space-3)" }}>
-              <AgingStrip buckets={aging} onPick={() => navigate("/incidents?category=active")} />
-            </div>
-            <h3 style={{ marginTop: "var(--space-4)" }}>{t("transfers", { defaultValue: "Transfers" })}</h3>
-            <dl className="kv">
-              <dt>{t("transferAwaiting", { defaultValue: "Awaiting transfer" })}</dt><dd>{transfer.awaitingTransfer}</dd>
-              <dt>{t("transferToday", { defaultValue: "Transferred today" })}</dt><dd>{transfer.transferredToday}</dd>
-              {transfer.medianWaitHours != null && (<><dt>{t("transferMedianWait", { defaultValue: "Median wait" })}</dt><dd>{formatH(transfer.medianWaitHours)}</dd></>)}
-              <dt>{t("transferOrgs", { defaultValue: "Receiving organizations" })}</dt><dd>{transfer.receivingOrganizations.length === 0 ? "—" : transfer.receivingOrganizations.join(", ")}</dd>
-            </dl>
-          </div>
-
-          {/* Reports over time (P50). */}
-          <div className="card ops-panel ops-span-12">
-            <div className="row between">
-              <h3 style={{ margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
-                <Icons.activity size={16} /> {t("reportsOverTime", { defaultValue: "Reports over time" })}
-              </h3>
-              <div className="segmented" role="group" aria-label="Time range">
-                {([1, 7, 30, 90] as const).map((d) => (
-                  <button key={d} aria-pressed={range === d} onClick={() => setRange(d)}>{d === 1 ? "24 hours" : `${d} days`}</button>
-                ))}
-              </div>
-            </div>
-            <div style={{ marginTop: "var(--space-3)" }}>
-              <TrendChart points={series} />
-            </div>
-          </div>
-
-          {/* Distributions (P51–53). */}
-          <div className="card ops-panel ops-span-4">
-            <h3 style={{ marginTop: 0 }}>{t("openByStatus", { defaultValue: "Open by status" })}</h3>
-            <BarDistribution entries={statusDist} onPick={() => navigate("/incidents?category=active")} />
-          </div>
-          <div className="card ops-panel ops-span-4">
-            <h3 style={{ marginTop: 0 }}>{t("animalGroups", { defaultValue: "Animal groups" })}</h3>
-            {animalUnknownDominant ? (
-              <div>
-                <p style={{ fontSize: "0.8rem", letterSpacing: "0.06em", color: "var(--c-warn)", textTransform: "uppercase", margin: "0 0 6px" }}>
-                  {t("dataQuality", { defaultValue: "Data quality" })}
-                </p>
-                <p style={{ margin: 0, color: "var(--c-ink-soft)", fontSize: "0.92rem" }}>
-                  {t("animalQualityNote", { defaultValue: "Animal group is missing for most reports." })}{" "}
-                  ({animalUnknownCount}/{filtered.length})
-                </p>
-                <button className="btn btn-secondary btn-sm" style={{ marginTop: 10 }} onClick={() => navigate("/incidents?category=active")}>
-                  {t("reviewMissingData", { defaultValue: "Review missing data" })}
-                </button>
-              </div>
-            ) : (
-              <BarDistribution entries={animalDist} onPick={() => navigate("/incidents")} />
-            )}
-          </div>
-          <div className="card ops-panel ops-span-4">
-            <h3 style={{ marginTop: 0 }}>{t("incidentTypes", { defaultValue: "Incident types" })}</h3>
-            <BarDistribution entries={typeDist} onPick={() => navigate("/incidents")} />
-            <p style={{ color: "var(--c-ink-faint)", fontSize: "0.78rem", margin: "var(--space-2) 0 0" }}>
-              {t("typeNote", { defaultValue: "Categories reflect what reporters selected — no cause is implied beyond the record." })}
-            </p>
-          </div>
-
-          {/* Workload (V). */}
-          {workload.length > 0 && (
-            <div className="card ops-panel ops-span-12">
-              <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
-                <Icons.users size={16} /> {t("workload", { defaultValue: "Responder workload" })}
-              </h3>
-              <p className="hint" style={{ marginBottom: 8 }}>{t("workloadNote", { defaultValue: "Operational capacity visibility — no rankings or productivity scoring." })}</p>
-              <div className="ops-table-wrap">
-                <table className="ops-table">
-                  <thead>
-                    <tr>
-                      <th scope="col">{t("wlResponder", { defaultValue: "Responder" })}</th>
-                      <th scope="col">{t("wlAssigned", { defaultValue: "Assigned cases" })}</th>
-                      <th scope="col">{t("wlActive", { defaultValue: "Active cases" })}</th>
-                      <th scope="col">{t("wlCompletedToday", { defaultValue: "Completed today" })}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {workload.map((w) => (
-                      <tr key={w.actor}>
-                        <td>{w.actor}</td>
-                        <td>{w.assignedCases}</td>
-                        <td>{w.activeCases}</td>
-                        <td>{w.completedToday}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+          {/* P80 — widgets render in the user's saved order (role-recommended by default).
+              The map is the primary context and cannot be hidden. */}
+          {widgetOrder
+            .filter((id) => !hiddenWidgets.has(id) || id === "map")
+            .map((id) => (
+              <Fragment key={id}>{widgetNodes[id]}</Fragment>
+            ))}
 
           <p className="hint ops-span-12" style={{ margin: 0 }}>
             {t("updatedLine", { defaultValue: "Live from this device's local data store" })} ({now.toLocaleTimeString()})
@@ -720,6 +825,79 @@ export function NetworkPage() {
           </details>
         </>
       )}
+      {/* P80 — dashboard customization dialog. */}
+      <Dialog open={customizeOpen} title={t("customizeTitle", { defaultValue: "Customize dashboard" })} onClose={() => setCustomizeOpen(false)}>
+        <p className="hint">{t("customizeHint", { defaultValue: "Show, hide and reorder widgets. Your layout is stored on this device only." })}</p>
+        <ul className="stack" style={{ listStyle: "none", margin: 0, padding: 0 }} data-testid="customize-widget-list">
+          {widgetOrder.map((id, idx) => {
+            const hidden = hiddenWidgets.has(id);
+            const canHide = id !== "map";
+            return (
+              <li key={id} className="row between" style={{ gap: 8, padding: "6px 0", borderBottom: "1px solid var(--c-border)" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: canHide ? "pointer" : "default" }}>
+                  <input
+                    type="checkbox"
+                    checked={!hidden}
+                    disabled={!canHide}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        persistLayout({ order: widgetOrder, hidden: [...hiddenWidgets].filter((h) => h !== id) });
+                      } else if (id === "attention") {
+                        setConfirmHideAttention(true); // never silently (P80)
+                      } else {
+                        persistLayout({ order: widgetOrder, hidden: [...hiddenWidgets, id] });
+                      }
+                    }}
+                  />
+                  <span style={hidden ? { color: "var(--c-ink-faint)" } : undefined}>{widgetLabels[id]}</span>
+                </label>
+                <span className="row" style={{ gap: 4 }}>
+                  <button className="btn btn-quiet btn-sm" aria-label={`${widgetLabels[id]}: ${t("moveUp", { defaultValue: "Move up" })}`} disabled={idx === 0} onClick={() => moveWidget(id, -1)}>↑</button>
+                  <button className="btn btn-quiet btn-sm" aria-label={`${widgetLabels[id]}: ${t("moveDown", { defaultValue: "Move down" })}`} disabled={idx === widgetOrder.length - 1} onClick={() => moveWidget(id, 1)}>↓</button>
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+        <div className="row" style={{ justifyContent: "flex-end", marginTop: "var(--space-3)" }}>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => {
+              setLayout(null);
+              void setSetting(DASHBOARD_LAYOUT_KEY, null);
+              setCustomizeOpen(false);
+              showToast(t("layoutRestored", { defaultValue: "Dashboard layout restored" }));
+            }}
+          >
+            {t("restoreLayout", { defaultValue: "Restore recommended layout" })}
+          </button>
+          <button className="btn btn-primary btn-sm" onClick={() => setCustomizeOpen(false)}>{t("done", { defaultValue: "Done" })}</button>
+        </div>
+      </Dialog>
+
+      {/* Hiding Needs Attention is possible but never silent (P80). */}
+      <Dialog
+        open={confirmHideAttention}
+        title={t("attentionHideWarnTitle", { defaultValue: "Hide “Needs attention”?" })}
+        onClose={() => setConfirmHideAttention(false)}
+        actions={
+          <>
+            <button className="btn btn-secondary" onClick={() => setConfirmHideAttention(false)}>{t("cancel", { defaultValue: "Cancel" })}</button>
+            <button
+              className="btn btn-danger"
+              onClick={() => {
+                persistLayout({ order: widgetOrder, hidden: [...hiddenWidgets, "attention"] });
+                setConfirmHideAttention(false);
+                setCustomizeOpen(false);
+              }}
+            >
+              {t("attentionHideConfirm", { defaultValue: "Hide it" })}
+            </button>
+          </>
+        }
+      >
+        <p>{t("attentionHideWarnBody", { defaultValue: "Needs attention surfaces incidents that may be waiting too long, missing a responder, or missing a usable location. You can re-enable it any time from Customize dashboard." })}</p>
+      </Dialog>
     </main>
   );
 }

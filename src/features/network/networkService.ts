@@ -51,6 +51,14 @@ export type VisibilityLevel = "public" | "responder" | "receiving_facility" | "a
 /** Map provider abstraction: no vendor is hard-wired. */
 export interface MapProvider {
   readonly id: string;
+  /** Declarative provider metadata (tiles, attribution, health check), when backed by a descriptor. */
+  readonly descriptor?: {
+    id: string;
+    kind: string;
+    requiresNetwork: boolean;
+    attribution: string;
+    usageNote: string;
+  };
   renderMarkers(
     container: HTMLElement,
     points: Array<{ lat: number; lon: number; state: string; label: string }>

@@ -195,7 +195,16 @@
     "updateEventCondition": "Mise à jour : état / comportement modifié",
     "updateEventResponder": "Mise à jour : un intervenant m'a contacté",
     "updateEventOther": "Signalement mis à jour",
-    "reportCreatedToast": "Signalement {{ref}} créé"
+    "reportCreatedToast": "Signalement {{ref}} créé",
+    "savedViewName": "Nom de la vue",
+    "saveView": "Enregistrer la vue",
+    "savedViews": "Vues enregistrées",
+    "applyView": "Appliquer la vue {{name}}",
+    "removeView": "Supprimer la vue {{name}}",
+    "viewSaved": "Vue enregistrée",
+    "viewRemoved": "Vue supprimée",
+    "loadMore": "Charger plus",
+    "showingOf": "{{shown}} signalements affichés sur {{total}}"
   },
   "wizard": {
     "stepOf": "étape {{current}} sur {{total}}. Tout ce qui n'est pas obligatoire peut être laissé vide ou Inconnu.",
@@ -463,7 +472,8 @@
     "roleChoose": "Quel rôle ajoutez-vous ?",
     "roleVerifyReq": "Vérification (mode connecté) : {{req}}",
     "roleAddConfirm": "Ajouter le rôle",
-    "devPreviewLocales": "Aperçu développeur : afficher les langues incomplètes et la pseudo-locale"
+    "devPreviewLocales": "Aperçu développeur : afficher les langues incomplètes et la pseudo-locale",
+    "mapProviderPolicy": "Infrastructure communautaire publique — l'application ne demande que les tuiles de la zone affichée, n'envoie jamais de données d'incident et bascule sur le fournisseur hors ligne au lieu de réessayer de façon agressive."
   },
   "tabs": {
     "tabsOverview": "Aperçu",
@@ -695,7 +705,22 @@
     "kpiOldestShort": "le plus ancien : {{t}}",
     "rowActions": "Actions",
     "moreActions": "Ouvrir l'incident",
-    "queueTruncated": "Affichage des {{shown}} signalements les plus récents sur {{total}} — ouvrez Incidents pour la liste complète."
+    "queueTruncated": "Affichage des {{shown}} signalements les plus récents sur {{total}} — ouvrez Incidents pour la liste complète.",
+    "customize": "Personnaliser",
+    "customizeTitle": "Personnaliser le tableau de bord",
+    "customizeHint": "Affichez, masquez et réorganisez les widgets. Votre disposition est enregistrée sur cet appareil uniquement.",
+    "widgetMap": "Carte de la zone d'intervention",
+    "widgetPulse": "Pulsation opérationnelle",
+    "moveUp": "Monter",
+    "moveDown": "Descendre",
+    "restoreLayout": "Restaurer la disposition recommandée",
+    "layoutRestored": "Disposition du tableau de bord restaurée",
+    "attentionHideWarnTitle": "Masquer « Nécessite une attention » ?",
+    "attentionHideWarnBody": "« Nécessite une attention » recense les signalements qui attendent peut-être depuis trop longtemps, sans intervenant ou sans lieu utilisable. Vous pouvez le réactiver à tout moment via Personnaliser le tableau de bord.",
+    "attentionHideConfirm": "Masquer",
+    "offlineBasemapNote": "Fond de carte hors ligne — la carte est dessinée entièrement sur cet appareil, sans aucune requête de tuiles. Les marqueurs respectent la confidentialité du lieu de chaque signalement.",
+    "done": "Terminé",
+    "cancel": "Annuler"
   },
   "guide": {
     "whatHappened": {

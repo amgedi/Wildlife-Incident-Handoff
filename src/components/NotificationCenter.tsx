@@ -106,7 +106,7 @@ export function NotificationBell() {
                         {new Date(n.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                       </span>
                     </span>
-                    <span style={{ display: "block", fontSize: "0.82rem", color: "var(--c-ink-soft)" }}>{n.body}</span>
+                    <span style={{ display: "block", fontSize: "0.82rem", color: "var(--c-ink-soft)", overflowWrap: "anywhere" }}>{n.body}</span>
                   </button>
                 </li>
               ))}

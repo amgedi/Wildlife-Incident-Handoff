@@ -195,7 +195,16 @@
     "updateEventCondition": "Actualización: estado / comportamiento cambió",
     "updateEventResponder": "Actualización: un responsable me contactó",
     "updateEventOther": "Reporte actualizado",
-    "reportCreatedToast": "Caso {{ref}} creado"
+    "reportCreatedToast": "Caso {{ref}} creado",
+    "savedViewName": "Nombre de la vista",
+    "saveView": "Guardar vista",
+    "savedViews": "Vistas guardadas",
+    "applyView": "Aplicar la vista {{name}}",
+    "removeView": "Eliminar la vista {{name}}",
+    "viewSaved": "Vista guardada",
+    "viewRemoved": "Vista eliminada",
+    "loadMore": "Cargar más",
+    "showingOf": "Mostrando {{shown}} de {{total}} informes"
   },
   "wizard": {
     "stepOf": "paso {{current}} de {{total}}. Todo lo que no sea obligatorio puede dejarse vacío o como Desconocido.",
@@ -463,7 +472,8 @@
     "roleChoose": "¿Qué rol estás añadiendo?",
     "roleVerifyReq": "Verificación (modo conectado): {{req}}",
     "roleAddConfirm": "Añadir rol",
-    "devPreviewLocales": "Vista previa de desarrollador: mostrar idiomas incompletos y la pseudo-locale"
+    "devPreviewLocales": "Vista previa de desarrollador: mostrar idiomas incompletos y la pseudo-locale",
+    "mapProviderPolicy": "Infraestructura comunitaria pública: la aplicación solo solicita las teselas del área visible, nunca envía datos de incidentes y cambia al proveedor sin conexión en lugar de reintentar de forma agresiva."
   },
   "tabs": {
     "tabsOverview": "Resumen",
@@ -695,7 +705,22 @@
     "kpiOldestShort": "el más antiguo: {{t}}",
     "rowActions": "Acciones",
     "moreActions": "Abrir incidente",
-    "queueTruncated": "Mostrando los {{shown}} incidentes más recientes de {{total}}: abra Incidents para ver la lista completa."
+    "queueTruncated": "Mostrando los {{shown}} incidentes más recientes de {{total}}: abra Incidents para ver la lista completa.",
+    "customize": "Personalizar",
+    "customizeTitle": "Personalizar el panel",
+    "customizeHint": "Muestra, oculta y reordena los widgets. Tu diseño se guarda solo en este dispositivo.",
+    "widgetMap": "Mapa del área de servicio",
+    "widgetPulse": "Pulso operativo",
+    "moveUp": "Subir",
+    "moveDown": "Bajar",
+    "restoreLayout": "Restaurar el diseño recomendado",
+    "layoutRestored": "Diseño del panel restaurado",
+    "attentionHideWarnTitle": "¿Ocultar « Necesita atención »?",
+    "attentionHideWarnBody": "« Necesita atención » destaca los incidentes que pueden llevar demasiado tiempo esperando, sin asignación o sin una ubicación utilizable. Puedes volver a activarlo en cualquier momento desde Personalizar el panel.",
+    "attentionHideConfirm": "Ocultar",
+    "offlineBasemapNote": "Mapa base sin conexión: el mapa se dibuja íntegramente en este dispositivo y no se hacen peticiones de teselas. Los marcadores respetan la privacidad de la ubicación de cada incidente.",
+    "done": "Listo",
+    "cancel": "Cancelar"
   },
   "guide": {
     "whatHappened": {

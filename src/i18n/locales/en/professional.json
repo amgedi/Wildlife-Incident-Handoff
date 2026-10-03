@@ -145,5 +145,20 @@
   "kpiOldestShort": "oldest {{t}}",
   "rowActions": "Actions",
   "moreActions": "Open incident",
-  "queueTruncated": "Showing the {{shown}} most recent of {{total}} — open Incidents for the full list."
+  "queueTruncated": "Showing the {{shown}} most recent of {{total}} — open Incidents for the full list.",
+  "customize": "Customize",
+  "customizeTitle": "Customize dashboard",
+  "customizeHint": "Show, hide and reorder widgets. Your layout is stored on this device only.",
+  "widgetMap": "Service area map",
+  "widgetPulse": "Operational pulse",
+  "moveUp": "Move up",
+  "moveDown": "Move down",
+  "restoreLayout": "Restore recommended layout",
+  "layoutRestored": "Dashboard layout restored",
+  "attentionHideWarnTitle": "Hide “Needs attention”?",
+  "attentionHideWarnBody": "Needs attention surfaces incidents that may be waiting too long, missing a responder, or missing a usable location. You can re-enable it any time from Customize dashboard.",
+  "attentionHideConfirm": "Hide it",
+  "offlineBasemapNote": "Offline basemap — the map is drawn entirely on this device and no tile requests are made. Markers respect each incident's location privacy.",
+  "done": "Done",
+  "cancel": "Cancel"
 }

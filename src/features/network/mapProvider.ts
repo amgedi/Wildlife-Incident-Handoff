@@ -108,7 +108,87 @@ export function resetMapDiagnostics(): void {
   diagnostics = { lastErrorClass: null, lastErrorMessage: null, lastErrorAt: null };
 }
 
-// ---- Provider --------------------------------------------------------------
+// ---- Provider registry (P18: no single hard-coded provider) ----------------
+
+/**
+ * Declarative tile-provider descriptors. Adding a provider means adding one
+ * entry here — no changes to the MapLibre wiring. `kind: "offline"` providers
+ * declare no tile URLs: MapLibre renders a plain background layer and the
+ * browser makes zero network requests.
+ */
+export interface MapProviderDescriptor {
+  id: string;
+  label: string;
+  kind: "raster-tiles" | "offline";
+  tiles: string[];
+  attribution: string;
+  maxZoom: number;
+  requiresNetwork: boolean;
+  /** Honest usage-policy note surfaced in Settings → Map (non-sensitive). */
+  usageNote: string;
+  /** Single polite probe URL for the connection test (null = no probe). */
+  healthCheckUrl: string | null;
+}
+
+export const MAP_PROVIDERS: MapProviderDescriptor[] = [
+  {
+    id: "osm-raster",
+    label: "OpenStreetMap raster tiles",
+    kind: "raster-tiles",
+    tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+    attribution: "© OpenStreetMap contributors",
+    maxZoom: 19,
+    requiresNetwork: true,
+    usageNote:
+      "Public community infrastructure — the app only requests viewport tiles, never uploads incident data, and falls back to the offline provider instead of retrying aggressively.",
+    healthCheckUrl: "https://tile.openstreetmap.org/0/0/0.png",
+  },
+  {
+    id: "offline-basemap",
+    label: "Offline basemap (no tile requests)",
+    kind: "offline",
+    tiles: [],
+    attribution: "",
+    maxZoom: 22,
+    requiresNetwork: false,
+    usageNote: "Renders markers over a plain background entirely on this device. No network requests are made.",
+    healthCheckUrl: null,
+  },
+];
+
+export function getMapProviderDescriptor(id: string | null | undefined): MapProviderDescriptor {
+  return MAP_PROVIDERS.find((p) => p.id === id) ?? MAP_PROVIDERS[0]!;
+}
+
+export function listMapProviderDescriptors(): MapProviderDescriptor[] {
+  return MAP_PROVIDERS;
+}
+
+/** Build a MapLibre style object from a provider descriptor. */
+export function styleForProvider(provider: MapProviderDescriptor): maplibregl.StyleSpecification {
+  if (provider.kind === "offline" || provider.tiles.length === 0) {
+    // Theme-aware background so the offline basemap never looks like a color island.
+    const cssBackground = getComputedStyle(document.documentElement).getPropertyValue("--c-surface-alt").trim();
+    return {
+      version: 8,
+      sources: {},
+      layers: [{ id: "background", type: "background", paint: { "background-color": cssBackground || "#3b4252" } }],
+    };
+  }
+  return {
+    version: 8,
+    sources: {
+      basemap: {
+        type: "raster",
+        tiles: provider.tiles,
+        tileSize: 256,
+        maxzoom: provider.maxZoom,
+        attribution: provider.attribution,
+      },
+    },
+    layers: [{ id: "basemap", type: "raster", source: "basemap" }],
+  };
+}
 
 export interface MapPoint {
   lat: number;
@@ -142,7 +222,11 @@ export function clusterPoints(points: MapPoint[], zoom: number, bounds: { north:
   return list.length < points.length / 2 ? list : [];
 }
 
-export function createMapLibreProvider(options?: { serviceArea?: MapServiceArea | null; fitMode?: "service-area" | "points" }): MapProvider & {
+export function createMapLibreProvider(options?: {
+  serviceArea?: MapServiceArea | null;
+  fitMode?: "service-area" | "points";
+  providerId?: string | null;
+}): MapProvider & {
   destroy(): void;
   setErrorHandler(fn: (offline: boolean) => void): void;
   setLoadHandler(fn: () => void): void;
@@ -153,10 +237,10 @@ export function createMapLibreProvider(options?: { serviceArea?: MapServiceArea 
   let loadFn: (() => void) | null = null;
   let currentPoints: MapPoint[] = [];
   const serviceArea = options?.serviceArea ?? null;
-
-
+  const providerDescriptor = getMapProviderDescriptor(options?.providerId);
   return {
-    id: "maplibre-osm",
+    id: providerDescriptor.id,
+    descriptor: providerDescriptor,
     setErrorHandler(fn) {
       errorFn = fn;
     },
@@ -189,22 +273,12 @@ export function createMapLibreProvider(options?: { serviceArea?: MapServiceArea 
       }
       map = new maplibregl.Map({
         container,
-        style: {
-          version: 8,
-          sources: {
-            osm: {
-              type: "raster",
-              tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-              tileSize: 256,
-              attribution: "© OpenStreetMap contributors",
-            },
-          },
-          layers: [{ id: "osm", type: "raster", source: "osm" }],
-        },
+        style: styleForProvider(providerDescriptor),
         center,
         zoom,
       });
-      map.addControl(new maplibregl.AttributionControl({ compact: true }));
+      // Attribution comes from the style source (descriptor) — MapLibre renders
+      // it with its default attribution control; adding another duplicates it.
       map.on("error", (e: unknown) => {
         recordMapError((e as { error?: unknown })?.error ?? e);
         errorFn?.(true);

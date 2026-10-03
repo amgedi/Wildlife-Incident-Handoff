@@ -66,5 +66,14 @@
   "updateEventCondition": "Update: condition / behavior changed",
   "updateEventResponder": "Update: responder contacted me",
   "updateEventOther": "Report updated",
-  "reportCreatedToast": "Incident {{ref}} created"
+  "reportCreatedToast": "Incident {{ref}} created",
+  "savedViewName": "View name",
+  "saveView": "Save view",
+  "savedViews": "Saved views",
+  "applyView": "Apply view {{name}}",
+  "removeView": "Remove view {{name}}",
+  "viewSaved": "View saved",
+  "viewRemoved": "View removed",
+  "loadMore": "Load more",
+  "showingOf": "Showing {{shown}} of {{total}} reports"
 }

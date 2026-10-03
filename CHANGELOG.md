@@ -2,6 +2,26 @@
 
 All notable changes to Wildlife Incident Handoff are documented here. Format based on [Keep a Changelog](https://keepachangelog.com/); versioning follows [SemVer](https://semver.org/).
 
+## 0.2.0-dev.9 — operations customization, saved views, map provider registry
+
+### Added
+- **Dashboard customization (P80)**: every operations-dashboard widget (map, needs attention, live activity, operational pulse, response flow, performance, case aging, trend, distributions, workload) can be shown, hidden and reordered from a new **Customize** dialog; the layout persists locally (`network-dashboard-layout`). The service-area map cannot be hidden (primary operational context); **Needs Attention cannot be hidden silently** — a confirmation explains what is being turned off and how to restore it. "Restore recommended layout" resets to the role-recommended order and clears the saved override.
+- **Saved views (P81)**: incident queues support named, locally-persisted filter sets. Save any combination of status/type/animal-group/date filters under a name ("New reports", "Waiting >2h", …), apply it with one click from the Saved views chip row, remove it with the chip's ×. Stored in the settings store (`incident-saved-views`), per device.
+- **Map provider registry (P18/P19)**: tile providers are now declarative descriptors (`MAP_PROVIDERS`) with id, label, tile URLs, attribution, max zoom, network requirement, usage-policy note and a health-check URL — adding a provider no longer touches the MapLibre wiring. The MapLibre provider builds its style from the descriptor and exposes the descriptor on the `MapProvider` seam. Two providers ship: OpenStreetMap raster (default) and a new **offline basemap** that renders markers over a plain theme-aware background with **zero network requests** — turning online maps off in Settings now shows this proper offline map instead of a bare text list (P19: no silent hammering of public OSM tiles).
+- Map settings read provider metadata from the registry; the connection test probes the descriptor's health-check URL, and the usage-policy note is displayed.
+
+### Changed
+- **Bounded incident-list rendering (P82)**: the incidents/reports list renders 100 cards at a time with an honest "Showing X of Y reports" + **Load more**, keeping the DOM bounded on very large local datasets (dashboard queue already capped at 50).
+- **Live activity** is an independent dashboard widget (span 4) paired with the Response flow (span 8); Needs Attention keeps its dedicated column.
+- The offline map basemap color follows the active theme instead of a hard-coded color.
+- Notification panel body text wraps with `overflow-wrap:anywhere` so long content can never push the panel wide.
+
+### Fixed
+- Duplicate map attribution badges (the style source attribution plus a second manual control both rendered).
+
+### Tests
+- 243 tests (was 218): provider registry integrity (online+offline descriptors, no coordinate data, descriptor-driven styles, settings reads the registry), dashboard customization (hide without warning for optional widgets, explicit confirmation for Needs Attention, non-hideable map, restore clears persistence), saved views (save/apply/remove with local persistence), bounded rendering with Load more, and dev.9 localization keys resolving in en/fr/es (25 new keys per language).
+
 ## 0.2.0-dev.8 — product experience overhaul (coherence pass)
 
 ### Fixed

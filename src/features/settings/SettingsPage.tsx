@@ -18,6 +18,7 @@ import type { DetailLevel, ExperienceMode, MotionPreference, ThemeName, Notifica
 import { DEFAULT_NOTIFICATION_CATEGORIES } from "../../types/settings";
 import { displayPhone, normalizePhoneForStorage, isValidPhone, parsePhone } from "../../utils/phone";
 import { resetAllGuidance } from "../../features/tutorial/guidance";
+import { getMapProviderDescriptor } from "../network/mapProvider";
 import { PROFESSIONAL_ROLES, ROLE_VERIFICATION_REQUIREMENTS, type ProfessionalRole, type ProfessionalRoleEntry } from "../../features/network/authorization";
 import { resetOnboardingForReplay, beginOnboardingPreview } from "../../features/onboarding/onboardingState";
 
@@ -512,7 +513,7 @@ function MapSection() {
       <div className="card">
         <h3 style={{ marginTop: 0 }}>{t("mapProvider", { defaultValue: "Map provider" })}</h3>
         <dl className="kv">
-          <dt>{t("mapCurrent", { defaultValue: "Provider" })}</dt><dd>OpenStreetMap raster tiles (MapLibre)</dd>
+          <dt>{t("mapCurrent", { defaultValue: "Provider" })}</dt><dd>{getMapProviderDescriptor("osm-raster").label} (MapLibre)</dd>
           <dt>{t("mapStatus", { defaultValue: "Status" })}</dt>
           <dd>{testing === "ok" ? <span className="badge open">{t("mapReachable", { defaultValue: "Reachable" })}</span> : testing === "failed" ? <span className="badge warn">{t("mapUnreachable", { defaultValue: "Unreachable" })}</span> : testing === "testing" ? "…" : "—"}</dd>
         </dl>
@@ -522,7 +523,7 @@ function MapSection() {
           onClick={async () => {
             setTesting("testing");
             try {
-              const res = await fetch("https://tile.openstreetmap.org/0/0/0.png", { method: "HEAD", mode: "cors" });
+              const res = await fetch(getMapProviderDescriptor("osm-raster").healthCheckUrl ?? "", { method: "HEAD", mode: "cors" });
               setTesting(res.ok ? "ok" : "failed");
             } catch {
               setTesting("failed");
@@ -532,6 +533,7 @@ function MapSection() {
           <Icons.refresh size={14} /> {t("mapTest", { defaultValue: "Test connection" })}
         </button>
         <p className="hint">{t("mapPrivacyHint", { defaultValue: "When online maps are on, your map viewport (not your reports) is sent to the tile provider to draw the map. Incident coordinates are never uploaded." })}</p>
+        <p className="hint" style={{ marginTop: 4 }}>{t("mapProviderPolicy", { defaultValue: getMapProviderDescriptor("osm-raster").usageNote })}</p>
       </div>
       <div className="card">
         <h3 style={{ marginTop: 0 }}>{t("mapOnline", { defaultValue: "Online maps" })}</h3>

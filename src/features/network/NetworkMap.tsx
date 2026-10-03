@@ -17,6 +17,7 @@ export function NetworkMap({
   compact = false,
   serviceArea = null,
   fitMode = "points",
+  offline = false,
 }: {
   incidents: Incident[];
   privacy: MapPrivacy;
@@ -26,6 +27,8 @@ export function NetworkMap({
   /** P31/P34: fit the camera to the service area instead of the world. */
   serviceArea?: MapServiceArea | null;
   fitMode?: "service-area" | "points";
+  /** Offline provider: plain device-rendered basemap, zero tile requests (P18/P19). */
+  offline?: boolean;
 }) {
   const { t } = useTranslation("professional");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -40,7 +43,11 @@ export function NetworkMap({
     }
     if (!containerRef.current) return;
     setState((s) => (s === "ready" ? s : "loading"));
-    const provider = createMapLibreProvider({ serviceArea, fitMode });
+    const provider = createMapLibreProvider({
+      serviceArea,
+      fitMode,
+      providerId: offline ? "offline-basemap" : null,
+    });
     // Bounded failure detection: if tiles haven't produced a load event within
     // 8 seconds while errors fired, classify as provider failure.
     let settled = false;
@@ -85,10 +92,11 @@ export function NetworkMap({
       provider.destroy();
       providerRef.current = null;
     };
-  }, [incidents, privacy, onSelect, retryToken, serviceArea, fitMode]);
+  }, [incidents, privacy, onSelect, retryToken, serviceArea, fitMode, offline]);
 
   return (
     <div>
+      {!offline && (
       <div className="notice" style={{ marginBottom: "var(--space-3)" }}>
         <span>
           Map tiles from <strong>OpenStreetMap</strong> require an internet connection — the incident list works fully
@@ -96,6 +104,16 @@ export function NetworkMap({
           sensitive reports never show a precise point.
         </span>
       </div>
+      )}
+      {offline && (
+        <div className="notice" style={{ marginBottom: "var(--space-3)" }} role="status">
+          <span>
+            {t("offlineBasemapNote", {
+              defaultValue: "Offline basemap — the map is drawn entirely on this device and no tile requests are made. Markers respect each incident's location privacy.",
+            })}
+          </span>
+        </div>
+      )}
       {(state === "offline" || state === "provider-failed") && (
         <div className="notice warning" style={{ marginBottom: "var(--space-3)" }} role="status">
           <div>
