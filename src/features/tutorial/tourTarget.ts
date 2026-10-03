@@ -19,11 +19,19 @@ export interface TourTargetSpec {
  */
 export function findTourTarget(spec: TourTargetSpec): Element | null {
   const candidates = Array.from(document.querySelectorAll(`[data-tour-id="${spec.tourId}"]`));
+  // At drawer widths the desktop sidebar is off-canvas but still has layout
+  // (transformed, not display:none) — never spotlight controls inside it.
+  const drawerWidth = window.innerWidth <= 860;
+  const offCanvas = (el: Element): boolean => {
+    if (!drawerWidth) return false;
+    const r = el.getBoundingClientRect();
+    return !!el.closest(".sidebar") && (r.left < 0 || r.left >= window.innerWidth);
+  };
   // Prefer the first candidate that actually has layout (hidden duplicates
   // such as the mobile bottom nav measure 0x0 on desktop).
   const visible = candidates.find((el) => {
     const r = el.getBoundingClientRect();
-    return r.width > 0 || r.height > 0;
+    return (r.width > 0 || r.height > 0) && !offCanvas(el);
   });
   if (visible) return visible;
   if (spec.selectorFallback) {

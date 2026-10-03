@@ -1,9 +1,12 @@
-/** React wrapper for the MapLibre provider (network map tab). */
+/** React wrapper for the MapLibre provider (network map + dashboard panel). */
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Link } from "react-router-dom";
 import type { Incident } from "../../types/incident";
-import { createMapLibreProvider, markerPositionFor, markerStateFor, STATUS_MARKER_COLORS, type MapPrivacy } from "./mapProvider";
+import { createMapLibreProvider, markerPositionFor, markerStateFor, STATUS_MARKER_COLORS, getMapDiagnostics, type MapPrivacy, type MapServiceArea } from "./mapProvider";
 import { animalLabel } from "../export/exportService";
+import { Icons } from "../../components/Icons";
 
 type MapState = "loading" | "ready" | "offline" | "provider-failed" | "no-coordinates";
 
@@ -12,13 +15,19 @@ export function NetworkMap({
   privacy,
   onSelect,
   compact = false,
+  serviceArea = null,
+  fitMode = "points",
 }: {
   incidents: Incident[];
   privacy: MapPrivacy;
   onSelect?: (incident: Incident) => void;
   /** Compact dashboard panel: reduced default height. */
   compact?: boolean;
+  /** P31/P34: fit the camera to the service area instead of the world. */
+  serviceArea?: MapServiceArea | null;
+  fitMode?: "service-area" | "points";
 }) {
+  const { t } = useTranslation("professional");
   const containerRef = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<MapState>(() => (incidents.length === 0 ? "no-coordinates" : "loading"));
   const [retryToken, setRetryToken] = useState(0);
@@ -31,7 +40,7 @@ export function NetworkMap({
     }
     if (!containerRef.current) return;
     setState((s) => (s === "ready" ? s : "loading"));
-    const provider = createMapLibreProvider();
+    const provider = createMapLibreProvider({ serviceArea, fitMode });
     // Bounded failure detection: if tiles haven't produced a load event within
     // 8 seconds while errors fired, classify as provider failure.
     let settled = false;
@@ -76,7 +85,7 @@ export function NetworkMap({
       provider.destroy();
       providerRef.current = null;
     };
-  }, [incidents, privacy, onSelect, retryToken]);
+  }, [incidents, privacy, onSelect, retryToken, serviceArea, fitMode]);
 
   return (
     <div>
@@ -112,36 +121,50 @@ export function NetworkMap({
       {(state === "offline" || state === "provider-failed") ? (
         <div
           className="offline-position-view"
-          style={{ height: 460, borderRadius: "var(--radius-md)", border: "1px solid var(--c-border)", overflow: "auto", position: "relative", background: "var(--c-surface-alt)", padding: "var(--space-4)" }}
+          style={{ borderRadius: "var(--radius-md)", border: "1px solid var(--c-border)", overflow: "auto", background: "var(--c-surface-alt)", maxHeight: compact ? 280 : 460 }}
+          role="region"
+          aria-label={t("fallbackRegion", { defaultValue: "Location list (map unavailable)" })}
         >
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "var(--space-3)" }}>
+          <div style={{ padding: "var(--space-3) var(--space-4)", borderBottom: "1px solid var(--c-border)", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <strong>{t("fallbackTitle", { defaultValue: "Map temporarily unavailable" })}</strong>
+            <button className="btn btn-secondary btn-sm" onClick={() => setRetryToken((n) => n + 1)}>
+              <Icons.refresh size={14} /> {t("retryMap", { defaultValue: "Retry" })}
+            </button>
+            {getMapDiagnostics().lastErrorMessage && (
+              <span style={{ fontSize: "0.8rem", color: "var(--c-ink-faint)" }}>{getMapDiagnostics().lastErrorMessage}</span>
+            )}
+          </div>
+          <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
             {incidents.map((i) => {
               const pos = markerPositionFor(i, privacy);
+              const isSensitive = i.location.precision === "sensitive";
               return (
-                <div key={i.id} className="card" style={{ boxShadow: "none", padding: "var(--space-3)" }}>
-                  <div className="row" style={{ gap: 8 }}>
+                <li key={i.id} style={{ padding: "10px var(--space-4)", borderTop: "1px solid var(--c-border)" }}>
+                  <div className="row" style={{ gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
                     <span className={`map-marker offline`} data-state={markerStateFor(i)} aria-hidden="true">
                       <span className="map-marker-shape">●</span>
                     </span>
-                    <strong style={{ fontSize: "0.9rem" }}>{animalLabel(i)}</strong>
+                    <Link to={`/incidents/${i.id}`} style={{ fontWeight: 600 }}>{animalLabel(i)}</Link>
+                    <span style={{ fontSize: "0.8rem", color: "var(--c-ink-faint)" }}>{i.humanReference}</span>
+                    <span className="badge">{isSensitive ? t("privacySensitive", { defaultValue: "Sensitive — area only" }) : t("privacyApprox", { defaultValue: "Approximate" })}</span>
                   </div>
-                  <div style={{ fontSize: "0.82rem", color: "var(--c-ink-soft)", marginTop: 4 }}>
+                  <div style={{ fontSize: "0.82rem", color: "var(--c-ink-soft)", marginTop: 2 }}>
                     {pos ? (
-                      <code>{pos.lat.toFixed(4)}, {pos.lon.toFixed(4)}</code>
+                      <code>{pos.lat.toFixed(2)}°, {pos.lon.toFixed(2)}°</code>
                     ) : (
-                      "No mappable location"
+                      t("noMappableLocation", { defaultValue: "No mappable location" })
                     )}
                     {i.location.description ? ` · ${i.location.description}` : ""}
                   </div>
-                </div>
+                </li>
               );
             })}
-          </div>
+          </ul>
         </div>
       ) : (
         <div
           ref={containerRef}
-          style={{ height: compact ? 280 : 460, borderRadius: "var(--radius-md)", border: "1px solid var(--c-border)", overflow: "hidden", position: "relative" }}
+          style={{ height: compact ? "100%" : 460, minHeight: compact ? 280 : undefined, borderRadius: "var(--radius-md)", border: "1px solid var(--c-border)", overflow: "hidden", position: "relative" }}
         />
       )}
       <div className="row" style={{ marginTop: "var(--space-2)", gap: 12, fontSize: "0.82rem", color: "var(--c-ink-soft)" }}>

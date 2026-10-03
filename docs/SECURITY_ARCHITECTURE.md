@@ -1,6 +1,6 @@
 # Security Architecture
 
-Status: current for 0.2.0-dev.7. This document describes the security and
+Status: current for 0.2.0-dev.8. This document describes the security and
 privacy posture of Wildlife Incident Handoff today (local-first, no backend)
 and the threat model that the future network layer must satisfy.
 
@@ -68,6 +68,22 @@ workspace and security authorization:
 - `getAuthorizationState()` always returns "unverified" until a real server
   issues claims; the UI labels professional mode "Professional Preview".
 - A work email alone never verifies anyone.
+
+## dev.8 additions
+
+- **Professional roles are presentation-only.** `professionalRoles` in local
+  settings are always labeled Professional Preview; `capabilitiesForRoles()`
+  returns capabilities only for state "verified", which cannot occur locally.
+  Role verification requirements are displayed only for the role being added
+  (data minimization, P11).
+- **Support composer is honest:** nothing is ever transmitted; it prepares a
+  copy/download bundle. Diagnostics exclude name/email/phone/coordinates/
+  incident content unless the user explicitly includes them.
+- **Map diagnostics** (`getMapDiagnostics`) record HTTP status / error class
+  only — never coordinates, URLs with query data, or incident content
+  (asserted by tests).
+- **Mobile shell:** the drawer keeps one bounded scroll owner
+  (`.main-area`), so overlays cannot trap the page scroll.
 
 ## Hardening checklist (current code)
 

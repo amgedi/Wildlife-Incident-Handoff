@@ -770,3 +770,31 @@ body::after {
 [data-theme="mono-light"] .card { border-color: #c8c8c8; }
 [data-theme="mono-light"] .report-card { border-color: #c8c8c8; }
 [data-theme="midnight"] .report-card { border-color: var(--c-border-strong); }
+
+/* P27/P28/P60 — Monochrome scannability rework:
+   brightness tiers (theme vars) + glyphs (above) + border patterns so state
+   is readable without hue. Dashed = needs action, dotted = low priority. */
+[data-theme="mono-dark"] .badge[data-status="response_requested"],
+[data-theme="mono-light"] .badge[data-status="response_requested"] {
+  border-style: dashed; border-width: 2px;
+}
+[data-theme="mono-dark"] .badge[data-status="awaiting_pickup"],
+[data-theme="mono-light"] .badge[data-status="awaiting_pickup"] {
+  border-style: dashed;
+}
+[data-theme="mono-dark"] .badge[data-status="draft"],
+[data-theme="mono-light"] .badge[data-status="draft"] {
+  border-style: dotted;
+}
+[data-theme="mono-dark"] .badge[data-status="cancelled"],
+[data-theme="mono-dark"] .badge[data-status="deceased"],
+[data-theme="mono-light"] .badge[data-status="cancelled"],
+[data-theme="mono-light"] .badge[data-status="deceased"] {
+  border-style: dotted;
+  opacity: 0.85;
+}
+/* P28: mono text contrast lift on the faintest tiers over surfaces. */
+[data-theme="mono-dark"] { --c-ink-faint: #a8a8a8; }
+[data-theme="mono-light"] { --c-ink-faint: #5f5f5f; }
+[data-theme="mono-dark"] ::placeholder,
+[data-theme="mono-light"] ::placeholder { opacity: 0.9; }

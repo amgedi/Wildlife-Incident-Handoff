@@ -11,7 +11,7 @@
  * the same flow without touching saved settings.
  */
 import { useState } from "react";
-import { LANGUAGE_CATALOG, suggestLanguage } from "../../i18n";
+import { selectableLanguages, suggestLanguage } from "../../i18n";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../../app/AppContext";
@@ -122,7 +122,7 @@ export function OnboardingPage({ preview = false }: { preview?: boolean }) {
             {t("onboarding:languageHint", { defaultValue: "Suggested from your device settings — you can change it any time in Settings." })}
           </p>
           <div className="language-grid" role="listbox" aria-label={t("settings:language", { defaultValue: "Language" })} style={{ margin: "var(--space-4) 0" }}>
-            {LANGUAGE_CATALOG.map((l) => (
+            {selectableLanguages(settings.devPreviewLocales === true).map((l) => (
               <button
                 key={l.code}
                 role="option"

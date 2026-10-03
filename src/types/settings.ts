@@ -30,6 +30,8 @@ export interface ReporterContactProfile {
   role?: string;
 }
 
+import type { ProfessionalRoleEntry } from "../features/network/authorization";
+
 /** Local professional setup answers. These are convenience/labeling only —
  *  they NEVER grant authorization (see src/features/network/authorization.ts). */
 export interface ProfessionalProfile {
@@ -62,6 +64,11 @@ export interface AppSettings {
   savedReporterContact: ReporterContactProfile | null;
   /** Local professional setup answers (Professional Preview; not verification). */
   professionalProfile: ProfessionalProfile | null;
+  /** Professional roles held locally. Local = preview/pending only until a
+   *  server verifies; see authorization.ts. */
+  professionalRoles: ProfessionalRoleEntry[];
+  /** Active role context among held roles (tailors dashboard/help/tours). */
+  activeProfessionalRole: string | null;
   tourCompleted: boolean;
   language: string;
   /** When false, maps render local incident positions only — no tile downloads. */
@@ -70,6 +77,8 @@ export interface AppSettings {
   notifications: NotificationPreferences;
   /** Set when the user finishes the replayable first-run preview. */
   onboardingPreviewActive?: boolean;
+  /** Developer-only: expose incomplete locales + the zz-ZZ pseudo-locale in pickers. */
+  devPreviewLocales?: boolean;
 }
 
 export interface NotificationPreferences {
@@ -127,11 +136,14 @@ export const DEFAULT_SETTINGS: AppSettings = {
   units: "metric",
   savedReporterContact: null,
   professionalProfile: null,
+  professionalRoles: [],
+  activeProfessionalRole: null,
   tourCompleted: false,
   language: "en",
   mapTilesEnabled: true,
   notifications: DEFAULT_NOTIFICATION_PREFERENCES,
   onboardingPreviewActive: false,
+  devPreviewLocales: false,
 };
 
 /** Versioned backup container. */

@@ -1,15 +1,15 @@
 /**
- * Professional operations dashboard — "Local Professional Preview" command
- * center (0.2.0-dev.7 overhaul).
+ * Professional operations dashboard — "Local Professional Preview" (dev.8).
  *
- * Layered operational console over LOCAL incident data only:
- * Needs Attention queue → KPI strip → map fusion + live activity →
- * response performance + aging → modern trend chart → distributions →
- * handoff + workload analytics. Unified filters affect every widget.
- * No fake network data; the network registry stays explicitly fictional.
+ * 12-column responsive operations grid: service-area map as primary context,
+ * Needs Attention queue, live activity, operational pulse (KPI tiles with
+ * honest deltas), response-flow pipeline, performance + aging, modern trend
+ * chart, distributions, handoff + workload analytics. Unified filters apply
+ * to every widget; widgets emphasize by active professional role (preview
+ * roles tailor presentation only — they never authorize anything).
  */
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useApp } from "../../app/AppContext";
 import { useTranslation } from "react-i18next";
 import { useIncidents } from "../incidents/IncidentCard";
@@ -30,6 +30,7 @@ import * as analytics from "./incidentAnalytics";
 import { TrendChart } from "./TrendChart";
 import { AnimatedNumber } from "./dashboard/AnimatedNumber";
 import { AgingStrip, BarDistribution } from "./dashboard/opsCharts";
+import { IncidentQueueRow } from "./dashboard/IncidentQueueRow";
 import { getAuthorizationState } from "./authorization";
 import type { Incident } from "../../types/incident";
 
@@ -50,11 +51,14 @@ export function NetworkPage() {
   const { incidents, refresh } = useIncidents();
   const { settings, showToast } = useApp();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useTranslation("professional");
-  const [tab, setTab] = useState<"list" | "map">("list");
+  // Map is a first-class destination: /network?view=map (sidebar "Map").
+  const [tab, setTab] = useState<"list" | "map">(searchParams.get("view") === "map" ? "map" : "list");
   const [opsView, setOpsView] = useState(false);
   const [filters, setFilters] = useState<DashboardFilters>(EMPTY_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [density, setDensity] = useState<"cards" | "table">("cards");
   const [area, setArea] = useState<ServiceArea>({ centerLat: null, centerLon: null, radiusKm: 25, label: "My service area" });
   const [loaded, setLoaded] = useState(false);
   const [range, setRange] = useState<1 | 7 | 30 | 90>(7);
@@ -62,6 +66,7 @@ export function NetworkPage() {
   const org = LOCAL_ORG_REGISTRY[0];
   const firstName = (settings.professionalProfile?.name || settings.displayName || "").trim().split(/\s+/)[0];
   const isVerified = getAuthorizationState().status === "verified";
+  const activeRole = settings.professionalRoles?.find((r) => r.role === settings.activeProfessionalRole) ?? settings.professionalRoles?.[0];
 
   useEffect(() => {
     getSetting<ServiceArea>("network-service-area").then((saved) => {
@@ -70,13 +75,24 @@ export function NetworkPage() {
     });
   }, []);
 
-  // "Updated just now" honesty: re-stamp the clock on a slow tick.
+  // Keep URL in sync with the map/list tab (deep-linkable Map destination).
   useEffect(() => {
-    const id = window.setInterval(() => setNow(new Date()), 60_000);
+    const current = searchParams.get("view");
+    const want = tab === "map" ? "map" : null;
+    if (current !== want) {
+      const next = new URLSearchParams(searchParams);
+      if (want) next.set("view", want); else next.delete("view");
+      setSearchParams(next, { replace: true });
+    }
+  }, [tab, searchParams, setSearchParams]);
+
+  // "Updated X ago" honesty: re-stamp the clock on a slow tick.
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(new Date()), 30_000);
     return () => window.clearInterval(id);
   }, []);
 
-  // Operations View (Y): hide app chrome. Deliberate, reversible, never forced.
+  // Operations View (P57): hide app chrome. Deliberate, reversible, never forced.
   useEffect(() => {
     document.documentElement.classList.toggle("ops-view", opsView);
     const onKey = (e: KeyboardEvent) => {
@@ -141,9 +157,21 @@ export function NetworkPage() {
   const feed = useMemo(() => analytics.getActivityFeed(filtered), [filtered]);
   const series = useMemo(() => analytics.getTimeSeries(filtered, range), [filtered, range]);
   const attention = useMemo(() => analytics.getNeedsAttention(filtered, now), [filtered, now]);
+  const pipeline = useMemo(() => analytics.getPipelineCounts(filtered), [filtered]);
+  const rangeDays = filters.time === "today" ? 1 : filters.time === "7d" ? 7 : filters.time === "30d" ? 30 : 30;
+  const newWithDelta = useMemo(() => analytics.getCountWithDelta(filtered, rangeDays as 1 | 7 | 30, now), [filtered, rangeDays, now]);
 
   const animalUnknownCount = filtered.filter((i) => !i.animal.group).length;
   const animalUnknownDominant = filtered.length >= 4 && animalUnknownCount / filtered.length > 0.5;
+
+  // P55 — role emphasis: presentation only; no widget is hidden entirely,
+  // because preview roles are not authorization.
+  const rolePriority: "attention-first" | "map-first" | "transfer-first" =
+    activeRole?.role === "dispatcher" || activeRole?.role === "organization_coordinator" || activeRole?.role === "organization_administrator"
+      ? "attention-first"
+      : activeRole?.role === "rehabilitator" || activeRole?.role === "veterinary_professional"
+        ? "transfer-first"
+        : "map-first";
 
   const attentionCards = useMemo(() => {
     const cards: Array<{ key: string; icon: JSX.Element; count: number; reason: string; severity: "alert" | "warn" | "info"; action: string; to: string; time?: string }> = [];
@@ -200,13 +228,96 @@ export function NetworkPage() {
     ...Array.from(new Set(live.map((i) => i.incidentType).filter((v): v is Exclude<Incident["incidentType"], null> => v != null))).map((v) => ({ value: v as string, label: v as string })),
   ], [live, t]);
 
-  if (!loaded) return <main className="content" id="main-content" />;
+  if (!loaded) return <main className="content wide" id="main-content" />;
 
   const filtersActive = JSON.stringify(filters) !== JSON.stringify(EMPTY_FILTERS);
 
+  const mapPanel = (
+    <div className="card ops-panel ops-span-8" style={{ minHeight: 340, display: "flex", flexDirection: "column" }}>
+      <div className="row between">
+        <h3 style={{ margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+          <Icons.map size={16} /> {t("mapTitle", { defaultValue: "Service area operations" })}
+        </h3>
+        <Link to="/network" className="btn btn-ghost btn-sm" onClick={() => setTab("map")}>{t("openFullMap", { defaultValue: "Open full map" })}</Link>
+      </div>
+      <div style={{ marginTop: "var(--space-3)", flex: 1 }}>
+        {settings.mapTilesEnabled === false ? (
+          <p className="hint">{t("mapDisabled", { defaultValue: "Online maps are off (Settings → Map). Showing local incident positions instead:" })}{" "}
+            <ul style={{ paddingLeft: 18 }}>
+              {inArea.slice(0, 6).map((i) => (
+                <li key={i.id}>
+                  <Link to={`/incidents/${i.id}`}>{i.humanReference}</Link> — {i.location.description || animalLabel(i)}
+                </li>
+              ))}
+            </ul>
+          </p>
+        ) : (
+          <Suspense fallback={<p style={{ color: "var(--c-ink-faint)" }}>…</p>}>
+            <NetworkMap
+              incidents={inArea}
+              privacy="approximate"
+              compact
+              serviceArea={area}
+              fitMode="service-area"
+              onSelect={(incident) => navigate(`/incidents/${incident.id}`)}
+            />
+          </Suspense>
+        )}
+      </div>
+    </div>
+  );
+
+  const attentionPanel = (
+    <section className="ops-span-4" aria-labelledby="attn-title" style={{ display: "flex", flexDirection: "column" }}>
+      <h2 id="attn-title" className="section-label" style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: "var(--space-2)" }}>
+        <span className="ops-live-dot" aria-hidden="true" />
+        {t("needsAttention", { defaultValue: "Needs attention" })}
+      </h2>
+      {attentionCards.length === 0 ? (
+        <div className="card ops-panel" style={{ flex: 1, display: "grid", placeItems: "center", color: "var(--c-ink-faint)" }}>
+          <span>{t("attentionClear", { defaultValue: "Nothing needs attention right now." })}</span>
+        </div>
+      ) : (
+        <div className="attn-grid" style={{ gridTemplateColumns: "1fr" }}>
+          {attentionCards.map((c) => (
+            <button key={c.key} className={`attn-card severity-${c.severity}`} onClick={() => navigate(c.to)}>
+              <span className="attn-icon" aria-hidden="true">{c.icon}</span>
+              <span className="attn-count"><AnimatedNumber value={c.count} /></span>
+              <span className="attn-action">{c.action} <Icons.chevronRight size={12} /></span>
+              <span className="attn-reason">{c.reason}</span>
+              {c.time && <span className="attn-time">{t("attnOldest", { defaultValue: "Oldest: {{time}}", time: c.time })}</span>}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="card ops-panel" style={{ marginTop: "var(--space-3)", flex: 1 }}>
+        <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
+          <Icons.activity size={16} /> {t("liveActivity", { defaultValue: "Live activity" })}
+        </h3>
+        {feed.length === 0 ? (
+          <p className="hint">{t("feedEmpty", { defaultValue: "Timeline events from your records will appear here." })}</p>
+        ) : (
+          <ol className="ops-feed" aria-label={t("liveActivity", { defaultValue: "Live activity" })}>
+            {feed.slice(0, 9).map((e, idx) => (
+              <li key={`${e.incidentId}-${idx}`}>
+                <button onClick={() => navigate(`/incidents/${e.incidentId}`)} className="ops-feed-item">
+                  <span className="ops-feed-time">{new Date(e.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                  <span className="ops-feed-body">
+                    <span className="ops-feed-event">{e.summary}</span>
+                    <span className="ops-feed-ref">{e.incidentRef}{e.animalLabel ? ` · ${e.animalLabel}` : ""}</span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+    </section>
+  );
+
   return (
     <main className="content wide" id="main-content">
-      {/* ---- Top bar (J) ---- */}
+      {/* ---- Operations header (P42): compact command strip ---- */}
       <div className="ops-topbar fade-in">
         <div>
           <h1 style={{ margin: 0, fontSize: "1.35rem" }}>
@@ -221,6 +332,8 @@ export function NetworkPage() {
           </h1>
           <p style={{ margin: "2px 0 0", color: "var(--c-ink-faint)", fontSize: "0.85rem", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             {settings.professionalProfile?.organization && <strong>{settings.professionalProfile.organization}</strong>}
+            {activeRole && <span aria-hidden="true">·</span>}
+            {activeRole && <span>{t(`navigation:role_${activeRole.role}`, { ns: "navigation", defaultValue: activeRole.role.replaceAll("_", " ") })}</span>}
             <span className="ops-live-dot" aria-hidden="true" />
             <span>{t("opsLiveTitle", { defaultValue: "Live local operations" })}</span>
             <span aria-hidden="true">·</span>
@@ -267,7 +380,7 @@ export function NetworkPage() {
               value={filters.time}
               options={[
                 { value: "all", label: t("filterTimeAll", { defaultValue: "All time" }) },
-                { value: "today", label: t("filterTimeToday", { defaultValue: "Today" }) },
+                { value: "today", label: t("filterTimeToday", { defaultValue: "Last 24h" }) },
                 { value: "7d", label: t("filterTime7d", { defaultValue: "Last 7 days" }) },
                 { value: "30d", label: t("filterTime30d", { defaultValue: "Last 30 days" }) },
               ]}
@@ -292,132 +405,75 @@ export function NetworkPage() {
           />
         </div>
       ) : (
-        <>
-          {/* ---- Needs attention (K) — FIRST major section ---- */}
-          {attentionCards.length > 0 && (
-            <section aria-labelledby="attn-title" style={{ marginTop: "var(--space-4)" }}>
-              <h2 id="attn-title" className="section-label" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span className="ops-live-dot" aria-hidden="true" />
-                {t("needsAttention", { defaultValue: "Needs attention" })}
-              </h2>
-              <div className="attn-grid">
-                {attentionCards.map((c) => (
-                  <button key={c.key} className={`attn-card severity-${c.severity}`} onClick={() => navigate(c.to)}>
-                    <span className="attn-icon" aria-hidden="true">{c.icon}</span>
-                    <span className="attn-count"><AnimatedNumber value={c.count} /></span>
-                    <span className="attn-reason">{c.reason}</span>
-                    {c.time && <span className="attn-time">{t("attnOldest", { defaultValue: "Oldest: {{time}}", time: c.time })}</span>}
-                    <span className="attn-action">{c.action} <Icons.chevronRight size={12} /></span>
-                  </button>
-                ))}
-              </div>
-            </section>
+        <div className="ops-12" style={{ marginTop: "var(--space-4)" }}>
+          {/* Map as primary context; role emphasis orders map vs attention (P55). */}
+          {rolePriority === "attention-first" ? (
+            <>{attentionPanel}{mapPanel}</>
+          ) : (
+            <>{mapPanel}{attentionPanel}</>
           )}
 
-          {/* ---- KPI strip (L) ---- */}
-          <div className="kpi-row kpi-strip" style={{ marginTop: "var(--space-4)" }}>
-            <KpiCard label={t("kpiNewReports", { defaultValue: "New reports" })} value={kpis.newReports} accent />
-            <KpiCard label={t("kpiUnassigned", { defaultValue: "Unassigned" })} value={kpis.unassigned} />
+          {/* Operational pulse (P45) — honest deltas only. */}
+          <div className="kpi-row kpi-strip ops-span-12">
+            <KpiCard label={t("kpiNewReports", { defaultValue: "New reports" })} value={newWithDelta.value} delta={newWithDelta.delta} accent />
+            <KpiCard label={t("kpiUnassigned", { defaultValue: "Unassigned" })} value={kpis.unassigned} context={metrics.oldestUnassignedHours != null ? t("kpiOldestShort", { defaultValue: "oldest {{t}}", t: formatH(metrics.oldestUnassignedHours) }) : undefined} />
             <KpiCard label={t("kpiActiveResponse", { defaultValue: "Active response" })} value={kpis.responderAssigned + kpis.inResponse} />
             <KpiCard label={t("kpiAwaitingHandoff", { defaultValue: "Awaiting handoff" })} value={kpis.awaitingTransfer} />
             <KpiCard label={t("kpiOpenTotal", { defaultValue: "Open total" })} value={kpis.openTotal} />
             <KpiCard label={t("kpiResolvedToday", { defaultValue: "Resolved today" })} value={metrics.resolvedToday} />
           </div>
 
-          {/* ---- Map fusion (M) + live activity (N) ---- */}
-          <div className="ops-grid ops-grid-map" style={{ marginTop: "var(--space-4)" }}>
-            <div className="card ops-panel">
-              <div className="row between">
-                <h3 style={{ margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
-                  <Icons.map size={16} /> {t("mapTitle", { defaultValue: "Geographic operations" })}
-                </h3>
-                <Link to="/network" className="btn btn-ghost btn-sm" onClick={() => setTab("map")}>{t("openFullMap", { defaultValue: "Open full map" })}</Link>
-              </div>
-              <div style={{ marginTop: "var(--space-3)", minHeight: 240 }}>
-                {settings.mapTilesEnabled === false ? (
-                  <p className="hint">{t("mapDisabled", { defaultValue: "Online maps are off (Settings → Map). Showing local incident positions instead:" })}{" "}
-                    <ul style={{ paddingLeft: 18 }}>
-                      {inArea.slice(0, 6).map((i) => (
-                        <li key={i.id}>
-                          <Link to={`/incidents/${i.id}`}>{i.humanReference}</Link> — {i.location.description || animalLabel(i)}
-                        </li>
-                      ))}
-                    </ul>
-                  </p>
-                ) : (
-                  <Suspense fallback={<p style={{ color: "var(--c-ink-faint)" }}>…</p>}>
-                    <NetworkMap
-                      incidents={inArea}
-                      privacy="approximate"
-                      compact
-                      onSelect={(incident) => navigate(`/incidents/${incident.id}`)}
-                    />
-                  </Suspense>
-                )}
-              </div>
-            </div>
-            <div className="card ops-panel">
-              <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
-                <Icons.activity size={16} /> {t("liveActivity", { defaultValue: "Live activity" })}
-              </h3>
-              {feed.length === 0 ? (
-                <p className="hint">{t("feedEmpty", { defaultValue: "Timeline events from your records will appear here." })}</p>
-              ) : (
-                <ol className="ops-feed" aria-label={t("liveActivity", { defaultValue: "Live activity" })}>
-                  {feed.slice(0, 8).map((e, idx) => (
-                    <li key={`${e.incidentId}-${idx}`}>
-                      <button onClick={() => navigate(`/incidents/${e.incidentId}`)} className="ops-feed-item">
-                        <span className="ops-feed-time">{new Date(e.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-                        <span className="ops-feed-body">
-                          <span className="ops-feed-event">{e.summary}</span>
-                          <span className="ops-feed-ref">{e.incidentRef}{e.animalLabel ? ` · ${e.animalLabel}` : ""}</span>
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </ol>
-              )}
+          {/* Response flow pipeline (P46). */}
+          <div className="card ops-panel ops-span-12">
+            <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
+              <Icons.zap size={16} /> {t("pipelineTitle", { defaultValue: "Response flow" })}
+            </h3>
+            <div className="pipeline" role="list" aria-label={t("pipelineTitle", { defaultValue: "Response flow" })}>
+              {pipeline.map((s) => (
+                <button key={s.key} role="listitem" className={`pipeline-stage${s.count === 0 ? " is-zero" : ""}`} onClick={() => navigate(s.to)}>
+                  <span className="pipeline-count"><AnimatedNumber value={s.count} /></span>
+                  <span className="pipeline-label">{s.label}</span>
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* ---- Performance (O) + aging (P) ---- */}
-          <div className="ops-grid ops-grid-2" style={{ marginTop: "var(--space-4)" }}>
-            <div className="card ops-panel">
-              <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
-                <Icons.zap size={16} /> {t("performance", { defaultValue: "Response performance" })}
-              </h3>
-              {metrics.sufficientData ? (
-                <dl className="kv">
-                  {metrics.medianHoursToAssignment != null && (<><dt>{t("perfAssign", { defaultValue: "Median time to assignment" })}</dt><dd>{formatH(metrics.medianHoursToAssignment)}</dd></>)}
-                  {metrics.medianHoursToPickup != null && (<><dt>{t("perfPickup", { defaultValue: "Median time to pickup" })}</dt><dd>{formatH(metrics.medianHoursToPickup)}</dd></>)}
-                  {metrics.medianHoursToTransfer != null && (<><dt>{t("perfTransfer", { defaultValue: "Median time to transfer" })}</dt><dd>{formatH(metrics.medianHoursToTransfer)}</dd></>)}
-                  {metrics.oldestUnassignedHours != null && (<><dt>{t("perfOldest", { defaultValue: "Oldest unassigned" })}</dt><dd>{formatH(metrics.oldestUnassignedHours)}</dd></>)}
-                  <dt>{t("perfOpenedToday", { defaultValue: "Opened today" })}</dt><dd>{metrics.openedToday}</dd>
-                  <dt>{t("perfResolvedToday", { defaultValue: "Resolved today" })}</dt><dd>{metrics.resolvedToday}</dd>
-                </dl>
-              ) : (
-                <p style={{ color: "var(--c-ink-faint)" }}>{t("notEnoughData", { defaultValue: "Not enough data yet" })}</p>
-              )}
-            </div>
-            <div className="card ops-panel">
-              <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
-                <Icons.clock size={16} /> {t("caseAging", { defaultValue: "Case aging" })}
-              </h3>
-              <div style={{ marginTop: "var(--space-3)" }}>
-                <AgingStrip buckets={aging} onPick={() => navigate("/incidents?category=active")} />
-              </div>
-              <h3 style={{ marginTop: "var(--space-4)" }}>{t("transfers", { defaultValue: "Transfers" })}</h3>
+          {/* Performance (P48) + aging (P49). */}
+          <div className="card ops-panel ops-span-6">
+            <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
+              <Icons.zap size={16} /> {t("performance", { defaultValue: "Response performance" })}
+            </h3>
+            {metrics.sufficientData ? (
               <dl className="kv">
-                <dt>{t("transferAwaiting", { defaultValue: "Awaiting transfer" })}</dt><dd>{transfer.awaitingTransfer}</dd>
-                <dt>{t("transferToday", { defaultValue: "Transferred today" })}</dt><dd>{transfer.transferredToday}</dd>
-                {transfer.medianWaitHours != null && (<><dt>{t("transferMedianWait", { defaultValue: "Median wait" })}</dt><dd>{formatH(transfer.medianWaitHours)}</dd></>)}
-                <dt>{t("transferOrgs", { defaultValue: "Receiving organizations" })}</dt><dd>{transfer.receivingOrganizations.length === 0 ? "—" : transfer.receivingOrganizations.join(", ")}</dd>
+                {metrics.medianHoursToAssignment != null && (<><dt>{t("perfAssign", { defaultValue: "Median time to assignment" })}</dt><dd>{formatH(metrics.medianHoursToAssignment)}</dd></>)}
+                {metrics.medianHoursToPickup != null && (<><dt>{t("perfPickup", { defaultValue: "Median time to pickup" })}</dt><dd>{formatH(metrics.medianHoursToPickup)}</dd></>)}
+                {metrics.medianHoursToTransfer != null && (<><dt>{t("perfTransfer", { defaultValue: "Median time to transfer" })}</dt><dd>{formatH(metrics.medianHoursToTransfer)}</dd></>)}
+                {metrics.oldestUnassignedHours != null && (<><dt>{t("perfOldest", { defaultValue: "Oldest unassigned" })}</dt><dd>{formatH(metrics.oldestUnassignedHours)}</dd></>)}
+                <dt>{t("perfOpenedToday", { defaultValue: "Opened today" })}</dt><dd>{metrics.openedToday}</dd>
+                <dt>{t("perfResolvedToday", { defaultValue: "Resolved today" })}</dt><dd>{metrics.resolvedToday}</dd>
               </dl>
+            ) : (
+              <p style={{ color: "var(--c-ink-faint)" }}>{t("notEnoughData", { defaultValue: "Not enough data yet" })}</p>
+            )}
+          </div>
+          <div className="card ops-panel ops-span-6">
+            <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
+              <Icons.clock size={16} /> {t("caseAging", { defaultValue: "Case aging" })}
+            </h3>
+            <div style={{ marginTop: "var(--space-3)" }}>
+              <AgingStrip buckets={aging} onPick={() => navigate("/incidents?category=active")} />
             </div>
+            <h3 style={{ marginTop: "var(--space-4)" }}>{t("transfers", { defaultValue: "Transfers" })}</h3>
+            <dl className="kv">
+              <dt>{t("transferAwaiting", { defaultValue: "Awaiting transfer" })}</dt><dd>{transfer.awaitingTransfer}</dd>
+              <dt>{t("transferToday", { defaultValue: "Transferred today" })}</dt><dd>{transfer.transferredToday}</dd>
+              {transfer.medianWaitHours != null && (<><dt>{t("transferMedianWait", { defaultValue: "Median wait" })}</dt><dd>{formatH(transfer.medianWaitHours)}</dd></>)}
+              <dt>{t("transferOrgs", { defaultValue: "Receiving organizations" })}</dt><dd>{transfer.receivingOrganizations.length === 0 ? "—" : transfer.receivingOrganizations.join(", ")}</dd>
+            </dl>
           </div>
 
-          {/* ---- Reports over time (Q) ---- */}
-          <div className="card ops-panel" style={{ marginTop: "var(--space-4)" }}>
+          {/* Reports over time (P50). */}
+          <div className="card ops-panel ops-span-12">
             <div className="row between">
               <h3 style={{ margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
                 <Icons.activity size={16} /> {t("reportsOverTime", { defaultValue: "Reports over time" })}
@@ -433,37 +489,41 @@ export function NetworkPage() {
             </div>
           </div>
 
-          {/* ---- Distributions (R, S, T) ---- */}
-          <div className="ops-grid ops-grid-3" style={{ marginTop: "var(--space-4)" }}>
-            <div className="card ops-panel">
-              <h3 style={{ marginTop: 0 }}>{t("openByStatus", { defaultValue: "Open by status" })}</h3>
-              <BarDistribution entries={statusDist} onPick={() => navigate("/incidents?category=active")} />
-            </div>
-            <div className="card ops-panel">
-              <h3 style={{ marginTop: 0 }}>{t("animalGroups", { defaultValue: "Animal groups" })}</h3>
-              <BarDistribution
-                entries={animalDist}
-                onPick={() => navigate("/incidents")}
-                note={animalUnknownDominant ? t("animalQualityNote", { defaultValue: "Animal group is missing for most reports." }) : null}
-              />
-              {animalUnknownDominant && (
-                <button className="btn btn-secondary btn-sm" style={{ marginTop: 8 }} onClick={() => navigate("/incidents?category=active")}>
-                  {t("reviewReports", { defaultValue: "Review reports" })}
+          {/* Distributions (P51–53). */}
+          <div className="card ops-panel ops-span-4">
+            <h3 style={{ marginTop: 0 }}>{t("openByStatus", { defaultValue: "Open by status" })}</h3>
+            <BarDistribution entries={statusDist} onPick={() => navigate("/incidents?category=active")} />
+          </div>
+          <div className="card ops-panel ops-span-4">
+            <h3 style={{ marginTop: 0 }}>{t("animalGroups", { defaultValue: "Animal groups" })}</h3>
+            {animalUnknownDominant ? (
+              <div>
+                <p style={{ fontSize: "0.8rem", letterSpacing: "0.06em", color: "var(--c-warn)", textTransform: "uppercase", margin: "0 0 6px" }}>
+                  {t("dataQuality", { defaultValue: "Data quality" })}
+                </p>
+                <p style={{ margin: 0, color: "var(--c-ink-soft)", fontSize: "0.92rem" }}>
+                  {t("animalQualityNote", { defaultValue: "Animal group is missing for most reports." })}{" "}
+                  ({animalUnknownCount}/{filtered.length})
+                </p>
+                <button className="btn btn-secondary btn-sm" style={{ marginTop: 10 }} onClick={() => navigate("/incidents?category=active")}>
+                  {t("reviewMissingData", { defaultValue: "Review missing data" })}
                 </button>
-              )}
-            </div>
-            <div className="card ops-panel">
-              <h3 style={{ marginTop: 0 }}>{t("incidentTypes", { defaultValue: "Incident types" })}</h3>
-              <BarDistribution entries={typeDist} onPick={() => navigate("/incidents")} />
-              <p style={{ color: "var(--c-ink-faint)", fontSize: "0.78rem", margin: "var(--space-2) 0 0" }}>
-                {t("typeNote", { defaultValue: "Categories reflect what reporters selected — no cause is implied beyond the record." })}
-              </p>
-            </div>
+              </div>
+            ) : (
+              <BarDistribution entries={animalDist} onPick={() => navigate("/incidents")} />
+            )}
+          </div>
+          <div className="card ops-panel ops-span-4">
+            <h3 style={{ marginTop: 0 }}>{t("incidentTypes", { defaultValue: "Incident types" })}</h3>
+            <BarDistribution entries={typeDist} onPick={() => navigate("/incidents")} />
+            <p style={{ color: "var(--c-ink-faint)", fontSize: "0.78rem", margin: "var(--space-2) 0 0" }}>
+              {t("typeNote", { defaultValue: "Categories reflect what reporters selected — no cause is implied beyond the record." })}
+            </p>
           </div>
 
-          {/* ---- Workload (V) ---- */}
+          {/* Workload (V). */}
           {workload.length > 0 && (
-            <div className="card ops-panel" style={{ marginTop: "var(--space-4)" }}>
+            <div className="card ops-panel ops-span-12">
               <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
                 <Icons.users size={16} /> {t("workload", { defaultValue: "Responder workload" })}
               </h3>
@@ -493,10 +553,10 @@ export function NetworkPage() {
             </div>
           )}
 
-          <p className="hint" style={{ marginTop: "var(--space-3)" }}>
+          <p className="hint ops-span-12" style={{ margin: 0 }}>
             {t("updatedLine", { defaultValue: "Live from this device's local data store" })} ({now.toLocaleTimeString()})
           </p>
-        </>
+        </div>
       )}
 
       {tab === "map" ? (
@@ -506,6 +566,8 @@ export function NetworkPage() {
             <NetworkMap
               incidents={inArea}
               privacy="approximate"
+              serviceArea={area}
+              fitMode="service-area"
               onSelect={(incident) => navigate(`/incidents/${incident.id}`)}
             />
           </Suspense>
@@ -531,57 +593,111 @@ export function NetworkPage() {
             </div>
           )}
 
-          {FEED_GROUPS.map((group) => (
-            <section key={group.id} style={{ marginTop: "var(--space-5)" }}>
-              <h2 className="section-label">{t(group.id === "new" ? "newGroup" : group.id)} ({grouped[group.id]!.length})</h2>
-              {grouped[group.id]!.length === 0 ? (
-                <p style={{ color: "var(--c-ink-faint)", fontSize: "0.88rem" }}>{t("nothingHere")}</p>
-              ) : (
-                <div className="card-list">
-                  {grouped[group.id]!.map((i) => {
-                    const dist = distanceFromArea(i, area);
-                    return (
-                      <div key={i.id} className="incident-card" style={{ flexWrap: "wrap" }}>
-                        <div className="ic-body">
-                          <div className="row between" style={{ gap: 8 }}>
-                            <p className="ic-title">
-                              {animalLabel(i)}
-                              {dupIds.has(i.id) && (
-                                <span className="badge warn" style={{ marginLeft: 8 }} title="Possible duplicate report">possible duplicate</span>
-                              )}
-                            </p>
-                            <StatusBadge status={i.status} />
-                          </div>
-                          <p className="ic-meta">
-                            {i.humanReference} · Reported {relativeTime(i.occurredAt ?? i.createdAt)}
-                            {dist != null && <> · {formatDistance(dist, settings.units)} away</>}
-                            {i.hazards && i.hazards.hazards.length > 0 && <> · {i.hazards.hazards.length} hazard{i.hazards.hazards.length === 1 ? "" : "s"}</>}
-                            {i.custody.some((c) => !c.endedAt) && i.status !== "reported" ? "" : " · No responder assigned"}
-                          </p>
-                          {i.location.description && <p className="ic-meta">{i.location.description}</p>}
-                        </div>
-                        <div className="row" style={{ gap: 8 }}>
-                          {group.id === "new" && (
-                            <button
-                              className="btn btn-primary btn-sm"
-                              onClick={async () => {
-                                await changeStatus(i, "responder_assigned", settings.displayName || null, `Accepted by ${org?.name ?? "local organization"}`);
-                                showToast(t("acceptedToast", { defaultValue: "Incident accepted — responder assigned" }));
-                                await refresh();
-                              }}
-                            >
-                              {t("accept")}
-                            </button>
-                          )}
-                          <Link className="btn btn-secondary btn-sm" to={`/incidents/${i.id}`}>{t("review")}</Link>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </section>
-          ))}
+          <div className="row between" style={{ marginTop: "var(--space-5)", flexWrap: "wrap", gap: 8 }}>
+            <h2 className="section-label" style={{ margin: 0 }}>{t("incidentQueue", { defaultValue: "Incident queue" })} ({inArea.length})</h2>
+            <div className="segmented" role="group" aria-label={t("density", { defaultValue: "Density" })}>
+              <button aria-pressed={density === "cards"} onClick={() => setDensity("cards")}>{t("densityCards", { defaultValue: "Cards" })}</button>
+              <button aria-pressed={density === "table"} onClick={() => setDensity("table")}>{t("densityTable", { defaultValue: "Table" })}</button>
+            </div>
+          </div>
+
+          {FEED_GROUPS.map((group) => {
+            const all = grouped[group.id]!;
+            if (all.length === 0) return null;
+            // Render cap: keep the DOM bounded with very large local datasets;
+            // the full set stays available in Incidents with filters/search.
+            const MAX_ROWS = 50;
+            const list = all.slice(0, MAX_ROWS);
+            const hidden = all.length - list.length;
+            return (
+              <section key={group.id} style={{ marginTop: "var(--space-4)" }}>
+                <h3 className="section-label">{t(group.id === "new" ? "newGroup" : group.id)} ({all.length})</h3>
+                {hidden > 0 && <p className="hint">{t("queueTruncated", { defaultValue: "Showing the {{shown}} most recent of {{total}} — open Incidents for the full list.", shown: list.length, total: all.length })}</p>}
+                {density === "table" ? (
+                  <div className="ops-table-wrap card" style={{ padding: 0 }}>
+                    <table className="ops-table">
+                      <thead>
+                        <tr>
+                          <th scope="col">{t("colIncident", { defaultValue: "Incident" })}</th>
+                          <th scope="col">{t("colAnimal", { defaultValue: "Animal" })}</th>
+                          <th scope="col">{t("colStatus", { defaultValue: "Status" })}</th>
+                          <th scope="col">{t("colAge", { defaultValue: "Age" })}</th>
+                          <th scope="col">{t("colLocation", { defaultValue: "Location" })}</th>
+                          <th scope="col">{t("colAssignment", { defaultValue: "Assignment" })}</th>
+                          <th scope="col" style={{ textAlign: "right" }}>{t("colActions", { defaultValue: "Actions" })}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {list.map((i) => (
+                          <tr key={i.id}>
+                            <td><Link to={`/incidents/${i.id}`}>{i.humanReference}</Link>{dupIds.has(i.id) ? " ⚑" : ""}</td>
+                            <td>{animalLabel(i)}</td>
+                            <td><StatusBadge status={i.status} /></td>
+                            <td>{relativeTime(i.occurredAt ?? i.createdAt)}</td>
+                            <td style={{ maxWidth: 220 }}>{i.location.description ?? "—"}</td>
+                            <td>{i.custody.some((c) => !c.endedAt) && i.status !== "reported" && i.status !== "response_requested" ? (i.custody.find((c) => !c.endedAt)?.holder ?? "—") : t("colUnassigned", { defaultValue: "Unassigned" })}</td>
+                            <td>
+                              <div className="row" style={{ gap: 6, justifyContent: "flex-end", flexWrap: "nowrap" }}>
+                                {group.id === "new" && (
+                                  <button
+                                    className="btn btn-primary btn-sm"
+                                    onClick={async () => {
+                                      await changeStatus(i, "responder_assigned", settings.displayName || null, `Accepted by ${org?.name ?? "local organization"}`);
+                                      showToast(t("acceptedToast", { defaultValue: "Incident accepted — responder assigned" }));
+                                      await refresh();
+                                    }}
+                                  >
+                                    {t("accept")}
+                                  </button>
+                                )}
+                                <Link className="btn btn-secondary btn-sm" to={`/incidents/${i.id}`}>{t("review")}</Link>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div>
+                    {list.map((i) => {
+                      const dist = distanceFromArea(i, area);
+                      return (
+                        <IncidentQueueRow
+                          key={i.id}
+                          incident={i}
+                          title={animalLabel(i)}
+                          attention={dupIds.has(i.id) ? t("possibleDuplicateShort", { defaultValue: "possible duplicate" }) : null}
+                          meta={
+                            <>
+                              {i.humanReference} · {t("reportedAgo", { defaultValue: "Reported" })} {relativeTime(i.occurredAt ?? i.createdAt)}
+                              {dist != null && <> · {formatDistance(dist, settings.units)} {t("away", { defaultValue: "away" })}</>}
+                              {i.hazards && i.hazards.hazards.length > 0 && <> · {i.hazards.hazards.length} {t("hazards", { defaultValue: "hazards" })}</>}
+                            </>
+                          }
+                          context={i.location.description}
+                          actions={[
+                            ...(group.id === "new"
+                              ? [{
+                                  label: t("accept"),
+                                  primary: true,
+                                  onClick: async () => {
+                                    await changeStatus(i, "responder_assigned", settings.displayName || null, `Accepted by ${org?.name ?? "local organization"}`);
+                                    showToast(t("acceptedToast", { defaultValue: "Incident accepted — responder assigned" }));
+                                    await refresh();
+                                  },
+                                }]
+                              : []),
+                            { label: t("review"), to: `/incidents/${i.id}` },
+                          ]}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            );
+          })}
 
           {inArea.length === 0 && (
             <div className="card" style={{ marginTop: "var(--space-4)" }}>
@@ -613,10 +729,16 @@ function daypart(): string {
   return h < 12 ? "morning" : h < 18 ? "afternoon" : "evening";
 }
 
-function KpiCard({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
+function KpiCard({ label, value, delta, context, accent }: { label: string; value: number; delta?: number | null; context?: string; accent?: boolean }) {
   return (
     <div className={`kpi-card${accent ? " kpi-accent" : ""}`}>
       <AnimatedNumber value={value} />
+      {delta != null && (
+        <span className={`kpi-delta ${delta >= 0 ? "up" : "down"}`}>
+          {delta >= 0 ? "▲" : "▼"} {Math.abs(delta)} <span aria-hidden="true">vs previous period</span>
+        </span>
+      )}
+      {context && <span className="kpi-delta">{context}</span>}
       <span className="kpi-label">{label}</span>
     </div>
   );

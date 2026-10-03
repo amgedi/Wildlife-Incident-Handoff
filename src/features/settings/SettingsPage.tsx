@@ -1,5 +1,6 @@
 /** Settings: left nav sections + right content, settings search, storage health. */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useApp } from "../../app/AppContext";
 import { Icons } from "../../components/Icons";
 import { Segmented, TextField } from "../../components/ui";
@@ -8,16 +9,16 @@ import { Dialog } from "../../components/Dialog";
 import { downloadBackup, importBackup } from "../../storage/backupService";
 import { getAllIncidents, getAllAttachmentBlobs, estimateStorage, setSetting } from "../../storage/repositories";
 import { bytesToSize } from "../../utils/time";
-import { useEffect } from "react";
 import { APP_VERSION as appVersion, BUILD_ID as buildId, DATA_SCHEMA_VERSION as dataSchemaVersion, APP_LICENSE } from "../../version";
 import { defaultUnitsFor } from "../../utils/units";
 import { isTauri } from "../../utils/platformFile";
-import { LANGUAGE_CATALOG } from "../../i18n";
+import { LANGUAGE_CATALOG, selectableLanguages, PSEUDO_LOCALE } from "../../i18n";
 import { useTranslation } from "react-i18next";
 import type { DetailLevel, ExperienceMode, MotionPreference, ThemeName, NotificationPreferences } from "../../types/settings";
 import { DEFAULT_NOTIFICATION_CATEGORIES } from "../../types/settings";
 import { displayPhone, normalizePhoneForStorage, isValidPhone, parsePhone } from "../../utils/phone";
 import { resetAllGuidance } from "../../features/tutorial/guidance";
+import { PROFESSIONAL_ROLES, ROLE_VERIFICATION_REQUIREMENTS, type ProfessionalRole, type ProfessionalRoleEntry } from "../../features/network/authorization";
 import { resetOnboardingForReplay, beginOnboardingPreview } from "../../features/onboarding/onboardingState";
 
 const SECTIONS = [
@@ -37,8 +38,14 @@ const SECTIONS = [
 type SectionId = (typeof SECTIONS)[number]["id"];
 
 export function SettingsPage() {
-  const [section, setSection] = useState<SectionId>("appearance");
+  const [searchParams] = useSearchParams();
+  const requested = searchParams.get("section") as SectionId | null;
+  const validRequested = requested && SECTIONS.some((x) => x.id === requested) ? requested : null;
+  const [section, setSection] = useState<SectionId>(validRequested ?? "appearance");
   const [query, setQuery] = useState("");
+  useEffect(() => {
+    if (validRequested) setSection(validRequested);
+  }, [validRequested]);
 
   const filtered = useMemo(() => {
     if (!query.trim()) return SECTIONS;
@@ -621,9 +628,11 @@ const COUNTRIES = [
 function AdvancedSection() {
   const { settings, updateSettings } = useApp();
   const { t } = useTranslation();
-  const complete = LANGUAGE_CATALOG.filter((l) => l.completeness === "complete");
-  void complete;
-  const beta = LANGUAGE_CATALOG.filter((l) => l.completeness === "beta");
+  const devPreview = settings.devPreviewLocales === true;
+  // P21/P22: normal users only see languages that cover the whole interface.
+  const complete = selectableLanguages(false);
+  const beta = devPreview ? LANGUAGE_CATALOG.filter((l) => !l.selectable) : [];
+  const pseudo = devPreview ? [PSEUDO_LOCALE] : [];
   return (
     <div className="stack">
       <div className="card">
@@ -656,8 +665,29 @@ function AdvancedSection() {
                 <span className="language-badge beta">Beta</span>
               </button>
             ))}
+            {pseudo.map((code) => (
+              <button
+                key={code}
+                role="option"
+                aria-selected={settings.language === code}
+                className={`language-option${settings.language === code ? " selected" : ""}`}
+                onClick={() => updateSettings({ language: code })}
+                title="Developer pseudo-locale — expands every string for layout testing"
+              >
+                <strong>[!!! Pseudo !!!]</strong>
+                <span className="language-badge beta">zz-ZZ</span>
+              </button>
+            ))}
           </div>
           <p className="hint">{t("settings:languageHint")}</p>
+          <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: "0.88rem", cursor: "pointer", marginTop: 6 }}>
+            <input
+              type="checkbox"
+              checked={devPreview}
+              onChange={(e) => updateSettings({ devPreviewLocales: e.target.checked, language: !e.target.checked && !complete.some((l) => l.code === settings.language) ? "en" : settings.language })}
+            />
+            {t("settings:devPreviewLocales", { defaultValue: "Developer preview: show incomplete languages and the pseudo-locale" })}
+          </label>
         </div>
         <Select
           label="Country or region"
@@ -692,6 +722,118 @@ function AdvancedSection() {
           country — this app intentionally does not display a specific number.
         </span>
       </div>
+    </div>
+  );
+}
+
+function ProfessionalRolesCard() {
+  const { settings, updateSettings, showToast } = useApp();
+  const { t } = useTranslation(["settings", "navigation"]);
+  const roles = settings.professionalRoles ?? [];
+  const [adding, setAdding] = useState(false);
+  const [candidate, setCandidate] = useState<string>("");
+  const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
+  const active = settings.activeProfessionalRole;
+
+  const addRole = () => {
+    if (!candidate) return;
+    // Local preview: adding a role NEVER marks it verified (P10).
+    const entry: ProfessionalRoleEntry = { role: candidate as ProfessionalRole, state: "preview", addedAt: new Date().toISOString() };
+    updateSettings({
+      professionalRoles: [...roles, entry],
+      activeProfessionalRole: settings.activeProfessionalRole ?? candidate,
+    });
+    setAdding(false);
+    setCandidate("");
+    showToast(t("settings:roleAddedPreview", { defaultValue: "Role added as a local preview role — not verified" }));
+  };
+
+  return (
+    <div className="card">
+      <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
+        <Icons.users size={18} /> {t("settings:profRolesTitle", { defaultValue: "Professional roles" })}
+      </h3>
+      <p style={{ color: "var(--c-ink-soft)", fontSize: "0.92rem" }}>
+        {t("settings:profRolesBlurb", { defaultValue: "Roles tailor the professional workspace. Nothing here is verification — until a connected organization verifies you server-side, every role is labeled Professional Preview." })}
+      </p>
+      <div className="notice" style={{ margin: "var(--space-3) 0" }}>
+        <Icons.shield size={16} />
+        <span>{t("settings:profRolesPreview", { defaultValue: "All roles shown are Professional Preview (local). Verified roles will be issued by a real response organization." })}</span>
+      </div>
+      {roles.length > 0 && (
+        <div className="stack" style={{ gap: 8 }}>
+          {roles.map((r) => (
+            <div key={r.role} className="card" style={{ boxShadow: "none", padding: "var(--space-3) var(--space-4)", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <span style={{ fontWeight: 600 }}>{t(`navigation:role_${r.role}`, { ns: "navigation", defaultValue: r.role.replaceAll("_", " ") })}</span>
+              <span className="badge warn">{t("settings:roleStatePreview", { defaultValue: "Professional Preview" })}</span>
+              {active === r.role && <span className="badge open">{t("settings:roleActive", { defaultValue: "Active" })}</span>}
+              <span style={{ flex: 1 }} />
+              {active !== r.role && roles.length > 1 && (
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => updateSettings({ activeProfessionalRole: r.role })}
+                >
+                  {t("settings:roleSetActive", { defaultValue: "Use as active role" })}
+                </button>
+              )}
+              <button className="btn btn-quiet btn-sm" onClick={() => setConfirmRemove(r.role)}>
+                {t("settings:roleRemove", { defaultValue: "Remove" })}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      {roles.length === 0 && (
+        <p className="hint">{t("settings:profRolesEmpty", { defaultValue: "No professional roles added yet." })}</p>
+      )}
+      {!adding ? (
+        <button className="btn btn-secondary btn-sm" style={{ marginTop: "var(--space-3)" }} onClick={() => { setAdding(true); setCandidate(PROFESSIONAL_ROLES.find((r) => !roles.some((x) => x.role === r)) ?? ""); }}>
+          <Icons.plus size={14} /> {t("settings:roleAdd", { defaultValue: "Add professional role" })}
+        </button>
+      ) : (
+        <div style={{ marginTop: "var(--space-3)" }}>
+          <Select
+            label={t("settings:roleChoose", { defaultValue: "Which role are you adding?" })}
+            value={candidate}
+            options={PROFESSIONAL_ROLES.filter((r) => !roles.some((x) => x.role === r)).map((r) => ({
+              value: r,
+              label: t(`navigation:role_${r}`, { ns: "navigation", defaultValue: r.replaceAll("_", " ") }),
+            }))}
+            onChange={setCandidate}
+          />
+          <p className="hint">{t("settings:roleVerifyReq", { defaultValue: "Verification (connected mode): {{req}}", req: ROLE_VERIFICATION_REQUIREMENTS[candidate as keyof typeof ROLE_VERIFICATION_REQUIREMENTS] ?? "" })}</p>
+          <div className="row" style={{ gap: 8 }}>
+            <button className="btn btn-primary btn-sm" onClick={addRole} disabled={!candidate}>{t("settings:roleAddConfirm", { defaultValue: "Add role" })}</button>
+            <button className="btn btn-quiet btn-sm" onClick={() => setAdding(false)}>{t("settings:cancel", { defaultValue: "Cancel" })}</button>
+          </div>
+        </div>
+      )}
+      <Dialog
+        open={confirmRemove !== null}
+        title={t("settings:roleRemoveTitle", { defaultValue: "Remove professional role?" })}
+        onClose={() => setConfirmRemove(null)}
+        actions={
+          <>
+            <button className="btn btn-secondary" onClick={() => setConfirmRemove(null)}>{t("settings:cancel", { defaultValue: "Cancel" })}</button>
+            <button
+              className="btn btn-danger"
+              onClick={() => {
+                const next = roles.filter((r) => r.role !== confirmRemove);
+                updateSettings({
+                  professionalRoles: next,
+                  activeProfessionalRole: active === confirmRemove ? (next[0]?.role ?? null) : active,
+                });
+                setConfirmRemove(null);
+                showToast(t("settings:roleRemoved", { defaultValue: "Role removed" }));
+              }}
+            >
+              {t("settings:roleRemoveConfirm", { defaultValue: "Remove role" })}
+            </button>
+          </>
+        }
+      >
+        <p>{t("settings:roleRemoveBody", { defaultValue: "This removes the role from your local workspace. It does not delete any incidents. You can add it back later." })}</p>
+      </Dialog>
     </div>
   );
 }
@@ -793,6 +935,7 @@ function ProfileSection() {
           </p>
         )}
       </div>
+      {settings.workspace === "professional" && <ProfessionalRolesCard />}
     </div>
   );
 }

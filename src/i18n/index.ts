@@ -62,12 +62,16 @@ export interface LanguageMeta {
   /** "complete" = full catalog (tests assert 0 missing keys); "beta" = partial, falls back to English. */
   completeness: "complete" | "beta";
   dir: "ltr" | "rtl";
+  /** Selectable languages cover the full interface — they must work (P21/22).
+   *  Incomplete languages are hidden from the normal picker and only appear
+   *  in developer preview mode (Settings → Advanced → developer preview). */
+  selectable?: boolean;
 }
 
 export const LANGUAGE_CATALOG: LanguageMeta[] = [
-  { code: "en", nativeName: "English", completeness: "complete", dir: "ltr" },
-  { code: "fr", nativeName: "Français", completeness: "complete", dir: "ltr" },
-  { code: "es", nativeName: "Español", completeness: "complete", dir: "ltr" },
+  { code: "en", nativeName: "English", completeness: "complete", dir: "ltr", selectable: true },
+  { code: "fr", nativeName: "Français", completeness: "complete", dir: "ltr", selectable: true },
+  { code: "es", nativeName: "Español", completeness: "complete", dir: "ltr", selectable: true },
   { code: "de", nativeName: "Deutsch", completeness: "beta", dir: "ltr" },
   { code: "pt-BR", nativeName: "Português (Brasil)", completeness: "beta", dir: "ltr" },
   { code: "nl", nativeName: "Nederlands", completeness: "beta", dir: "ltr" },
@@ -80,6 +84,33 @@ export const LANGUAGE_CATALOG: LanguageMeta[] = [
   { code: "ko", nativeName: "한국어", completeness: "beta", dir: "ltr" },
 ];
 
+/** Languages a normal user may pick: only ones that cover the whole UI.
+ *  A developer preview toggle (P25) additionally exposes incomplete locales
+ *  and the expanding pseudo-locale zz-ZZ. */
+export const PSEUDO_LOCALE = "zz-ZZ";
+
+export function selectableLanguages(devPreview: boolean): LanguageMeta[] {
+  const base = LANGUAGE_CATALOG.filter((l) => l.selectable);
+  if (!devPreview) return base;
+  return [...base, ...LANGUAGE_CATALOG.filter((l) => !l.selectable), { code: PSEUDO_LOCALE, nativeName: "Pseudo-locale (test)", completeness: "beta" as const, dir: "ltr" as const }];
+}
+
+/** Pseudo-locale processor: expands strings dramatically so hard-coded
+ *  English (which stays short) and layout clipping become obvious. */
+const pseudoPostProcessor = {
+  type: "postProcessor" as const,
+  name: "pseudo",
+  process(value: string): string {
+    if (!value.trim()) return value;
+    const expanded = value
+      .replace(/\{\{(\w+)\}\}/g, "{{$1}}")
+      .split(" ")
+      .join(" ");
+    return `[!!! ${expanded} !!!]`;
+  },
+};
+void pseudoPostProcessor;
+
 const RTL_LANGUAGES = new Set(["ar", "he", "fa", "ur"]);
 
 export function languageDir(lang: string): "rtl" | "ltr" {
@@ -90,6 +121,11 @@ const loadedLanguages = new Set<string>(["en"]);
 
 export async function loadLanguagePack(lang: string): Promise<void> {
   if (loadedLanguages.has(lang)) return;
+  // Pseudo-locale is handled directly in changeLanguage.
+  if (lang === PSEUDO_LOCALE) {
+    loadedLanguages.add(lang);
+    return;
+  }
   if (lang === "en") return;
   const mod = (await import(`./locales/${lang}.json`)) as { default: Record<string, Record<string, unknown>> };
   for (const [ns, data] of Object.entries(mod.default)) {
@@ -99,10 +135,32 @@ export async function loadLanguagePack(lang: string): Promise<void> {
 }
 
 export async function changeLanguage(lang: string): Promise<void> {
+  if (lang === PSEUDO_LOCALE) {
+    await loadLanguagePack(lang);
+    await i18next.changeLanguage("en");
+    // Apply the pseudo post-processor for this session.
+    for (const ns of Object.keys(EN_NAMESPACES)) {
+      const bundle = i18next.getResourceBundle("en", ns) as Record<string, unknown>;
+      i18next.addResourceBundle("zz-ZZ", ns, pseudoExpand(bundle), true, true);
+    }
+    await i18next.changeLanguage("zz-ZZ");
+    document.documentElement.lang = "en";
+    document.documentElement.dir = "ltr";
+    return;
+  }
   await loadLanguagePack(lang);
   await i18next.changeLanguage(lang);
   document.documentElement.lang = lang;
   document.documentElement.dir = languageDir(lang);
+}
+
+function pseudoExpand(node: unknown): unknown {
+  if (typeof node === "string") return `[!!! ${node} !!!]`;
+  if (Array.isArray(node)) return node.map(pseudoExpand);
+  if (node && typeof node === "object") {
+    return Object.fromEntries(Object.entries(node as Record<string, unknown>).map(([k, v]) => [k, pseudoExpand(v)]));
+  }
+  return node;
 }
 
 export function suggestLanguage(): string {
@@ -116,6 +174,8 @@ export function suggestLanguage(): string {
   }
   return "en";
 }
+
+i18next.use(pseudoPostProcessor);
 
 void i18next.use(initReactI18next).init({
   lng: "en",

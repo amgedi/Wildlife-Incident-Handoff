@@ -14,5 +14,21 @@
   "report": "Report",
   "network": "Network",
   "learn": "Help",
-  "dashboard": "Dashboard"
+  "dashboard": "Dashboard",
+  "map": "Map",
+  "newIntake": "New intake",
+  "profile": "Profile",
+  "roleReporter": "Reporter",
+  "roleResponder": "Wildlife responder",
+  "role_field_responder": "Field responder",
+  "role_dispatcher": "Dispatcher",
+  "role_rehabilitator": "Wildlife rehabilitator",
+  "role_veterinary_professional": "Veterinary professional",
+  "role_ranger_conservation_officer": "Ranger / conservation officer",
+  "role_organization_coordinator": "Organization coordinator",
+  "role_organization_administrator": "Organization administrator",
+  "role_read_only_reviewer": "Read-only reviewer",
+  "openMenu": "Open menu",
+  "closeMenu": "Close menu",
+  "footerNav": "Help and settings"
 }

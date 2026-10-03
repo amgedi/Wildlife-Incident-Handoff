@@ -386,3 +386,60 @@ export function getResponderWorkload(incidents: Incident[], now = new Date()): R
     .map(([actor, v]) => ({ actor, assignedCases: v.assigned, activeCases: v.active, completedToday: v.completedToday }))
     .sort((a, b) => b.activeCases - a.activeCases || a.actor.localeCompare(b.actor));
 }
+
+export interface PipelineStage {
+  key: string;
+  label: string;
+  count: number;
+  /** Filter category deep-link for the incidents list. */
+  to: string;
+}
+
+/** Response-flow pipeline (P46): case counts per operational stage, derived
+ *  ONLY from current statuses. Click-through filters the incident list. */
+export function getPipelineCounts(incidents: Incident[]): PipelineStage[] {
+  const open = (i: Incident) => !i.deletedAt && !i.archivedAt && !i.isDemo;
+  const live = incidents.filter(open);
+  const stageDefs: Array<{ key: string; label: string; statuses: string[]; to: string }> = [
+    { key: "reported", label: "Reported", statuses: ["reported", "response_requested"], to: "/incidents?category=awaiting" },
+    { key: "assigned", label: "Assigned", statuses: ["responder_assigned"], to: "/incidents?category=active" },
+    { key: "enroute", label: "En route", statuses: ["in_transport"], to: "/incidents?category=active" },
+    { key: "pickup", label: "Pickup", statuses: ["awaiting_pickup"], to: "/incidents?category=active" },
+    { key: "transfer", label: "Transfer", statuses: ["transferred"], to: "/incidents?category=active" },
+    { key: "care", label: "Care", statuses: ["in_care", "veterinary_care", "monitoring"], to: "/incidents?category=active" },
+    { key: "closed", label: "Closed", statuses: ["released", "deceased", "closed", "cancelled"], to: "/incidents?category=resolved" },
+  ];
+  return stageDefs.map((d) => ({
+    key: d.key,
+    label: d.label,
+    count: live.filter((i) => d.statuses.includes(i.status)).length,
+    to: d.to,
+  }));
+}
+
+export interface KpiDelta {
+  value: number;
+  /** Change vs the previous comparable period; null when data does not support a comparison. */
+  delta: number | null;
+}
+
+/** KPI comparison (P45): current-period count vs previous period of the same
+ *  length. Comparison is only produced when the previous period contains at
+ *  least one data point — never invented. */
+export function getCountWithDelta(
+  incidents: Incident[],
+  rangeDays: 1 | 7 | 30 | 90,
+  now = new Date()
+): KpiDelta {
+  const live = incidents.filter((i) => !i.deletedAt && !i.isDemo);
+  const ms = rangeDays * 86400_000;
+  const currentStart = now.getTime() - ms;
+  const previousStart = currentStart - ms;
+  const inRange = (i: Incident, from: number, to: number) => {
+    const t = new Date(i.createdAt).getTime();
+    return t >= from && t < to;
+  };
+  const current = live.filter((i) => inRange(i, currentStart, now.getTime())).length;
+  const previous = live.filter((i) => inRange(i, previousStart, currentStart)).length;
+  return { value: current, delta: previous > 0 ? current - previous : null };
+}

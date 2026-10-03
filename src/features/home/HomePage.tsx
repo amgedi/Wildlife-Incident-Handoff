@@ -65,7 +65,7 @@ export function HomePage() {
   if (isReporter) {
     return (
       <main className="content" id="main-content">
-        <h1 className="fade-in" style={{ marginBottom: "var(--space-2)" }}>
+        <h1 className="fade-in" data-tour-id="hero" style={{ marginBottom: "var(--space-2)" }}>
           {firstName
             ? t("home:welcomeShort", { name: firstName, defaultValue: "Welcome, {{name}}", interpolation: { escapeValue: false } })
             : t("home:welcome", { defaultValue: "Welcome" })}

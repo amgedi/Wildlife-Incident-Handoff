@@ -67,19 +67,35 @@ code { font-family: var(--font-mono); font-size: 0.85em; background: var(--c-sur
 }
 
 .sidebar {
-  flex: 0 0 232px; min-width: 0; min-height: 0;
+  flex: 0 0 236px; min-width: 0; min-height: 0;
   background: var(--c-sidebar); color: var(--c-sidebar-ink);
-  display: flex; flex-direction: column; padding: var(--space-5) var(--space-3);
+  display: flex; flex-direction: column; padding: var(--space-4) var(--space-3);
   overflow-y: auto;
+  border-right: 1px solid var(--c-border);
 }
+/* Compact identity header: paw + name + role. The desktop titlebar already
+   carries the product name — the sidebar does not repeat it. */
 .sidebar .brand {
   display: flex; align-items: center; gap: var(--space-3);
-  padding: 0 var(--space-2) var(--space-5); margin: 0;
+  padding: var(--space-1) var(--space-2) var(--space-4); margin: 0;
   color: var(--c-header-ink); text-decoration: none;
 }
 .sidebar .brand svg { flex-shrink: 0; display: block; }
-.sidebar .brand-name { font-weight: 650; font-size: 0.92rem; line-height: 1.25; }
-.sidebar nav { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.sidebar .brand-name { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sidebar .brand-name strong { font-weight: 650; font-size: 0.95rem; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar .brand-sub { font-size: 0.78rem; color: var(--c-sidebar-ink); opacity: 0.75; }
+.sidebar .brand-name .badge { align-self: flex-start; font-size: 0.62rem; padding: 1px 7px; }
+.sidebar nav.nav-work { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.sidebar nav.nav-footer {
+  display: flex; flex-direction: column; gap: 2px;
+  margin-top: var(--space-3); padding-top: var(--space-2);
+  border-top: 1px solid rgb(255 255 255 / 0.12);
+  align-items: stretch;
+}
+.nav-item-footer { font-size: 0.85rem; opacity: 0.85; }
+.nav-footer-bell { display: flex; justify-content: flex-start; padding: 0 var(--space-2) var(--space-1); }
+.nav-footer-bell .btn { padding: var(--space-1) var(--space-2); color: var(--c-sidebar-ink); }
+.sidebar .nav-sep { padding: var(--space-3) var(--space-2) var(--space-1); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-sidebar-ink); opacity: 0.55; }
 .nav-item {
   display: flex; align-items: center; gap: var(--space-3);
   padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm);
@@ -126,13 +142,43 @@ code { font-family: var(--font-mono); font-size: 0.85em; background: var(--c-sur
 }
 .bottom-nav a.active { background: rgb(255 255 255 / 0.12); }
 
-@media (max-width: 860px) {
-  .sidebar, .topbar { display: none; }
-  .mobile-header { display: flex; }
-  .bottom-nav { display: flex; }
-  .content { padding: var(--space-4) var(--space-4) calc(var(--space-8) + 56px); }
-  .app-shell { display: block; }
+/* Mobile / tablet: sidebar becomes an off-canvas drawer (P5).
+   IMPORTANT (P6 mobile scroll fix): keep the flex column shell — a
+   `display:block` shell removes the height constraint on .main-area, so its
+   `overflow-y:auto` never engages and NOTHING can scroll. The flex column
+   (titlebar → app-body → main-area) gives .main-area a bounded height and
+   makes it the ONE page scroll owner at every width. */
+.drawer-scrim {
+  position: fixed; inset: 0; z-index: 55;
+  background: rgb(0 0 0 / 0.45);
+  border: none; padding: 0; cursor: pointer;
 }
+@media (max-width: 860px) {
+  .topbar { display: none; }
+  .sidebar {
+    position: fixed; z-index: 60; top: 0; bottom: 0; left: 0;
+    width: min(300px, 84vw);
+    transform: translateX(-102%);
+    transition: transform 200ms var(--ease, ease);
+    box-shadow: 0 8px 32px rgb(0 0 0 / 0.35);
+    padding-top: calc(var(--space-4) + env(safe-area-inset-top));
+  }
+  [dir="rtl"] .sidebar { left: auto; right: 0; transform: translateX(102%); }
+  .sidebar.drawer-open { transform: translateX(0); }
+  .mobile-header { display: flex; }
+  .mobile-header .hamburger {
+    display: inline-flex; flex-direction: column; gap: 4px;
+    background: none; border: none; cursor: pointer; padding: 8px; margin-left: -8px;
+  }
+  .mobile-header .hamburger span { width: 18px; height: 2px; background: currentColor; border-radius: 2px; display: block; }
+  .bottom-nav { display: flex; }
+  .content { padding: var(--space-4) var(--space-4) calc(var(--space-8) + 72px); }
+}
+@media (min-width: 861px) {
+  .mobile-header .hamburger { display: none; }
+  .drawer-scrim { display: none; }
+}
+body.drawer-open { overflow: hidden; }
 
 /* ---------- Buttons ---------- */
 .btn {
@@ -846,3 +892,93 @@ html.ops-view .content { max-width: none !important; }
 
 /* Neutral spotlight ring (AK): no green glow, theme-aware 2px outline. */
 :root { --tour-ring: color-mix(in srgb, var(--c-ink) 70%, var(--c-surface)); }
+
+/* P29/P30/P64 — IncidentQueueRow: one consistent operational row. */
+.queue-row {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--c-border); border-radius: var(--radius-md);
+  background: var(--c-surface);
+  flex-wrap: wrap;
+}
+.queue-row + .queue-row { margin-top: var(--space-2); }
+.queue-row.has-attention { border-color: color-mix(in srgb, var(--c-warn) 40%, var(--c-border)); }
+.queue-row-main { min-width: 0; flex: 1 1 320px; }
+.queue-row-main .ic-title { margin: 0; font-weight: 650; }
+.queue-row-main .ic-meta { margin: 2px 0 0; color: var(--c-ink-faint); font-size: 0.82rem; }
+.queue-row-actions {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  margin-left: auto; /* action region owns its alignment — no inline hacks */
+}
+@media (max-width: 640px) {
+  .queue-row-actions { margin-left: 0; width: 100%; justify-content: flex-end; }
+}
+
+/* P41 — 12-column responsive operations grid. */
+.ops-12 { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--space-4); }
+.ops-span-12 { grid-column: span 12; }
+.ops-span-8 { grid-column: span 8; }
+.ops-span-7 { grid-column: span 7; }
+.ops-span-6 { grid-column: span 6; }
+.ops-span-5 { grid-column: span 5; }
+.ops-span-4 { grid-column: span 4; }
+.ops-span-3 { grid-column: span 3; }
+@media (max-width: 1100px) {
+  .ops-span-8, .ops-span-7, .ops-span-5 { grid-column: span 12; }
+  .ops-span-4, .ops-span-3 { grid-column: span 6; }
+}
+@media (max-width: 760px) {
+  .ops-12 > * { grid-column: span 12 !important; }
+}
+
+/* P46 — response flow pipeline. */
+.pipeline { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding-bottom: 2px; }
+.pipeline-stage {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  min-width: 76px; flex: 1;
+  background: none; border: none; font: inherit; color: var(--c-ink); cursor: pointer;
+  padding: 6px 4px; border-radius: var(--radius-sm);
+  position: relative;
+}
+.pipeline-stage + .pipeline-stage::before {
+  content: ""; position: absolute; left: calc(-1 * var(--space-2)); top: 50%;
+  width: var(--space-3); height: 1px; background: var(--c-border-strong);
+}
+[data-motion="full"] .pipeline-stage:hover { background: color-mix(in srgb, var(--c-primary) 8%, transparent); }
+.pipeline-count { font-size: 1.25rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pipeline-label { font-size: 0.72rem; color: var(--c-ink-faint); text-align: center; }
+.pipeline-stage.is-zero .pipeline-count { opacity: 0.35; }
+
+/* KPI delta chips (P45). */
+.kpi-delta { font-size: 0.72rem; color: var(--c-ink-faint); display: inline-flex; align-items: center; gap: 3px; }
+.kpi-delta.up { color: var(--c-ok); }
+.kpi-delta.down { color: var(--c-warn); }
+
+/* P35 — cluster markers. */
+.map-cluster {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--c-primary); color: var(--c-primary-ink);
+  font-weight: 700; font-size: 0.85rem;
+  border: 2px solid var(--c-surface);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
+  cursor: pointer;
+}
+.map-cluster-count { font-variant-numeric: tabular-nums; }
+
+/* P81 — responsive modals: never exceed the viewport, always scrollable,
+   bottom-sheet feel on small screens. */
+.dialog {
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+@media (max-width: 560px) {
+  .dialog {
+    width: 100% !important;
+    max-width: none;
+    margin: 8px;
+    border-radius: var(--radius-md);
+  }
+  .dialog-backdrop { align-items: flex-end; }
+}

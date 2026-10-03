@@ -7,7 +7,7 @@ import {
   buildInterfaceTourSteps,
   buildDemoTourSteps,
 } from "./guidance";
-import { REPORTER_NAV_ITEMS, PROFESSIONAL_NAV_ITEMS } from "../../app/navigation";
+import { REPORTER_NAV_ITEMS, PROFESSIONAL_NAV_ITEMS, FOOTER_NAV_ITEMS } from "../../app/navigation";
 import type { TourStepV2 } from "./tourStepsTypes";
 
 describe("guidance systems are architecturally separate", () => {
@@ -72,7 +72,13 @@ describe("workspace navigation separation", () => {
     expect(paths).not.toContain("/network");
     expect(paths).toContain("/incidents");
     expect(paths).toContain("/incidents/new");
-    expect(paths).toContain("/settings");
+  });
+
+  it("low-frequency destinations live in the footer nav for both workspaces", () => {
+    const footer = FOOTER_NAV_ITEMS.map((i) => i.to);
+    expect(footer).toEqual(["/help", "/settings", "/settings?section=profile"]);
+    expect(REPORTER_NAV_ITEMS.map((i) => i.to)).not.toContain("/help");
+    expect(PROFESSIONAL_NAV_ITEMS.map((i) => i.to)).not.toContain("/settings");
   });
 
   it("professional nav adds the response network", () => {

@@ -1,7 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
-import { REPORTER_NAV_ITEMS, PROFESSIONAL_NAV_ITEMS } from "./app/navigation";
+import { REPORTER_NAV_ITEMS, PROFESSIONAL_NAV_ITEMS, FOOTER_NAV_ITEMS } from "./app/navigation";
 import { useApp } from "./app/AppContext";
 import { Icons } from "./components/Icons";
 import { BrandMark } from "./components/BrandMark";
@@ -15,21 +15,36 @@ import { SettingsPage } from "./features/settings/SettingsPage";
 import { NetworkPage } from "./features/network/NetworkPage";
 import { TutorialPage } from "./features/tutorial/TutorialPage";
 import { SpotlightTour } from "./features/tutorial/SpotlightTour";
-import { isTauri } from "./utils/platformFile";
 import { HelpPage } from "./features/help/HelpPage";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { NotificationBell } from "./components/NotificationCenter";
+import { registerNavigate } from "./app/routerNavigate";
+import { registerTourLauncher } from "./features/help/launchTour";
 
-
-
-
+function roleLine(settings: ReturnType<typeof useApp>["settings"], t: (k: string, o?: unknown) => string): string {
+  if (settings.workspace !== "professional") {
+    return t("navigation:roleReporter", { defaultValue: "Reporter" });
+  }
+  const active = settings.professionalRoles?.find((r) => r.role === settings.activeProfessionalRole)
+    ?? settings.professionalRoles?.[0];
+  const label = active
+    ? t(`navigation:role_${active.role}`, { defaultValue: active.role.replaceAll("_", " ") })
+    : t("navigation:roleResponder", { defaultValue: "Wildlife responder" });
+  return label;
+}
 
 export function App() {
   const { settings, storageReady, guidance, startGuidance, endGuidance } = useApp();
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const previewingOnboarding = settings.onboardingPreviewActive === true;
+  // Non-React modules (Help tutorials) navigate/launch via these bridges.
+  useEffect(() => {
+    registerNavigate(navigate);
+    registerTourLauncher(startGuidance);
+  }, [navigate, startGuidance]);
 
   // First-run onboarding redirect.
   useEffect(() => {
@@ -40,6 +55,23 @@ export function App() {
       navigate("/", { replace: true });
     }
   }, [storageReady, settings.onboarded, previewingOnboarding, location.pathname, navigate]);
+
+  // Close the mobile drawer on navigation.
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [location.pathname, location.search]);
+
+  useEffect(() => {
+    document.body.classList.toggle("drawer-open", drawerOpen);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setDrawerOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.classList.remove("drawer-open");
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [drawerOpen]);
 
   if (!storageReady) {
     return (
@@ -57,62 +89,72 @@ export function App() {
     );
   }
 
-  const isDesktop = isTauri();
-  const navItems = settings.workspace === "professional" ? PROFESSIONAL_NAV_ITEMS : REPORTER_NAV_ITEMS;
-  const firstName = (settings.displayName || settings.savedReporterContact?.name || "").trim().split(/\s+/)[0];
-  const runTour = () => {
-    void import("./features/tutorial/guidance").then(async ({ buildInterfaceTourSteps }) => {
-      const steps = await buildInterfaceTourSteps(settings.workspace);
-      endGuidance(false);
-      navigate("/");
-      setTimeout(() => startGuidance("interface-tour", steps), 60);
-    });
-  };
+  const isPro = settings.workspace === "professional";
+  const navItems = isPro ? PROFESSIONAL_NAV_ITEMS : REPORTER_NAV_ITEMS;
+  const firstName = (settings.displayName || settings.professionalProfile?.name || settings.savedReporterContact?.name || "").trim().split(/\s+/)[0];
+  const identityLine = isPro
+    ? (settings.professionalProfile?.organization || firstName || t("home:professionalWorkspace", { defaultValue: "Professional workspace" }))
+    : (firstName || t("home:welcome", { defaultValue: "Welcome" }));
+  const subLine = roleLine(settings, t as never);
+
+  const navList = (
+    <>
+      {navItems.map((item) => (
+        <NavLink key={item.to} to={item.to} end={item.end ?? item.to === "/"} data-tour-id={item.tourId} className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}>
+          <item.icon size={18} />
+          {t(item.labelKey, { ns: "navigation" })}
+        </NavLink>
+      ))}
+    </>
+  );
+
+  const footerList = (
+    <>
+      {FOOTER_NAV_ITEMS.map((item) => (
+        <NavLink key={item.to} to={item.to} data-tour-id={item.tourId} className={({ isActive }) => `nav-item nav-item-footer${isActive ? " active" : ""}`}>
+          <item.icon size={17} />
+          {t(item.labelKey, { ns: "navigation" })}
+        </NavLink>
+      ))}
+    </>
+  );
 
   return (
     <div className="app-shell">
       <TitleBar />
       <div className="app-body">
         <a href="#main-content" className="sr-only">{t("skipToContent")}</a>
-      <aside className="sidebar">
-        <NavLink to="/" className="brand">
-          <BrandMark size={30} />
-          {isDesktop && (
+
+        {drawerOpen && <button className="drawer-scrim" aria-label={t("navigation:closeMenu", { defaultValue: "Close menu" })} onClick={() => setDrawerOpen(false)} />}
+
+        <aside className={`sidebar${drawerOpen ? " drawer-open" : ""}`} aria-label={t("navigation:mainNav")}>
+          {/* Compact identity header — the desktop titlebar already carries the product name. */}
+          <NavLink to="/" className="brand">
+            <BrandMark size={30} />
             <span className="brand-name">
-              {settings.workspace === "professional"
-                ? settings.professionalProfile?.organization || t("home:professionalWorkspace", { defaultValue: "Professional workspace" })
-                : firstName
-                  ? t("home:welcomeShort", { name: firstName, defaultValue: "Welcome, {{name}}", interpolation: { escapeValue: false } })
-                  : t("navigation:home")}
+              <strong>{identityLine}</strong>
+              <span className="brand-sub">{subLine}</span>
+              {isPro && (
+                <span className="badge" data-status="response_requested">{t("home:professionalPreview", { defaultValue: "Professional Preview" })}</span>
+              )}
             </span>
-          )}
-          {!isDesktop && (
-            <span className="brand-name">
-              Wildlife Incident
-              <br />
-              Handoff
-            </span>
-          )}
-        </NavLink>
-        <nav aria-label="Main navigation">
-          {navItems.map((item) => (
-            <NavLink key={item.to} to={item.to} end={item.end ?? item.to === "/"} data-tour-id={item.tourId} className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}>
-              <item.icon size={18} />
-              {t(item.labelKey, { ns: "navigation" })}
-            </NavLink>
-          ))}
-          <button className="nav-item" style={{ background: "none", border: "none", cursor: "pointer", font: "inherit", textAlign: "left", width: "100%" }} onClick={runTour}>
-            <Icons.compass size={18} />
-            {t("navigation:takeTheTour")}
-          </button>
-        </nav>
-        <p className="nav-note">{t("localFirstNote")}</p>
-      </aside>
+          </NavLink>
+          <nav aria-label={t("navigation:mainNav")} className="nav-work">
+            {navList}
+          </nav>
+          <nav aria-label={t("navigation:footerNav", { defaultValue: "Help and settings" })} className="nav-footer">
+            <span className="nav-footer-bell"><NotificationBell /></span>
+            {footerList}
+          </nav>
+        </aside>
 
       <div className="main-area">
         <header className="mobile-header">
-          <BrandMark size={26} />
-          <strong style={{ fontSize: "0.95rem" }}>{t("appName")}</strong>
+          <button className="hamburger" aria-label={t("navigation:openMenu", { defaultValue: "Open menu" })} aria-expanded={drawerOpen} onClick={() => setDrawerOpen(true)}>
+            <span /><span /><span />
+          </button>
+          <BrandMark size={24} />
+          <strong style={{ fontSize: "0.95rem" }}>{identityLine}</strong>
           <span style={{ marginLeft: "auto" }}><NotificationBell /></span>
         </header>
         <Routes>
@@ -133,25 +175,27 @@ export function App() {
       <nav className="bottom-nav" aria-label={t("navigation:mobileNav")}>
         <NavLink to="/" end className={({ isActive }) => (isActive ? "active" : "")} data-tour-id="nav-home">
           <Icons.home size={20} />
-          {t("navigation:home")}
+          {isPro ? t("navigation:dashboard") : t("navigation:home")}
         </NavLink>
+        {isPro && (
+          <NavLink to="/network" className={({ isActive }) => (isActive ? "active" : "")} data-tour-id="nav-network">
+            <Icons.handoff size={20} />
+            {t("navigation:network")}
+          </NavLink>
+        )}
         <NavLink to="/incidents" className={({ isActive }) => (isActive ? "active" : "")} data-tour-id="nav-incidents">
           <Icons.list size={20} />
-          {settings.workspace === "professional" ? t("navigation:incidents") : t("navigation:myReports")}
+          {isPro ? t("navigation:incidents") : t("navigation:myReports")}
         </NavLink>
         <NavLink to="/incidents/new" data-tour-id="nav-create">
           <span style={{ display: "grid", placeItems: "center", width: 40, height: 40, borderRadius: "50%", background: "var(--c-primary)", color: "var(--c-primary-ink)", marginTop: -14 }}>
             <Icons.plus size={22} />
           </span>
-          {settings.workspace === "professional" ? t("navigation:createIncident") : t("navigation:report")}
+          {isPro ? t("navigation:createIncident") : t("navigation:report")}
         </NavLink>
-        <NavLink to="/network" className={({ isActive }) => (isActive ? "active" : "")} style={{ display: settings.workspace === "professional" ? undefined : "none" }} data-tour-id="nav-network">
-          <Icons.handoff size={20} />
-          {t("navigation:network")}
-        </NavLink>
-        <NavLink to="/examples" className={({ isActive }) => (isActive ? "active" : "")}>
+        <NavLink to="/help" className={({ isActive }) => (isActive ? "active" : "")} data-tour-id="nav-help">
           <Icons.book size={20} />
-          {t("navigation:learn")}
+          {t("navigation:help")}
         </NavLink>
         <NavLink to="/settings" className={({ isActive }) => (isActive ? "active" : "")} data-tour-id="nav-settings">
           <Icons.settings size={20} />

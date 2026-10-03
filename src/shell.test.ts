@@ -50,7 +50,7 @@ describe("desktop shell structure", () => {
 
   it(".sidebar is a fixed-width flex item starting at the left, without 100vh", () => {
     const rule = ruleFor(".sidebar");
-    expect(rule).toContain("flex: 0 0 232px");
+    expect(rule).toContain("flex: 0 0 236px");
     expect(rule).not.toContain("100vh");
     expect(rule).not.toContain("position: sticky");
   });

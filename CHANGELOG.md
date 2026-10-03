@@ -2,6 +2,33 @@
 
 All notable changes to Wildlife Incident Handoff are documented here. Format based on [Keep a Changelog](https://keepachangelog.com/); versioning follows [SemVer](https://semver.org/).
 
+## 0.2.0-dev.8 — product experience overhaul (coherence pass)
+
+### Fixed
+- **Mobile scrolling bug (root cause)**: at ≤860 px the shell switched to `display:block`, which removed the height constraint on `.main-area` so its `overflow-y:auto` never engaged and NOTHING could scroll. The flex column shell is preserved at every width — `.main-area` is the single bounded scroll owner. Verified scrolling at 320×568, 360×640, 390×844, 430×932.
+- **Reporter tour target**: the tour's first step targeted a `hero` element removed in the dev.7 reporter home rebuild — now retargeted to the greeting heading.
+- **Help-launched tours** navigate Home first so step 1 never fails (P69).
+
+### Changed
+- **Sidebar redesign (P3–P7)**: compact identity header (paw + name/organization + role + Professional Preview badge) — no repeated product name; primary navigation is work-only (reporter: Home / Report wildlife / My reports; professional: Dashboard / Response network / Map / Incidents / New intake); low-frequency destinations (Help, Settings, Profile + notification bell) moved to a sidebar footer. "Take the tour" removed from primary navigation (lives in Help → Tutorials).
+- **Responsive sidebar (P5)**: below 860 px the sidebar becomes an off-canvas drawer (scrim + Esc + hamburger); bottom navigation mirrors the workspace nav.
+- **Help Center redesign (P14–P19)**: categories, quick-help chips, article reading pane (no clipping), reporter/professional separation (reporters cannot switch to Professional Help; professionals can), honest support composer (prepare/copy/download bundle, GitHub links — never "message sent"), glossary retained.
+- **Languages (P20–P26)**: only complete locales (en/fr/es) are selectable; the 10 partial languages are hidden behind a developer-preview toggle together with a new expanding **zz-ZZ pseudo-locale** that exposes hard-coded strings and layout clipping. Language-pack race audited (lazy packs load before switch; no reload needed).
+- **Monochrome rework (P27/P28/P60)**: status glyphs complemented by border patterns (dashed = needs action, dotted = low priority) and contrast lifts for the faintest text tiers.
+- **Response Network / queue (P29/P30/P63/P64)**: one consistent `IncidentQueueRow` (title + status inline, right-aligned action rail, stacked on narrow screens) plus a professional **table density** view (incident/animal/status/age/location/assignment/actions).
+- **Operations dashboard (P40–P57)**: deliberate 12-column grid with the service-area map as primary context (span 8) beside Needs Attention + Live activity (span 4); command strip header (greeting, role, live badge, filters, list/map, Operations View); **Response flow pipeline** with per-stage counts and click-through; KPI tiles with honest vs-previous-period deltas (only when data supports them) and "oldest" context; data-quality card when animal group is missing for most reports; role-aware widget emphasis (dispatcher/coordinator → attention first; rehabilitator/vet → map first) — presentation only, nothing hidden, nothing authorized.
+- **Map (P31–P39)**: camera auto-fits the configured service area (or the incident cluster) instead of starting at world zoom; client-side grid clustering at wide zooms (click to zoom in); redesigned offline fallback as a proper location list with privacy states and Retry; non-sensitive provider diagnostics (HTTP status/error class) surfaced in the fallback and Settings → Map.
+- **Tutorials (P65–P77)**: target resolution never spotlights off-canvas drawer controls at mobile widths; Help articles launch tours directly ("Show me"); declarative step model retained (state machine was already generation-token based).
+- **Modals (P81)**: dialogs cap at viewport height, scroll internally, become bottom sheets on small screens.
+- Queue list renders are capped at 50 rows per group with an honest truncation note (large local datasets stay responsive).
+
+### Added
+- **Professional role architecture (P8–P12, P83–P87)**: eight roles with per-role verification requirements, local preview/pending states, active-role context, remove-with-confirmation management UI in Settings → Profile; `docs/ROLE_CAPABILITY_MATRIX.md`; authorization remains hard-unverified until a server issues claims.
+- `docs/SECURITY_ARCHITECTURE.md` extended with the dev.8 threat-model notes (roles, support composer, map diagnostics, drawer scroll).
+
+### Tests
+- 218 tests (was 201): locale selectability, pseudo-locale expansion, RTL flag, role capability/verification completeness, preview-grants-nothing, capability matrix doc, map clustering (wide zoom clusters / close zoom does not), diagnostics coordinate-free, pipeline stage counts, honest KPI deltas, help isolation, mobile scroll fix, drawer CSS contract, defaults.
+
 ## 0.2.0-dev.7 — major product overhaul (two products, one data model)
 
 ### Added
