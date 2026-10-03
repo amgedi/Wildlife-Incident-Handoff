@@ -232,6 +232,13 @@ export interface TimelineEvent {
   relatedAttachmentIds: string[];
 }
 
+/** LAN sync provenance (dev.15): which trusted device last delivered this record. */
+export interface SyncSource {
+  deviceId: string;
+  name: string;
+  at: string;
+}
+
 export interface HandoffItem {
   label: string;
   included: boolean;
@@ -290,6 +297,8 @@ export interface Incident {
   timeline: TimelineEvent[];
   notes: IncidentNote[];
   tags: string[];
+  /** LAN sync provenance (optional, additive v0.2): last trusted device that delivered this record. */
+  syncSource?: SyncSource | null;
   archivedAt: string | null;
   deletedAt: string | null;
   isDemo: boolean;

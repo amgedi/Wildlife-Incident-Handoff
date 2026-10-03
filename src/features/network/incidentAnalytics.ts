@@ -10,6 +10,7 @@
  */
 import type { Incident, TimelineEvent } from "../../types/incident";
 import { STATUS_LABELS_BY_KEY } from "../incidents/labels";
+import { findDuplicateCandidates } from "./networkService";
 
 export interface Kpis {
   newReports: number;
@@ -136,19 +137,10 @@ export function getNeedsAttention(incidents: Incident[], now = new Date()): Need
     .filter((i) => NEW_STATUSES.has(i.status) && (now.getTime() - new Date(i.occurredAt ?? i.createdAt).getTime()) > 2 * 3600_000)
     .sort((a, b) => a.occurredAt!.localeCompare(b.occurredAt ?? b.createdAt));
   const missingLocation = open.filter((i) => !i.location.description && i.location.latitude == null && i.location.landmark == null);
-  // duplicates among ALL live incidents (spec: detection across records)
-  const candidates: Array<{ a: Incident; b: Incident }> = [];
-  for (let x = 0; x < live.length; x++) {
-    for (let y = x + 1; y < live.length; y++) {
-      const a = live[x]!, b = live[y]!;
-      if (a.incidentType !== b.incidentType) continue;
-      const hours = Math.abs(new Date(a.occurredAt ?? a.createdAt).getTime() - new Date(b.occurredAt ?? b.createdAt).getTime()) / 3600_000;
-      if (hours > 24) continue;
-      const bothCoords = a.location.latitude != null && b.location.latitude != null;
-      if (bothCoords && Math.abs(a.location.latitude! - b.location.latitude!) > 0.05) continue;
-      candidates.push({ a, b });
-    }
-  }
+  // duplicates among ALL live incidents (spec: detection across records).
+  // Perf (dev.15): delegated to the windowed detector — the previous inline
+  // O(n²) pair loop froze the dashboard at ~10k records.
+  const candidates: Array<{ a: Incident; b: Incident }> = findDuplicateCandidates(live, { maxCandidates: 25 });
   const handoffWaiting = open.filter((i) => i.status === "awaiting_pickup" || i.status === "in_transport");
   return { unassignedOld, missingLocation, possibleDuplicates: candidates, handoffWaiting };
 }

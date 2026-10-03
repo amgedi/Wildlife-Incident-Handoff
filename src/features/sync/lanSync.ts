@@ -10,7 +10,7 @@
  * wins on `updatedAt`; demo records never sync. Media (attachment blobs)
  * is NOT synced yet — metadata travels, files stay local (honest v1).
  */
-import { getAllIncidents, putIncident } from "../../storage/repositories";
+import { getAllIncidents, putIncident, getSetting, setSetting } from "../../storage/repositories";
 import type { Incident } from "../../types/incident";
 
 export const LAN_SYNC_DEFAULT_PORT = 47618;
@@ -26,6 +26,10 @@ export const DEFAULT_LAN_SYNC_CONFIG: LanSyncConfig = {
   port: LAN_SYNC_DEFAULT_PORT,
   peers: [],
 };
+
+
+export const SYNC_CONFLICTS_KEY = "sync-conflicts";
+export const SYNC_PEER_STATE_KEY = "lan-sync-peer-state";
 
 export interface MergeResult {
   merged: Incident[];
@@ -66,6 +70,219 @@ export function mergeIncidents(local: Incident[], incoming: Incident[]): MergeRe
   return { merged, added, updated, skipped };
 }
 
+// ---- v2 (0.2.0-dev.15): device identity, ack-based three-way merge, tombstones, conflicts ----
+
+export interface SyncPeerState {
+  deviceId?: string;
+  name?: string;
+  trusted: boolean;
+  lastSyncAt?: string;
+  /** incidentId -> updatedAt at the last successful exchange with this peer (common ancestor). */
+  ack: Record<string, string>;
+}
+
+export type SyncPeerStates = Record<string, SyncPeerState>;
+
+export interface SyncConflict {
+  id: string;
+  incidentId: string;
+  reference: string;
+  local: Incident;
+  incoming: Incident;
+  peerName: string;
+  peerDeviceId: string;
+  at: string;
+}
+
+export interface MergeResultV2 {
+  merged: Incident[];
+  added: number;
+  updated: number;
+  skipped: number;
+  tombstoned: number;
+  conflicts: SyncConflict[];
+  ack: Record<string, string>;
+}
+
+/** Accept the peer's record while preserving local-only timeline events
+ *  (append-only history can never lose an event). Used on accept and when a
+ *  conflict is resolved as "theirs". */
+export function acceptPeerWithUnion(local: Incident, incoming: Incident, peer: { deviceId?: string; name?: string }): Incident {
+  const stamped = stampSyncSource(incoming, peer);
+  const localOnlyEvents = local.timeline.filter((e) => !stamped.timeline.some((x) => x.eventId === e.eventId));
+  if (localOnlyEvents.length === 0) return stamped;
+  return { ...stamped, timeline: [...stamped.timeline, ...localOnlyEvents].sort((a, b) => a.timestamp.localeCompare(b.timestamp)) };
+}
+
+function stampSyncSource(inc: Incident, peer: { deviceId?: string; name?: string }): Incident {
+  return {
+    ...inc,
+    syncSource: { deviceId: peer.deviceId ?? "unknown", name: peer.name ?? "Unknown device", at: new Date().toISOString() },
+  };
+}
+
+/**
+ * Ack-based three-way merge. Both-changed -> CONFLICT (queued for human
+ * resolution; the local record is never silently overwritten, regardless of
+ * clock). Only-peer-changed -> accept, tombstones included, with a timeline
+ * UNION by eventId so append-only history never loses an event.
+ * Only-local-changed -> keep ours. Demo records never sync.
+ */
+export function mergeIncidentsV2(
+  local: Incident[],
+  incoming: Incident[],
+  ack: Record<string, string>,
+  peer: { deviceId?: string; name?: string },
+  now = new Date().toISOString()
+): MergeResultV2 {
+  const conflicts: SyncConflict[] = [];
+  const nextAck: Record<string, string> = { ...ack };
+  const byId = new Map(local.map((i) => [i.id, i]));
+  const merged = [...local];
+  let added = 0, updated = 0, skipped = 0, tombstoned = 0;
+
+  for (const candidate of incoming) {
+    if (candidate.isDemo || !candidate?.id) { skipped += 1; continue; }
+    const existing = byId.get(candidate.id);
+    if (!existing) {
+      const stamped = stampSyncSource(candidate, peer);
+      merged.push(stamped);
+      byId.set(candidate.id, stamped);
+      nextAck[candidate.id] = stamped.updatedAt ?? "";
+      added += 1;
+      if (candidate.deletedAt) tombstoned += 1;
+      continue;
+    }
+    const ackAt = ack[candidate.id];
+    const peerChanged = candidate.updatedAt !== ackAt;
+    const localChanged = existing.updatedAt !== ackAt;
+
+    if (!peerChanged) {
+      nextAck[candidate.id] = existing.updatedAt ?? "";
+      skipped += 1;
+      continue;
+    }
+    if (!localChanged) {
+      const stamped = acceptPeerWithUnion(existing, candidate, peer);
+      const idx = merged.findIndex((i) => i.id === candidate.id);
+      if (idx >= 0) merged[idx] = stamped;
+      nextAck[candidate.id] = candidate.updatedAt ?? "";
+      updated += 1;
+      if (candidate.deletedAt && !existing.deletedAt) tombstoned += 1;
+      continue;
+    }
+    if (candidate.deletedAt && existing.deletedAt) {
+      nextAck[candidate.id] = candidate.updatedAt ?? "";
+      skipped += 1;
+      continue;
+    }
+    conflicts.push({
+      id: "conflict-" + candidate.id + "-" + now,
+      incidentId: candidate.id,
+      reference: existing.humanReference,
+      local: existing,
+      incoming: candidate,
+      peerName: peer.name ?? "Unknown device",
+      peerDeviceId: peer.deviceId ?? "unknown",
+      at: now,
+    });
+    skipped += 1;
+  }
+  return { merged, added, updated, skipped, tombstoned, conflicts, ack: nextAck };
+}
+
+/** Extract the peer's device display name from a snapshot payload. */
+export function deviceNameFromPayload(payload: string): string | null {
+  try {
+    const parsed = JSON.parse(payload) as { deviceName?: string };
+    return typeof parsed.deviceName === "string" && parsed.deviceName.trim() ? parsed.deviceName.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Persistent device identity: generated once, stored in app settings. */
+export async function ensureDeviceIdentity(): Promise<{ deviceId: string; deviceLabel: string }> {
+  const settings = (await getSetting<Record<string, unknown>>("app-settings")) ?? {};
+  let deviceId = (settings.deviceId as string) ?? "";
+  if (!deviceId) {
+    deviceId = crypto.randomUUID?.() ?? ("dev-" + Date.now() + "-" + Math.random().toString(36).slice(2));
+    settings.deviceId = deviceId;
+    await setSetting("app-settings", settings);
+  }
+  return { deviceId, deviceLabel: (settings.deviceLabel as string) ?? "" };
+}
+
+export async function lanSetTrusted(deviceIds: string[]): Promise<void> {
+  await invoke("lan_sync_set_trusted", { deviceIds });
+}
+export async function lanSetPairingCode(code: string): Promise<void> {
+  await invoke("lan_sync_set_pairing_code", { code });
+}
+export async function lanTakePairRequests(): Promise<string[]> {
+  return invoke<string[]>("lan_sync_take_pair_requests");
+}
+export async function lanPairPeer(url: string, deviceId: string, name: string, code: string): Promise<void> {
+  await invoke("lan_sync_pair_peer", { url, deviceId, name, code });
+}
+
+export interface SyncRoundResult {
+  added: number;
+  updated: number;
+  tombstoned: number;
+  conflicts: number;
+  peersUp: number;
+}
+
+/**
+ * One sync round (v2): snapshot -> pull+push each peer using the ack-based
+ * merge; conflicts are persisted for human review, never auto-resolved.
+ */
+export async function runSyncRound(
+  config: LanSyncConfig,
+  deviceName: string,
+  deviceId: string,
+  onLog: (line: string) => void
+): Promise<SyncRoundResult> {
+  const local = (await getAllIncidents()).filter((i) => !i.isDemo);
+  const snapshot = snapshotFrom(local, deviceName);
+  await lanSetSnapshot(snapshot);
+
+  const peerStates = ((await getSetting<SyncPeerStates>(SYNC_PEER_STATE_KEY)) ?? {}) as SyncPeerStates;
+  let added = 0, updated = 0, tombstoned = 0, conflicts = 0, peersUp = 0;
+
+  for (const raw of config.peers) {
+    const peer = peerStates[raw] ?? { trusted: true, ack: {} };
+    if (peer.trusted === false) continue;
+    const up = await lanPingPeer(raw);
+    if (!up) { onLog("peer unreachable: " + raw); continue; }
+    peersUp += 1;
+    try {
+      const payload = await lanFetchSnapshot(raw, deviceId);
+      const peerName = deviceNameFromPayload(payload) ?? peer.name ?? raw.replace(/^https?:\/\/[^:]+/, "").split(":")[0] ?? "Device";
+      const incoming = incidentsFromPayload(payload);
+      const result = mergeIncidentsV2(local, incoming, peer.ack ?? {}, { deviceId: peer.deviceId, name: peerName });
+      for (const inc of result.merged) {
+        const unchanged = local.some((i) => i.id === inc.id && i.updatedAt === inc.updatedAt);
+        if (!unchanged) await putIncident(inc);
+      }
+      added += result.added; updated += result.updated; tombstoned += result.tombstoned;
+      if (result.conflicts.length > 0) {
+        conflicts += result.conflicts.length;
+        const existingConflicts = (await getSetting<SyncConflict[]>(SYNC_CONFLICTS_KEY)) ?? [];
+        await setSetting(SYNC_CONFLICTS_KEY, [...existingConflicts, ...result.conflicts].slice(-50));
+      }
+      peerStates[raw] = { ...peer, deviceId: peer.deviceId, name: peerName, trusted: true, lastSyncAt: new Date().toISOString(), ack: result.ack };
+      await lanPushPeer(raw, deviceId, snapshot);
+      onLog("synced with " + peerName + " (+" + result.added + " new, ~" + result.updated + " updated, " + result.tombstoned + " removed, " + result.conflicts.length + " conflicts)");
+    } catch (e) {
+      onLog("sync with " + raw + " failed: " + String(e).slice(0, 80));
+    }
+  }
+  await setSetting(SYNC_PEER_STATE_KEY, peerStates);
+  return { added, updated, tombstoned, conflicts, peersUp };
+}
+
 /** Build the device snapshot: every non-demo incident as plain JSON, with an
  *  optional device display name (used by the local reporter leaderboard). */
 export function snapshotFrom(incidents: Incident[], deviceName?: string): string {
@@ -88,14 +305,6 @@ export function incidentsFromPayload(payload: string): Incident[] {
 }
 
 /** Peer device display name from a snapshot payload, if provided. */
-export function deviceNameFromPayload(payload: string): string | null {
-  try {
-    const parsed = JSON.parse(payload) as { deviceName?: string };
-    return typeof parsed.deviceName === "string" && parsed.deviceName.trim() ? parsed.deviceName.trim() : null;
-  } catch {
-    return null;
-  }
-}
 
 // ---- Tauri bridge (browser builds never import the Rust side) -------------
 
@@ -132,8 +341,8 @@ export async function lanPingPeer(url: string): Promise<boolean> {
   }
 }
 
-export async function lanFetchSnapshot(url: string): Promise<string> {
-  return invoke<string>("lan_sync_fetch_peer", { url });
+export async function lanFetchSnapshot(url: string, deviceId: string): Promise<string> {
+  return invoke<string>("lan_sync_fetch_peer", { url, deviceId });
 }
 
 export async function lanPullPeer(url: string): Promise<Incident[]> {
@@ -141,8 +350,8 @@ export async function lanPullPeer(url: string): Promise<Incident[]> {
   return incidentsFromPayload(payload);
 }
 
-export async function lanPushPeer(url: string, snapshot: string): Promise<void> {
-  await invoke("lan_sync_push_peer", { url, body: snapshot });
+export async function lanPushPeer(url: string, deviceId: string, snapshot: string): Promise<void> {
+  await invoke("lan_sync_push_peer", { url, deviceId, body: snapshot });
 }
 
 export async function lanLocalAddress(port: number): Promise<string> {
@@ -150,58 +359,4 @@ export async function lanLocalAddress(port: number): Promise<string> {
 }
 
 /** One sync round: refresh snapshot, drain inbox, pull+push each peer. */
-export async function runSyncRound(
-  config: LanSyncConfig,
-  log: (line: string) => void,
-  deviceName?: string
-): Promise<{ added: number; updated: number; peersUp: number }> {
-  const local = (await getAllIncidents()).filter((i) => !i.isDemo && !i.deletedAt);
-  const snapshot = snapshotFrom(local, deviceName);
-  await lanSetSnapshot(snapshot);
 
-  let added = 0;
-  let updated = 0;
-  let peersUp = 0;
-
-  // Records peers pushed to us.
-  const inbox = await lanTakeInbox();
-  for (const payload of inbox) {
-    const r = await applyIncoming(local, payload, log);
-    added += r.added;
-    updated += r.updated;
-  }
-
-  // Pull + push each configured peer.
-  for (const peer of config.peers) {
-    const up = await lanPingPeer(peer);
-    if (!up) {
-      log(`peer unreachable: ${peer}`);
-      continue;
-    }
-    peersUp += 1;
-    try {
-      const incoming = await lanPullPeer(peer);
-      const r = await applyIncoming(local, JSON.stringify({ incidents: incoming }), log);
-      added += r.added;
-      updated += r.updated;
-      await lanPushPeer(peer, snapshot);
-      log(`synced with ${peer} (+${r.added} new, ~${r.updated} updated)`);
-    } catch (e) {
-      log(`sync with ${peer} failed: ${String(e).slice(0, 80)}`);
-    }
-  }
-  return { added, updated, peersUp };
-}
-
-async function applyIncoming(local: Incident[], payload: string, log: (line: string) => void): Promise<{ added: number; updated: number }> {
-  const incoming = incidentsFromPayload(payload);
-  const result = mergeIncidents(local, incoming);
-  for (const inc of result.merged) {
-    const wasLocal = local.some((i) => i.id === inc.id && i.updatedAt === inc.updatedAt);
-    if (!wasLocal) await putIncident(inc);
-  }
-  if (result.added > 0 || result.updated > 0) {
-    log(`merged +${result.added} new, ~${result.updated} updated (${result.skipped} unchanged)`);
-  }
-  return { added: result.added, updated: result.updated };
-}

@@ -2,6 +2,37 @@
 
 All notable changes to Wildlife Incident Handoff are documented here. Format based on [Keep a Changelog](https://keepachangelog.com/); versioning follows [SemVer](https://semver.org/).
 
+## 0.2.0-dev.15 — trust pass: sync integrity, device identity, conflicts, hardening
+
+Focus: "Would I trust this app with real incident history on multiple devices?"
+
+### LAN sync v2 (data-integrity rework)
+- **Device identity**: every installation persists a UUID device id (never hostname-derived) used to authenticate sync traffic; friendly labels coming with it.
+- **Trust gate**: the sync server answers `/wih/sync` (read/write) ONLY for explicitly trusted device ids; `/wih/ping` stays open for reachability checks but returns no data. An unknown laptop can no longer pull incident snapshots.
+- **Pairing flow**: per-session pairing code; the requesting device sends address+code+identity; the request lands in an approval inbox — "Trust device" / "Deny" — never auto-trusted. Trusted-devices list supports **Remove trust** (revocation blocks future sync until re-paired).
+- **Ack-based three-way merge replaces blind whole-record LWW**: a per-peer ack map records the last exchanged `updatedAt` per incident as the common ancestor. Only-peer-changed → accept. Only-local-changed → keep. BOTH changed → **SYNC CONFLICT** surfaced in Settings → LAN sync with "Use this device's / Use the peer's / Keep both" — nothing is silently overwritten, regardless of wall-clock skew (timestamps never decide conflicts; the ack ancestry does).
+- **Tombstones**: deletions/archives propagate; a stale active copy from a peer can no longer resurrect a record deleted locally since the ack, and both-deleted stays deleted.
+- **Timeline union**: accepting a peer record (or resolving a conflict as "theirs") preserves local-only timeline events by eventId — append-only history can never lose an event.
+- **Provenance**: accepted records carry `syncSource` (device id, name, time) for audit.
+- **Server hardening**: 8 MB body cap, 60 requests/minute rate limit, bounded reads, malformed payloads rejected without crashing the listener.
+- Honest limits remain (docs/LAN_SYNC_SECURITY.md): text records only (media transfer deferred), plaintext HTTP inside the LAN (TLS-with-paired-certificates is the documented next step), no auto-discovery yet.
+
+### Performance (10,000-incident dataset, measured)
+- Dashboard ready: **~1.5 s** (previously froze >30 s — two O(n²) duplicate-pair loops replaced by a time-windowed near-linear detector with capped candidates).
+- Incident list (first 100): ~0.5 s; language switch: ~0.3 s; map view: clustering bounds the DOM to ~120 cluster nodes at 10k.
+
+### Added
+- **Data health** (Settings → Storage & backups): incident/event/attachment counts, last backup with a two-week overdue reminder, unresolved sync-conflict count.
+- **Migration fixtures & invariants tests**: legacy/sparse/malformed records merge and round-trip through IndexedDB unchanged; state invariants codified (status change appends without rewriting history, archive/unarchive append, trash preserves recoverability).
+- **CI workflow** (`.github/workflows/ci.yml`): typecheck, tests, web build, license inventory on every push; desktop build on tags/dispatch.
+- **docs**: LAN_SYNC_SECURITY.md (threat model + honest gaps), WINDOWS_CODE_SIGNING.md (signing requirements, no fake signing), CI_RELEASE_GATES.md, TESTING_GUIDE_REPORTER.md / TESTING_GUIDE_PROFESSIONAL.md (field test kits incl. the two-device dispatcher/responder scenario), THIRD_PARTY_LICENSES.md (SBOM-lite via scripts/license-inventory.mjs).
+
+### Deferred (documented, not faked)
+- Media/photo/video sync with resumable chunked transfer + SHA-256 verification; encrypted (TLS) LAN transport; offline map packs (PMTiles); NVDA screen-reader audit; 125/150% DPI audit.
+
+### Tests
+- 297 tests (was 274): conflict detection (including backward clock skew), tombstone no-resurrection, timeline union, demo exclusion, payload round-trips, state invariants, migration fixtures.
+
 ## 0.2.0-dev.14 — dashboard interaction pass, satellite view, onboarding & newcomer flow
 
 ### Changed

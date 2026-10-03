@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 import { useApp } from "../../app/AppContext";
 import { useIncidents } from "../incidents/IncidentCard";
 import { computeLeaderboard, levelFor, nextMilestone, MILESTONES } from "./leaderboard";
-import { DEFAULT_LAN_SYNC_CONFIG, deviceNameFromPayload, incidentsFromPayload, lanSyncSupported, type LanSyncConfig } from "../sync/lanSync";
+import { DEFAULT_LAN_SYNC_CONFIG, deviceNameFromPayload, ensureDeviceIdentity, incidentsFromPayload, lanFetchSnapshot, lanSyncSupported, type LanSyncConfig } from "../sync/lanSync";
 import { getSetting } from "../../storage/repositories";
 import { Icons } from "../../components/Icons";
 
@@ -34,8 +34,8 @@ export function LeaderboardCard() {
         const found: Array<{ name: string; count: number }> = [];
         for (const peer of config.peers) {
           try {
-            const m = await import("../sync/lanSync");
-            const payload = await m.lanFetchSnapshot(peer);
+            const { deviceId } = await ensureDeviceIdentity();
+            const payload = await lanFetchSnapshot(peer, deviceId);
             if (cancelled) return;
             found.push({
               name: deviceNameFromPayload(payload) ?? peer.replace(/^https?:\/\//, "").split(":")[0] ?? "Device",

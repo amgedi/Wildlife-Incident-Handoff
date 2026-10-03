@@ -143,36 +143,45 @@ export interface DuplicateCandidate {
  */
 export function findDuplicateCandidates(
   incidents: Incident[],
-  options?: { maxKm?: number; maxHours?: number }
+  options?: { maxKm?: number; maxHours?: number; maxCandidates?: number }
 ): DuplicateCandidate[] {
   const maxKm = options?.maxKm ?? 2;
   const maxHours = options?.maxHours ?? 24;
+  const maxCandidates = options?.maxCandidates ?? 50;
   const candidates: DuplicateCandidate[] = [];
-  const live = incidents.filter((i) => !i.deletedAt && !i.isDemo);
-  for (let i = 0; i < live.length; i++) {
-    for (let j = i + 1; j < live.length; j++) {
-      const a = live[i]!;
-      const b = live[j]!;
-      if (a.incidentType !== b.incidentType) continue;
-      const ageHours =
-        Math.abs(new Date(a.occurredAt ?? a.createdAt).getTime() - new Date(b.occurredAt ?? b.createdAt).getTime()) /
-        3_600_000;
-      if (ageHours > maxHours) continue;
+  // Perf (dev.15): sort by time and use a sliding window so the comparison
+  // count stays near-linear instead of O(n²) Date parses (10k incidents froze
+  // the dashboard). Candidate output is capped for the same reason.
+  const live = incidents
+    .filter((i) => !i.deletedAt && !i.isDemo)
+    .map((i) => ({ i, t: new Date(i.occurredAt ?? i.createdAt).getTime() }))
+    .filter((x) => Number.isFinite(x.t))
+    .sort((a, b) => a.t - b.t);
+  const windowMs = maxHours * 3_600_000;
+  const words = (t: string | null) =>
+    new Set((t ?? "").toLowerCase().split(/\W+/).filter((w) => w.length > 3));
+  const descWords = live.map((x) => words(x.i.animal.description ?? x.i.animal.species));
+  for (let a = 0; a < live.length; a++) {
+    if (candidates.length >= maxCandidates) break;
+    for (let b = a + 1; b < live.length; b++) {
+      if (live[b]!.t - live[a]!.t > windowMs) break; // sorted → rest are too new
+      const rec1 = live[a]!.i;
+      const rec2 = live[b]!.i;
+      if (rec1.incidentType !== rec2.incidentType) continue;
       let distanceKm: number | null = null;
       if (
-        a.location.latitude != null && a.location.longitude != null &&
-        b.location.latitude != null && b.location.longitude != null
+        rec1.location.latitude != null && rec1.location.longitude != null &&
+        rec2.location.latitude != null && rec2.location.longitude != null
       ) {
-        distanceKm = haversineKm(a.location.latitude, a.location.longitude, b.location.latitude, b.location.longitude);
+        distanceKm = haversineKm(rec1.location.latitude, rec1.location.longitude, rec2.location.latitude, rec2.location.longitude);
         if (distanceKm > maxKm) continue;
       }
-      const words = (t: string | null) =>
-        new Set((t ?? "").toLowerCase().split(/\W+/).filter((w) => w.length > 3));
-      const sharedWords = [...words(a.animal.description ?? a.animal.species)].filter((w) =>
-        words(b.animal.description ?? b.animal.species).has(w)
-      ).length;
+      const sharedWords = [...descWords[a]!].filter((w) => descWords[b]!.has(w)).length;
       if (distanceKm == null && sharedWords === 0) continue;
-      candidates.push({ a, b, distanceKm, ageHours, sharedWords });
+      if (distanceKm != null && sharedWords === 0) continue;
+      const ageHours = Math.round((live[b]!.t - live[a]!.t) / 3_600_000);
+      candidates.push({ a: rec1, b: rec2, distanceKm, ageHours, sharedWords });
+      if (candidates.length >= maxCandidates) break;
     }
   }
   return candidates;

@@ -7,7 +7,7 @@ import { Segmented, TextField } from "../../components/ui";
 import { Select } from "../../components/Select";
 import { Dialog } from "../../components/Dialog";
 import { downloadBackup, importBackup } from "../../storage/backupService";
-import { getAllIncidents, getAllAttachmentBlobs, estimateStorage, setSetting, getSetting } from "../../storage/repositories";
+import { getAllIncidents, getAllAttachmentBlobs, estimateStorage, setSetting, getSetting, putIncident } from "../../storage/repositories";
 import { bytesToSize } from "../../utils/time";
 import { APP_VERSION as appVersion, BUILD_ID as buildId, DATA_SCHEMA_VERSION as dataSchemaVersion, APP_LICENSE } from "../../version";
 import { defaultUnitsFor } from "../../utils/units";
@@ -21,8 +21,9 @@ import { resetAllGuidance } from "../../features/tutorial/guidance";
 import { getMapProviderDescriptor } from "../network/mapProvider";
 import { ProfilePhoto, PHOTO_BORDER_STYLES } from "../../components/ProfilePhoto";
 import {
-  DEFAULT_LAN_SYNC_CONFIG, lanLocalAddress, lanStart, lanStop,
-  runSyncRound, lanSyncSupported, type LanSyncConfig,
+  DEFAULT_LAN_SYNC_CONFIG, acceptPeerWithUnion, ensureDeviceIdentity, lanLocalAddress, lanPairPeer,
+  lanSetPairingCode, lanSetTrusted, lanStart, lanStop, lanTakePairRequests, runSyncRound,
+  lanSyncSupported, SYNC_CONFLICTS_KEY, type LanSyncConfig, type SyncConflict,
 } from "../sync/lanSync";
 import { PROFESSIONAL_ROLES, ROLE_VERIFICATION_REQUIREMENTS, type ProfessionalRole, type ProfessionalRoleEntry } from "../../features/network/authorization";
 import { resetOnboardingForReplay, beginOnboardingPreview } from "../../features/onboarding/onboardingState";
@@ -343,16 +344,18 @@ function PrivacySection() {
 
 function StorageSection() {
   const { settings, updateSettings, showToast } = useApp();
-  const [stats, setStats] = useState<{ incidents: number; attachments: number; usage: string } | null>(null);
+  const [stats, setStats] = useState<{ incidents: number; attachments: number; usage: string; events: number; conflicts: number } | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [importResult, setImportResult] = useState<{ imported: number; skipped: number; warnings: string[] } | null>(null);
 
   useEffect(() => {
     (async () => {
-      const [incidents, blobs, est] = await Promise.all([getAllIncidents(), getAllAttachmentBlobs(), estimateStorage()]);
+      const [incidents, blobs, est, conflicts] = await Promise.all([getAllIncidents(), getAllAttachmentBlobs(), estimateStorage(), getSetting<unknown[]>(SYNC_CONFLICTS_KEY)]);
       setStats({
         incidents: incidents.length,
         attachments: blobs.length,
+        events: incidents.reduce((n, i) => n + (i.timeline?.length ?? 0), 0),
+        conflicts: conflicts?.length ?? 0,
         usage: est ? bytesToSize(est.usage) : "not reported by this browser",
       });
     })();
@@ -378,12 +381,19 @@ function StorageSection() {
       <div className="card">
         <h3 style={{ marginTop: 0 }}>Storage health</h3>
         {stats ? (
-          <dl className="kv">
-            <dt>Incidents</dt><dd>{stats.incidents}</dd>
-            <dt>Attachments</dt><dd>{stats.attachments}</dd>
-            <dt>Local storage used</dt><dd>{stats.usage}</dd>
-            <dt>Last backup</dt><dd>{settings.lastBackupAt ? new Date(settings.lastBackupAt).toLocaleString() : "Never"}</dd>
-          </dl>
+          <>
+            <dl className="kv">
+              <dt>Incidents</dt><dd>{stats.incidents}</dd>
+              <dt>Timeline events</dt><dd>{stats.events}</dd>
+              <dt>Attachments</dt><dd>{stats.attachments}</dd>
+              <dt>Local storage used</dt><dd>{stats.usage}</dd>
+              <dt>Last backup</dt><dd>{settings.lastBackupAt ? new Date(settings.lastBackupAt).toLocaleString() : "Never"}</dd>
+              <dt>Unresolved sync conflicts</dt><dd>{stats.conflicts > 0 ? <span className="badge warn">{stats.conflicts}</span> : "0"}</dd>
+            </dl>
+            {settings.lastBackupAt && Date.now() - new Date(settings.lastBackupAt).getTime() > 14 * 86400000 && stats.incidents > 2 && (
+              <p className="hint" style={{ color: "var(--c-warn)" }}>Backup is more than two weeks old — consider exporting a new one.</p>
+            )}
+          </>
         ) : (
           <p style={{ color: "var(--c-ink-faint)" }}>Counting…</p>
         )}
@@ -1142,22 +1152,28 @@ function AboutSection() {
 const LAN_SYNC_CONFIG_KEY = "lan-sync-config";
 
 function LanSyncSection() {
-  const { showToast } = useApp();
+  const { showToast, settings: appSettings, notify } = useApp();
   const { t } = useTranslation("settings");
   const supported = lanSyncSupported();
   const [config, setConfig] = useState<LanSyncConfig>(DEFAULT_LAN_SYNC_CONFIG);
   const [loaded, setLoaded] = useState(false);
+  const [identity, setIdentity] = useState<{ deviceId: string; deviceLabel: string }>({ deviceId: "", deviceLabel: "" });
   const [address, setAddress] = useState<string | null>(null);
-  const [peerInput, setPeerInput] = useState("");
+  const [pairingCode, setPairingCode] = useState("");
+  const [pairAddressInput, setPairAddressInput] = useState("");
+  const [pairCodeInput, setPairCodeInput] = useState("");
+  const [pairRequests, setPairRequests] = useState<Array<{ deviceId: string; name: string; address?: string }>>([]);
+  const [trustedDevices, setTrustedDevices] = useState<Array<{ id: string; name: string }>>([]);
+  const [conflicts, setConflicts] = useState<SyncConflict[]>([]);
   const [log, setLog] = useState<string[]>([]);
   const [lastSync, setLastSync] = useState<string | null>(null);
-
 
   useEffect(() => {
     getSetting<LanSyncConfig>(LAN_SYNC_CONFIG_KEY).then((saved) => {
       if (saved && typeof saved.port === "number") setConfig({ ...DEFAULT_LAN_SYNC_CONFIG, ...saved, peers: Array.isArray(saved.peers) ? saved.peers : [] });
       setLoaded(true);
     });
+    void ensureDeviceIdentity().then(setIdentity);
   }, []);
 
   // Server + sync loop lifecycle.
@@ -1169,10 +1185,43 @@ function LanSyncSection() {
       try {
         await lanStart(config.port);
         setAddress(await lanLocalAddress(config.port));
+        // Re-register trusted device ids with the server after (re)start.
+        const trusted = (await getSetting<Array<{ id: string; name: string }>>("lan-sync-trusted")) ?? [];
+        await lanSetTrusted(trusted.map((d) => d.id));
+        // A fresh pairing code per session; shown to the user to give out.
+        const code = Math.random().toString(36).slice(2, 8).toUpperCase();
+        setPairingCode(code);
+        await lanSetPairingCode(code);
         addLog(t("syncStartedLog", { defaultValue: "LAN sync server started" }));
         while (!cancelled) {
-          const r = await runSyncRound(config, addLog);
+          const r = await runSyncRound(
+            config,
+            appSettings.displayName || appSettings.professionalProfile?.name || "Device",
+            identity.deviceId || (await ensureDeviceIdentity()).deviceId,
+            addLog
+          );
           if (r.added > 0 || r.updated > 0 || r.peersUp > 0) setLastSync(new Date().toISOString());
+          const nextConflicts = ((await getSetting<SyncConflict[]>(SYNC_CONFLICTS_KEY)) ?? []).slice(-20);
+          setConflicts(nextConflicts);
+          setTrustedDevices((await getSetting<Array<{ id: string; name: string }>>("lan-sync-trusted")) ?? []);
+          const reqs = await lanTakePairRequests();
+          if (reqs.length > 0) {
+            const parsed = reqs
+              .map((body) => {
+                try {
+                  return JSON.parse(body) as { deviceId: string; name: string; address?: string };
+                } catch {
+                  return null;
+                }
+              })
+              .filter((x): x is { deviceId: string; name: string; address?: string } => !!x);
+            setPairRequests((prev) => [...prev, ...parsed.filter((p) => !prev.some((q) => q.deviceId === p.deviceId))]);
+            void notify({
+              category: "sync_conflict",
+              title: t("syncPairRequest", { defaultValue: "Pairing request" }),
+              body: t("syncPairRequestBody", { defaultValue: "A device wants to sync with this one. Review it in Settings → LAN sync." }),
+            });
+          }
           await new Promise((res) => setTimeout(res, 5000));
         }
       } catch (e) {
@@ -1183,12 +1232,77 @@ function LanSyncSection() {
       cancelled = true;
       void lanStop();
     };
-    // config is captured per-change; the loop restarts when it changes.
-  }, [supported, loaded, config.enabled, config.port, config.peers]);
+    // The loop restarts when config or identity changes.
+  }, [supported, loaded, config.enabled, config.port, config.peers, identity.deviceId]);
 
   const saveConfig = (next: LanSyncConfig) => {
     setConfig(next);
     void setSetting(LAN_SYNC_CONFIG_KEY, next);
+  };
+
+  const trustDevice = async (req: { deviceId: string; name: string; address?: string }) => {
+    const trusted = (await getSetting<Array<{ id: string; name: string }>>("lan-sync-trusted")) ?? [];
+    const next = [...trusted.filter((d) => d.id !== req.deviceId), { id: req.deviceId, name: req.name }];
+    await setSetting("lan-sync-trusted", next);
+    setTrustedDevices(next);
+    await lanSetTrusted(next.map((d) => d.id));
+    if (req.address && !config.peers.includes(req.address)) {
+      saveConfig({ ...config, peers: [...config.peers, req.address] });
+    }
+    setPairRequests((prev) => prev.filter((p) => p.deviceId !== req.deviceId));
+    showToast(t("syncTrustedToast", { defaultValue: "Device trusted" }));
+  };
+
+  const revokeTrust = async (id: string) => {
+    const trusted = (await getSetting<Array<{ id: string; name: string }>>("lan-sync-trusted")) ?? [];
+    const next = trusted.filter((d) => d.id !== id);
+    await setSetting("lan-sync-trusted", next);
+    setTrustedDevices(next);
+    await lanSetTrusted(next.map((d) => d.id));
+    showToast(t("syncRevokedToast", { defaultValue: "Trust removed — that device can no longer sync until re-paired" }));
+  };
+
+  const resolveConflict = async (conflict: SyncConflict, choice: "mine" | "theirs" | "both") => {
+    if (choice === "theirs") {
+      await putIncident(acceptPeerWithUnion(conflict.local, conflict.incoming, { deviceId: conflict.peerDeviceId, name: conflict.peerName }));
+    } else if (choice === "both") {
+      await putIncident({
+        ...conflict.incoming,
+        id: crypto.randomUUID?.() ?? `copy-${Date.now()}`,
+        humanReference: conflict.incoming.humanReference + "-COPY",
+        syncSource: { deviceId: conflict.peerDeviceId, name: conflict.peerName, at: new Date().toISOString() },
+      });
+    }
+    // The resolution itself is recorded as another event on the surviving record.
+    const survivor = choice === "theirs" ? conflict.incoming : conflict.local;
+    const choiceText =
+      choice === "mine"
+        ? t("syncKeptMine", { defaultValue: "this device's version" })
+        : choice === "theirs"
+          ? t("syncKeptTheirs", { defaultValue: "the peer device's version", interpolation: { escapeValue: false } })
+          : t("syncKeptBoth", { defaultValue: "both (a copy of the peer version was kept)" });
+    await putIncident({
+      ...survivor,
+      updatedAt: new Date().toISOString(),
+      timeline: [
+        ...survivor.timeline,
+        {
+          eventId: crypto.randomUUID?.() ?? `e-${Date.now()}`,
+          incidentId: survivor.id,
+          eventType: "field_corrected" as const,
+          timestamp: new Date().toISOString(),
+          actor: appSettings.displayName || null,
+          summary: t("syncConflictResolved", { defaultValue: "Sync conflict resolved — kept {{choice}}", choice: choiceText, interpolation: { escapeValue: false } }),
+          details: null,
+          metadata: null,
+          relatedAttachmentIds: [],
+        },
+      ],
+    });
+    const next = conflicts.filter((c) => c.id !== conflict.id);
+    setConflicts(next);
+    await setSetting(SYNC_CONFLICTS_KEY, next);
+    showToast(t("syncConflictResolvedToast", { defaultValue: "Conflict resolved and recorded" }));
   };
 
   if (!supported) {
@@ -1224,47 +1338,103 @@ function LanSyncSection() {
           <dl className="kv">
             <dt>{t("syncAddress", { defaultValue: "Your address (share with other devices)" })}</dt>
             <dd><code>{address ?? "…"}</code></dd>
+            <dt>{t("syncPairingCode", { defaultValue: "Your pairing code" })}</dt>
+            <dd><code style={{ fontWeight: 700, letterSpacing: "0.1em" }}>{pairingCode || "…"}</code></dd>
             <dt>{t("syncLastSync", { defaultValue: "Last exchange" })}</dt>
             <dd>{lastSync ? new Date(lastSync).toLocaleTimeString() : t("never", { defaultValue: "Never" })}</dd>
           </dl>
+
+          {pairRequests.length > 0 && (
+            <div className="notice warning" role="status">
+              <strong>{t("syncPairRequests", { defaultValue: "Pairing requests" })}</strong>
+              <ul style={{ margin: "6px 0 0", paddingLeft: 0, listStyle: "none", display: "grid", gap: 6 }}>
+                {pairRequests.map((r) => (
+                  <li key={r.deviceId} className="row between" style={{ gap: 8, flexWrap: "wrap" }}>
+                    <span>{r.name || r.deviceId.slice(0, 8)}</span>
+                    <span className="row" style={{ gap: 6 }}>
+                      <button className="btn btn-primary btn-sm" onClick={() => void trustDevice(r)}>{t("syncTrust", { defaultValue: "Trust device" })}</button>
+                      <button className="btn btn-quiet btn-sm" onClick={() => setPairRequests((prev) => prev.filter((p) => p.deviceId !== r.deviceId))}>{t("syncDeny", { defaultValue: "Deny" })}</button>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {conflicts.length > 0 && (
+            <div className="notice warning">
+              <strong>{t("syncConflicts", { defaultValue: "Sync conflicts need review" })} ({conflicts.length})</strong>
+              <p className="hint" style={{ margin: "4px 0 8px" }}>{t("syncConflictsHint", { defaultValue: "Both devices changed these records since the last sync. Nothing was overwritten — choose what to keep." })}</p>
+              <ul style={{ margin: 0, paddingLeft: 0, listStyle: "none", display: "grid", gap: 8 }}>
+                {conflicts.map((c) => (
+                  <li key={c.id} style={{ border: "1px solid var(--c-border)", borderRadius: "var(--radius-sm)", padding: 8, background: "var(--c-surface)" }}>
+                    <strong>{c.reference}</strong> <span className="hint" style={{ margin: 0 }}>· {c.peerName}</span>
+                    <div className="row" style={{ gap: 6, marginTop: 6, flexWrap: "wrap" }}>
+                      <button className="btn btn-secondary btn-sm" onClick={() => void resolveConflict(c, "mine")}>{t("syncUseMine", { defaultValue: "Use this device's" })}</button>
+                      <button className="btn btn-secondary btn-sm" onClick={() => void resolveConflict(c, "theirs")}>{t("syncUseTheirs", { defaultValue: "Use the peer's", interpolation: { escapeValue: false } })}</button>
+                      <button className="btn btn-quiet btn-sm" onClick={() => void resolveConflict(c, "both")}>{t("syncKeepBoth", { defaultValue: "Keep both" })}</button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="field">
-            <label htmlFor="sync-peer" style={{ fontWeight: 600, fontSize: "0.9rem" }}>{t("syncAddPeer", { defaultValue: "Add a device address" })}</label>
-            <div className="row" style={{ gap: 8 }}>
+            <div style={{ fontWeight: 600, fontSize: "0.9rem", marginBottom: 4 }}>{t("syncAddPeer", { defaultValue: "Pair with a device" })}</div>
+            <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
               <input
-                id="sync-peer"
                 className="input"
-                style={{ maxWidth: 320 }}
+                style={{ maxWidth: 220 }}
                 placeholder="http://192.168.1.20:47618"
-                value={peerInput}
-                onChange={(e) => setPeerInput(e.target.value)}
+                value={pairAddressInput}
+                onChange={(e) => setPairAddressInput(e.target.value)}
+                aria-label={t("syncPeerAddress", { defaultValue: "Device address" })}
+              />
+              <input
+                className="input"
+                style={{ maxWidth: 110 }}
+                placeholder={t("syncPeerCode", { defaultValue: "Their code" })}
+                value={pairCodeInput}
+                onChange={(e) => setPairCodeInput(e.target.value.toUpperCase())}
+                aria-label={t("syncPeerCode", { defaultValue: "Their code" })}
               />
               <button
                 className="btn btn-secondary btn-sm"
-                disabled={!/^http:\/\/.+/.test(peerInput.trim())}
+                disabled={!/^http:\/\/.+/.test(pairAddressInput.trim()) || pairCodeInput.trim().length < 4}
                 onClick={async () => {
-                  const peer = peerInput.trim().replace(/\/$/, "");
-                  if (!peer || config.peers.includes(peer)) return;
-                  saveConfig({ ...config, peers: [...config.peers, peer] });
-                  setPeerInput("");
+                  try {
+                    const addr = pairAddressInput.trim().replace(/\/$/, "");
+                    await lanPairPeer(addr, identity.deviceId, appSettings.displayName || "Device", pairCodeInput.trim());
+                    if (!config.peers.includes(addr)) saveConfig({ ...config, peers: [...config.peers, addr] });
+                    setPairCodeInput("");
+                    setPairAddressInput("");
+                    showToast(t("syncPairRequested", { defaultValue: "Pairing sent — if they accept, sync starts automatically" }));
+                  } catch {
+                    showToast(t("syncPairFailed", { defaultValue: "Pairing failed — check the address and code" }));
+                  }
                 }}
               >
-                {t("add", { defaultValue: "Add" })}
+                {t("syncPairBtn", { defaultValue: "Pair" })}
               </button>
             </div>
-            <p className="hint">{t("syncPeerHint", { defaultValue: "Copy “Your address” into the other device's list. Both sides must add each other." })}</p>
+            <p className="hint">{t("syncPeerHint", { defaultValue: "Both devices must be running with LAN sync enabled. Show your pairing code, enter theirs — each side confirms the other." })}</p>
           </div>
-          {config.peers.length > 0 && (
-            <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 4 }}>
-              {config.peers.map((peer) => (
-                <li key={peer} className="row between" style={{ padding: "6px 8px", border: "1px solid var(--c-border)", borderRadius: "var(--radius-sm)" }}>
-                  <code style={{ fontSize: "0.85rem" }}>{peer}</code>
-                  <button className="btn btn-quiet btn-sm" onClick={() => saveConfig({ ...config, peers: config.peers.filter((p) => p !== peer) })}>
-                    {t("remove", { defaultValue: "Remove" })}
-                  </button>
-                </li>
-              ))}
-            </ul>
+
+          {trustedDevices.length > 0 && (
+            <div>
+              <strong style={{ fontSize: "0.85rem" }}>{t("syncTrustedDevices", { defaultValue: "Trusted devices" })}</strong>
+              <ul style={{ listStyle: "none", margin: "6px 0 0", padding: 0, display: "grid", gap: 4 }}>
+                {trustedDevices.map((d) => (
+                  <li key={d.id} className="row between" style={{ padding: "6px 8px", border: "1px solid var(--c-border)", borderRadius: "var(--radius-sm)" }}>
+                    <span>{d.name || d.id.slice(0, 8)}</span>
+                    <button className="btn btn-quiet btn-sm" onClick={() => void revokeTrust(d.id)}>{t("syncRemoveTrust", { defaultValue: "Remove trust" })}</button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
+
           <div>
             <strong style={{ fontSize: "0.85rem" }}>{t("syncActivity", { defaultValue: "Activity" })}</strong>
             <ul style={{ listStyle: "none", margin: "6px 0 0", padding: 0, display: "grid", gap: 2 }}>
@@ -1275,13 +1445,12 @@ function LanSyncSection() {
             </ul>
           </div>
           <p className="hint" style={{ marginBottom: 0 }}>
-            {t("syncMediaNote", { defaultValue: "v1 syncs incident records (text, timeline, contacts, privacy settings). Photo and video files are not synced yet — use backups to move media." })}
+            {t("syncMediaNote", { defaultValue: "v2 syncs incident records (text, timeline, contacts, privacy settings). Photo and video files are not synced yet — use backups to move media." })}
             {" "}
-            {t("syncTrustNote", { defaultValue: "Only add devices you trust: a synced peer receives full records, including private notes." })}
+            {t("syncTrustNote", { defaultValue: "Only pair devices you trust: a paired device receives full records, including private notes." })}
           </p>
         </div>
       )}
-      <style>{` .row { display: flex; align-items: center; } `}</style>
     </div>
   );
 }
