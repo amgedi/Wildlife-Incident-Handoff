@@ -1101,3 +1101,16 @@ h3 { font-size: 1rem; }
 /* Labeled notification bell inside the sidebar footer nav (0.2.0-dev.12). */
 .nav-bell-item { width: 100%; position: relative; background: transparent; border: none; font: inherit; }
 .nav-bell-item[aria-expanded="true"] { background: var(--c-sidebar-active); color: #fff; }
+
+/* Response flow: wraps instead of horizontal scroll; no dead empty area (0.2.0-dev.13). */
+.pipeline { flex-wrap: wrap; row-gap: 8px; overflow-x: visible; justify-content: space-around; }
+.pipeline-stage { min-width: 72px; }
+.pipeline-stage.is-zero { opacity: 0.45; }
+
+/* Full map: side panel items (0.2.0-dev.13). */
+.map-side-item { color: var(--c-ink); text-decoration: none; transition: background var(--motion-fast) var(--ease); }
+.map-side-item:hover { background: var(--c-surface-alt); }
+@media (max-width: 1000px) {
+  .fullmap-grid { grid-template-columns: 1fr !important; }
+  .fullmap-grid aside { max-height: 320px !important; }
+}

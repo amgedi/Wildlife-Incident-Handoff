@@ -7,7 +7,7 @@ import { Segmented, TextField } from "../../components/ui";
 import { Select } from "../../components/Select";
 import { Dialog } from "../../components/Dialog";
 import { downloadBackup, importBackup } from "../../storage/backupService";
-import { getAllIncidents, getAllAttachmentBlobs, estimateStorage, setSetting } from "../../storage/repositories";
+import { getAllIncidents, getAllAttachmentBlobs, estimateStorage, setSetting, getSetting } from "../../storage/repositories";
 import { bytesToSize } from "../../utils/time";
 import { APP_VERSION as appVersion, BUILD_ID as buildId, DATA_SCHEMA_VERSION as dataSchemaVersion, APP_LICENSE } from "../../version";
 import { defaultUnitsFor } from "../../utils/units";
@@ -19,6 +19,10 @@ import { DEFAULT_NOTIFICATION_CATEGORIES } from "../../types/settings";
 import { displayPhone, normalizePhoneForStorage, isValidPhone, parsePhone } from "../../utils/phone";
 import { resetAllGuidance } from "../../features/tutorial/guidance";
 import { getMapProviderDescriptor } from "../network/mapProvider";
+import {
+  DEFAULT_LAN_SYNC_CONFIG, lanLocalAddress, lanStart, lanStop,
+  runSyncRound, lanSyncSupported, type LanSyncConfig,
+} from "../sync/lanSync";
 import { PROFESSIONAL_ROLES, ROLE_VERIFICATION_REQUIREMENTS, type ProfessionalRole, type ProfessionalRoleEntry } from "../../features/network/authorization";
 import { resetOnboardingForReplay, beginOnboardingPreview } from "../../features/onboarding/onboardingState";
 
@@ -32,6 +36,7 @@ const SECTIONS = [
   { id: "storage", labelKey: "storage", icon: Icons.archive, keywords: "backup storage import export where is my data" },
   { id: "notifications", labelKey: "notifications", icon: Icons.bell, keywords: "notifications bell toasts quiet hours sound categories" },
   { id: "map", labelKey: "map", icon: Icons.map, keywords: "map tiles provider online offline test connection" },
+  { id: "sync", labelKey: "sync", icon: Icons.handoff, keywords: "lan sync local network devices peer share wifi ethernet" },
   { id: "advanced", labelKey: "advanced", icon: Icons.settings, keywords: "advanced language region units reset factory replay onboarding tutorial testing" },
   { id: "about", labelKey: "about", icon: Icons.book, keywords: "about version license" },
 ] as const;
@@ -123,6 +128,7 @@ export function SettingsPage({ standaloneSection }: { standaloneSection?: Sectio
           {section === "storage" && <StorageSection />}
           {section === "notifications" && <NotificationsSection />}
           {section === "map" && <MapSection />}
+          {section === "sync" && <LanSyncSection />}
           {section === "advanced" && <AdvancedSection />}
           {section === "about" && <AboutSection />}
         </div>
@@ -1063,6 +1069,156 @@ function AboutSection() {
           medical advice, and does not replace licensed wildlife professionals.
         </span>
       </div>
+    </div>
+  );
+}
+
+
+// ---- LAN sync (0.2.0-dev.13): local-network incident exchange --------------
+
+const LAN_SYNC_CONFIG_KEY = "lan-sync-config";
+
+function LanSyncSection() {
+  const { showToast } = useApp();
+  const { t } = useTranslation("settings");
+  const supported = lanSyncSupported();
+  const [config, setConfig] = useState<LanSyncConfig>(DEFAULT_LAN_SYNC_CONFIG);
+  const [loaded, setLoaded] = useState(false);
+  const [address, setAddress] = useState<string | null>(null);
+  const [peerInput, setPeerInput] = useState("");
+  const [log, setLog] = useState<string[]>([]);
+  const [lastSync, setLastSync] = useState<string | null>(null);
+
+
+  useEffect(() => {
+    getSetting<LanSyncConfig>(LAN_SYNC_CONFIG_KEY).then((saved) => {
+      if (saved && typeof saved.port === "number") setConfig({ ...DEFAULT_LAN_SYNC_CONFIG, ...saved, peers: Array.isArray(saved.peers) ? saved.peers : [] });
+      setLoaded(true);
+    });
+  }, []);
+
+  // Server + sync loop lifecycle.
+  useEffect(() => {
+    if (!supported || !loaded || !config.enabled) return;
+    let cancelled = false;
+    const addLog = (line: string) => setLog((l) => [`${new Date().toLocaleTimeString()} — ${line}`, ...l].slice(0, 8));
+    (async () => {
+      try {
+        await lanStart(config.port);
+        setAddress(await lanLocalAddress(config.port));
+        addLog(t("syncStartedLog", { defaultValue: "LAN sync server started" }));
+        while (!cancelled) {
+          const r = await runSyncRound(config, addLog);
+          if (r.added > 0 || r.updated > 0 || r.peersUp > 0) setLastSync(new Date().toISOString());
+          await new Promise((res) => setTimeout(res, 5000));
+        }
+      } catch (e) {
+        addLog(`error: ${String(e).slice(0, 90)}`);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      void lanStop();
+    };
+    // config is captured per-change; the loop restarts when it changes.
+  }, [supported, loaded, config.enabled, config.port, config.peers]);
+
+  const saveConfig = (next: LanSyncConfig) => {
+    setConfig(next);
+    void setSetting(LAN_SYNC_CONFIG_KEY, next);
+  };
+
+  if (!supported) {
+    return (
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>{t("syncTitle", { defaultValue: "LAN sync" })}</h3>
+        <p className="hint">{t("syncUnavailableBrowser", { defaultValue: "LAN sync runs in the desktop (Windows) app only — the browser/PWA build has no local server. Install the desktop version to sync devices on the same network." })}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card">
+      <h3 style={{ marginTop: 0 }}>{t("syncTitle", { defaultValue: "LAN sync" })}</h3>
+      <p className="hint" style={{ marginTop: 0 }}>
+        {t("syncBlurb", {
+          defaultValue: "Sync incident records with other computers running this app on the same local network. No internet, no cloud — devices talk directly to each other.",
+        })}
+      </p>
+      <label style={{ display: "flex", gap: 8, alignItems: "center", margin: "var(--space-3) 0", cursor: "pointer" }}>
+        <input
+          type="checkbox"
+          checked={config.enabled}
+          onChange={(e) => {
+            saveConfig({ ...config, enabled: e.target.checked });
+            showToast(e.target.checked ? t("syncEnabledToast", { defaultValue: "LAN sync enabled" }) : t("syncDisabledToast", { defaultValue: "LAN sync disabled" }));
+          }}
+        />
+        <strong>{t("syncEnable", { defaultValue: "Sync with devices on this network" })}</strong>
+      </label>
+      {config.enabled && (
+        <div className="stack" style={{ gap: "var(--space-3)" }}>
+          <dl className="kv">
+            <dt>{t("syncAddress", { defaultValue: "Your address (share with other devices)" })}</dt>
+            <dd><code>{address ?? "…"}</code></dd>
+            <dt>{t("syncLastSync", { defaultValue: "Last exchange" })}</dt>
+            <dd>{lastSync ? new Date(lastSync).toLocaleTimeString() : t("never", { defaultValue: "Never" })}</dd>
+          </dl>
+          <div className="field">
+            <label htmlFor="sync-peer" style={{ fontWeight: 600, fontSize: "0.9rem" }}>{t("syncAddPeer", { defaultValue: "Add a device address" })}</label>
+            <div className="row" style={{ gap: 8 }}>
+              <input
+                id="sync-peer"
+                className="input"
+                style={{ maxWidth: 320 }}
+                placeholder="http://192.168.1.20:47618"
+                value={peerInput}
+                onChange={(e) => setPeerInput(e.target.value)}
+              />
+              <button
+                className="btn btn-secondary btn-sm"
+                disabled={!/^http:\/\/.+/.test(peerInput.trim())}
+                onClick={async () => {
+                  const peer = peerInput.trim().replace(/\/$/, "");
+                  if (!peer || config.peers.includes(peer)) return;
+                  saveConfig({ ...config, peers: [...config.peers, peer] });
+                  setPeerInput("");
+                }}
+              >
+                {t("add", { defaultValue: "Add" })}
+              </button>
+            </div>
+            <p className="hint">{t("syncPeerHint", { defaultValue: "Copy “Your address” into the other device's list. Both sides must add each other." })}</p>
+          </div>
+          {config.peers.length > 0 && (
+            <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 4 }}>
+              {config.peers.map((peer) => (
+                <li key={peer} className="row between" style={{ padding: "6px 8px", border: "1px solid var(--c-border)", borderRadius: "var(--radius-sm)" }}>
+                  <code style={{ fontSize: "0.85rem" }}>{peer}</code>
+                  <button className="btn btn-quiet btn-sm" onClick={() => saveConfig({ ...config, peers: config.peers.filter((p) => p !== peer) })}>
+                    {t("remove", { defaultValue: "Remove" })}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div>
+            <strong style={{ fontSize: "0.85rem" }}>{t("syncActivity", { defaultValue: "Activity" })}</strong>
+            <ul style={{ listStyle: "none", margin: "6px 0 0", padding: 0, display: "grid", gap: 2 }}>
+              {log.length === 0 && <li className="hint">{t("syncQuiet", { defaultValue: "Waiting for changes…" })}</li>}
+              {log.map((line, i) => (
+                <li key={i} style={{ fontSize: "0.8rem", color: "var(--c-ink-soft)" }}>{line}</li>
+              ))}
+            </ul>
+          </div>
+          <p className="hint" style={{ marginBottom: 0 }}>
+            {t("syncMediaNote", { defaultValue: "v1 syncs incident records (text, timeline, contacts, privacy settings). Photo and video files are not synced yet — use backups to move media." })}
+            {" "}
+            {t("syncTrustNote", { defaultValue: "Only add devices you trust: a synced peer receives full records, including private notes." })}
+          </p>
+        </div>
+      )}
+      <style>{` .row { display: flex; align-items: center; } `}</style>
     </div>
   );
 }

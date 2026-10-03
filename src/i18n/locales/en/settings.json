@@ -154,5 +154,22 @@
   "roleVerifyReq": "Verification (connected mode): {{req}}",
   "roleAddConfirm": "Add role",
   "devPreviewLocales": "Developer preview: show incomplete languages and the pseudo-locale",
-  "mapProviderPolicy": "Public community infrastructure — the app only requests viewport tiles, never uploads incident data, and falls back to the offline provider instead of retrying aggressively."
+  "mapProviderPolicy": "Public community infrastructure — the app only requests viewport tiles, never uploads incident data, and falls back to the offline provider instead of retrying aggressively.",
+  "syncTitle": "LAN sync",
+  "syncBlurb": "Sync incident records with other computers running this app on the same local network. No internet, no cloud — devices talk directly to each other.",
+  "syncEnable": "Sync with devices on this network",
+  "syncAddress": "Your address (share with other devices)",
+  "syncLastSync": "Last exchange",
+  "syncAddPeer": "Add a device address",
+  "syncPeerHint": "Copy “Your address” into the other device's list. Both sides must add each other.",
+  "syncUnavailableBrowser": "LAN sync runs in the desktop (Windows) app only — the browser/PWA build has no local server. Install the desktop version to sync devices on the same network.",
+  "syncMediaNote": "v1 syncs incident records (text, timeline, contacts, privacy settings). Photo and video files are not synced yet — use backups to move media.",
+  "syncTrustNote": "Only add devices you trust: a synced peer receives full records, including private notes.",
+  "syncActivity": "Activity",
+  "syncQuiet": "Waiting for changes…",
+  "syncStartedLog": "LAN sync server started",
+  "syncEnabledToast": "LAN sync enabled",
+  "syncDisabledToast": "LAN sync disabled",
+  "add": "Add",
+  "remove": "Remove"
 }

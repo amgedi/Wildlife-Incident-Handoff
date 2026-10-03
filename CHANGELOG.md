@@ -2,6 +2,22 @@
 
 All notable changes to Wildlife Incident Handoff are documented here. Format based on [Keep a Changelog](https://keepachangelog.com/); versioning follows [SemVer](https://semver.org/).
 
+## 0.2.0-dev.13 — notification fix, map views, Help Q&A, LAN sync v1
+
+### Fixed
+- **Notification panel clipped outside the window** — the popover is now positioned against the bell's viewport rect and clamped inside the window on open and on resize; no more text cut off at the screen edge.
+- **Response flow looked empty** — the widget paired its pipeline with a huge blank area and a horizontal scrollbar. Stages now wrap, the content centers vertically, a hint line explains click-to-filter, and zero stages are visually quieted.
+- **List/Map toggle appeared to do nothing** — the dashboard grid rendered in both modes with the map appended below the fold. List and Map are now exclusive views: Map shows the full-height map only.
+
+### Added
+- **Full-map incident panel**: the map destination now has a side panel listing every incident in view (animal, status chip, reference, age, location) with direct links — the "who/what/where" overlay requested for live operations.
+- **Help Center Q&A expansion**: 17 new question-format articles across thin categories (reporter: account, immediate danger, editing after creation, unknown locations, media length, when a report resolves, who sees a report, moving computers, blank map; professional: Needs attention meaning, accepting incidents, marker shapes, "Not enough data yet", handoff contents, missing notifications, multiple roles, intake-note visibility).
+- **LAN sync (v1, desktop-only)**: optional device-to-device incident exchange on the same local network. Each device runs a tiny HTTP server (`tiny_http`); peers are added by address (e.g. `http://192.168.1.20:47618`); the frontend pushes a snapshot, drains its inbox, and pull+pushes with configured peers every ~5 seconds. Merge is last-writer-wins by `updatedAt` matched by id; demo records never sync; HTTP happens in Rust (`ureq`) so CSP/mixed-content are untouched. Honest v1 limits, labeled in-UI: text records only (photo/video files not synced), manual address exchange (no auto-discovery), plain HTTP inside the LAN. Verified end-to-end in the real EXE (ping/snapshot/push→inbox round-trip).
+- `withGlobalTauri` enabled for testability.
+
+### Tests
+- 267 tests (was 257): merge policy (add/newer-wins/skip/demo-exclusion), snapshot round-trip, Help Q&A presence.
+
 ## 0.2.0-dev.12 — shell feedback pass (bell, profile tab, EXE map CSP, logo toning)
 
 Direct response to hands-on feedback from running the packaged EXE.

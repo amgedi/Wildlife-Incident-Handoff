@@ -4,7 +4,10 @@
 //
 // Plugins: single-instance (second launch focuses the existing window),
 // dialog + fs (native Windows save/open dialogs for backups and exports).
+// LAN sync (0.2.0-dev.13): optional local-network incident exchange.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
+mod lan_sync;
 
 fn main() {
     tauri::Builder::default()
@@ -18,6 +21,17 @@ fn main() {
         }))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .manage(std::sync::Arc::new(lan_sync::LanSyncInner::default()))
+        .invoke_handler(tauri::generate_handler![
+            lan_sync::lan_sync_start,
+            lan_sync::lan_sync_stop,
+            lan_sync::lan_sync_set_snapshot,
+            lan_sync::lan_sync_take_inbox,
+            lan_sync::lan_sync_ping_peer,
+            lan_sync::lan_sync_fetch_peer,
+            lan_sync::lan_sync_push_peer,
+            lan_sync::lan_sync_local_address,
+        ])
         .run(tauri::generate_context!())
         .expect("failed to start Wildlife Incident Handoff");
 }

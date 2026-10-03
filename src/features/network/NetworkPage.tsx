@@ -380,17 +380,22 @@ export function NetworkPage() {
   );
 
   const pipelineWidget = (
-    <div className="card ops-panel ops-span-8">
+    <div className="card ops-panel ops-span-8" style={{ display: "flex", flexDirection: "column" }}>
       <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
         <Icons.zap size={16} /> {t("pipelineTitle", { defaultValue: "Response flow" })}
       </h3>
-      <div className="pipeline" role="list" aria-label={t("pipelineTitle", { defaultValue: "Response flow" })}>
-        {pipeline.map((s) => (
-          <button key={s.key} role="listitem" className={`pipeline-stage${s.count === 0 ? " is-zero" : ""}`} onClick={() => navigate(s.to)}>
-            <span className="pipeline-count"><AnimatedNumber value={s.count} /></span>
-            <span className="pipeline-label">{s.label}</span>
-          </button>
-        ))}
+      <div className="pipeline-wrap" style={{ flex: 1, display: "grid", alignContent: "center" }}>
+        <div className="pipeline" role="list" aria-label={t("pipelineTitle", { defaultValue: "Response flow" })}>
+          {pipeline.map((s) => (
+            <button key={s.key} role="listitem" className={`pipeline-stage${s.count === 0 ? " is-zero" : ""}`} onClick={() => navigate(s.to)}>
+              <span className="pipeline-count"><AnimatedNumber value={s.count} /></span>
+              <span className="pipeline-label">{s.label}</span>
+            </button>
+          ))}
+        </div>
+        <p className="hint" style={{ margin: "10px 0 0" }}>
+          {t("pipelineHint", { defaultValue: "Cases currently sitting at each stage. Select a stage to open the filtered queue." })}
+        </p>
       </div>
     </div>
   );
@@ -648,7 +653,7 @@ export function NetworkPage() {
             action={<Link className="btn btn-secondary" to="/examples">{t("openDemo", { defaultValue: "Open fictional dashboard demo" })}</Link>}
           />
         </div>
-      ) : (
+      ) : tab === "list" ? (
         <div className="ops-12" style={{ marginTop: "var(--space-4)" }}>
           {/* P80 — widgets render in the user's saved order (role-recommended by default).
               The map is the primary context and cannot be hidden. */}
@@ -662,7 +667,7 @@ export function NetworkPage() {
             {t("updatedLine", { defaultValue: "Live from this device's local data store" })} ({now.toLocaleTimeString()})
           </p>
         </div>
-      )}
+      ) : null}
 
       {tab === "map" ? (
         <div style={{ marginTop: "var(--space-4)", display: "grid", gap: "var(--space-3)" }}>
@@ -679,16 +684,39 @@ export function NetworkPage() {
             </div>
             <Link className="btn btn-secondary btn-sm" to="/network" onClick={() => setTab("list")}>{t("backToOps", { defaultValue: "Back to operations" })}</Link>
           </div>
-          <Suspense fallback={<p style={{ color: "var(--c-ink-faint)" }}>Loading map…</p>}>
-            <NetworkMap
-              incidents={inArea}
-              privacy="approximate"
-              full
-              serviceArea={area}
-              fitMode="service-area"
-              onSelect={(incident) => navigate(`/incidents/${incident.id}`)}
-            />
-          </Suspense>
+          <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 300px", gap: "var(--space-3)", alignItems: "start" }} className="fullmap-grid">
+            <Suspense fallback={<p style={{ color: "var(--c-ink-faint)" }}>Loading map…</p>}>
+              <NetworkMap
+                incidents={inArea}
+                privacy="approximate"
+                full
+                serviceArea={area}
+                fitMode="service-area"
+                onSelect={(incident) => navigate(`/incidents/${incident.id}`)}
+              />
+            </Suspense>
+            <aside className="card" style={{ padding: 0, maxHeight: "calc(100dvh - 240px)", overflowY: "auto" }} aria-label={t("mapSidePanel", { defaultValue: "Incidents in view" })}>
+              <div style={{ padding: "10px var(--space-3)", borderBottom: "1px solid var(--c-border)", position: "sticky", top: 0, background: "var(--c-surface)" }}>
+                <strong>{t("mapSidePanel", { defaultValue: "Incidents in view" })}</strong>
+                <span className="hint" style={{ display: "block", margin: 0 }}>{inArea.length}</span>
+              </div>
+              <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+                {inArea.map((i) => (
+                  <li key={i.id} style={{ borderTop: "1px solid var(--c-border)" }}>
+                    <Link to={`/incidents/${i.id}`} className="map-side-item" style={{ display: "block", padding: "9px var(--space-3)" }}>
+                      <span style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center" }}>
+                        <strong style={{ fontSize: "0.88rem" }}>{animalLabel(i)}</strong>
+                        <StatusBadge status={i.status} />
+                      </span>
+                      <span className="hint" style={{ display: "block", margin: "2px 0 0" }}>
+                        {i.humanReference} · {relativeTime(i.occurredAt ?? i.createdAt)}{i.location.description ? ` · ${i.location.description}` : ""}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </aside>
+          </div>
         </div>
       ) : (
         <>

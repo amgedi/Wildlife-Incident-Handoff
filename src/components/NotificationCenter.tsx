@@ -13,7 +13,21 @@ export function NotificationBell({ withLabel = false }: { withLabel?: boolean } 
   const { t } = useTranslation("settings");
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [panelPos, setPanelPos] = useState<{ left: number; top: number } | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  // Clamp the panel INSIDE the window: sidebar-edge popovers used to clip (user report).
+  const placePanel = () => {
+    const r = btnRef.current?.getBoundingClientRect();
+    if (!r) return;
+    const width = Math.min(340, window.innerWidth - 16);
+    let left = r.right + 8;
+    if (left + width > window.innerWidth - 8) left = window.innerWidth - width - 8;
+    if (left < 8) left = 8;
+    const top = Math.max(8, Math.min(r.top - 4, window.innerHeight - 120));
+    setPanelPos({ left, top });
+  };
 
   useEffect(() => {
     void refreshNotifications();
@@ -27,9 +41,12 @@ export function NotificationBell({ withLabel = false }: { withLabel?: boolean } 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
     };
+    const onReposition = () => { if (open) placePanel(); };
+    window.addEventListener("resize", onReposition);
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
     return () => {
+      window.removeEventListener("resize", onReposition);
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("keydown", onKey);
     };
@@ -41,7 +58,8 @@ export function NotificationBell({ withLabel = false }: { withLabel?: boolean } 
         className={withLabel ? "nav-item nav-bell-item" : "btn btn-quiet btn-sm"}
         aria-label={t("notifBellLabel", { defaultValue: "Notifications", count: unreadNotifications })}
         aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
+        ref={btnRef}
+        onClick={() => setOpen((v) => { const next = !v; if (next) placePanel(); return next; })}
         style={{ position: "relative" }}
       >
         <Icons.bell size={18} />
@@ -61,11 +79,14 @@ export function NotificationBell({ withLabel = false }: { withLabel?: boolean } 
       </button>
       {open && (
         <div
-          className="card"
+          className="card notif-panel"
           role="dialog"
           aria-label={t("notifPanelTitle", { defaultValue: "Notifications" })}
           style={{
-            position: "absolute", right: 0, top: "calc(100% + 6px)", width: 340, maxWidth: "90vw",
+            position: "fixed",
+            left: panelPos ? Math.round(panelPos.left) : undefined,
+            top: panelPos ? Math.round(panelPos.top) : undefined,
+            width: 340, maxWidth: "calc(100vw - 16px)",
             zIndex: 260, boxShadow: "var(--shadow-lg, 0 12px 32px rgb(0 0 0 / 0.25))", padding: "var(--space-3)",
           }}
         >
