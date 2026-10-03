@@ -20,6 +20,20 @@ import { Icons } from "../../components/Icons";
 import { TextField } from "../../components/ui";
 import { Select } from "../../components/Select";
 import { endOnboardingPreview } from "./onboardingState";
+import type { ThemeName } from "../../types/settings";
+
+const THEMES: { value: ThemeName; label: string; swatch: string[] }[] = [
+  { value: "forest-dark", label: "Forest Dark", swatch: ["#1f3d2b", "#2f5d3f", "#f0f3ec"] },
+  { value: "forest-light", label: "Forest Light", swatch: ["#e3ead9", "#2f5d3f", "#eef2e9"] },
+  { value: "midnight", label: "Midnight", swatch: ["#10151d", "#4f9d6e", "#e2e8ee"] },
+  { value: "warm-field", label: "Warm Field", swatch: ["#4a3b28", "#7a5a2e", "#f7f2e8"] },
+  { value: "moss", label: "Moss", swatch: ["#3f5233", "#55702f", "#eceee4"] },
+  { value: "ocean", label: "Ocean", swatch: ["#123a5c", "#1c6e8c", "#e9eff4"] },
+  { value: "slate", label: "Slate", swatch: ["#2d3748", "#4a6285", "#eef0f2"] },
+  { value: "high-contrast-dark", label: "High Contrast", swatch: ["#000000", "#7fb7ff", "#ffffff"] },
+  { value: "mono-dark", label: "Monochrome Dark", swatch: ["#050505", "#e8e8e8", "#f2f2f2"] },
+  { value: "mono-light", label: "Monochrome Light", swatch: ["#111111", "#171717", "#fafafa"] },
+];
 import { normalizePhoneForStorage } from "../../utils/phone";
 
 const COUNTRIES = [
@@ -47,7 +61,8 @@ export function OnboardingPage({ preview = false }: { preview?: boolean }) {
   const { settings, updateSettings } = useApp();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
-  const [stage, setStage] = useState<0 | 1 | 2 | 3 | 4>(0);
+  const [stage, setStage] = useState<0 | 1 | 2 | 3 | 4 | 5>(0);
+  const [chosenTheme, setChosenTheme] = useState<ThemeName>(settings.theme);
   const [chosenLanguage, setChosenLanguage] = useState(() => settings.language || suggestLanguage());
   const [country, setCountry] = useState(settings.country);
   const [contact, setContact] = useState({
@@ -200,6 +215,39 @@ export function OnboardingPage({ preview = false }: { preview?: boolean }) {
 
       {stage === 3 && (
         <div className="fade-in">
+          <h2 style={{ fontSize: "1.25rem" }}>{t("onboarding:themeTitle", { defaultValue: "Pick a look you like" })}</h2>
+          <p style={{ color: "var(--c-ink-soft)" }}>
+            {t("onboarding:themeHint", { defaultValue: "You can change this any time in Settings → Appearance." })}
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 10, margin: "var(--space-4) 0" }}>
+            {THEMES.map((th) => (
+              <button
+                key={th.value}
+                className={`language-option${chosenTheme === th.value ? " selected" : ""}`}
+                aria-pressed={chosenTheme === th.value}
+                onClick={() => {
+                  setChosenTheme(th.value);
+                  updateSettings({ theme: th.value });
+                }}
+              >
+                <span style={{ display: "flex", gap: 4, marginBottom: 6 }} aria-hidden="true">
+                  {th.swatch.map((c) => (
+                    <span key={c} style={{ width: 16, height: 16, borderRadius: "50%", background: c, border: "1px solid rgb(127 127 127 / 0.35)", display: "inline-block" }} />
+                  ))}
+                </span>
+                <strong style={{ fontSize: "0.88rem" }}>{th.label}</strong>
+              </button>
+            ))}
+          </div>
+          <div className="row between" style={{ marginTop: "var(--space-5)" }}>
+            <button className="btn btn-ghost" onClick={() => setStage(2)}>{t("common:back", { defaultValue: "Back" })}</button>
+            <button className="btn btn-primary" onClick={() => setStage(4)}>{t("common:next", { defaultValue: "Next" })}</button>
+          </div>
+        </div>
+      )}
+
+      {stage === 4 && (
+        <div className="fade-in">
           <h2 style={{ fontSize: "1.25rem" }}>{t("onboarding:privacyTitle", { defaultValue: "Your records stay on this device" })}</h2>
           <div className="stack" style={{ margin: "var(--space-4) 0" }}>
             {[
@@ -226,13 +274,13 @@ export function OnboardingPage({ preview = false }: { preview?: boolean }) {
             ))}
           </div>
           <div className="row between" style={{ marginTop: "var(--space-6)" }}>
-            <button className="btn btn-ghost" onClick={() => setStage(2)}>{t("common:back", { defaultValue: "Back" })}</button>
+            <button className="btn btn-ghost" onClick={() => setStage(3)}>{t("common:back", { defaultValue: "Back" })}</button>
             <button className="btn btn-primary" onClick={() => setStage(4)}>{t("common:next", { defaultValue: "Next" })}</button>
           </div>
         </div>
       )}
 
-      {stage === 4 && (
+      {stage === 5 && (
         <div className="fade-in">
           <h2 style={{ fontSize: "1.25rem" }}>{t("onboarding:readyTitle", { defaultValue: "You're ready" })}</h2>
           <p style={{ color: "var(--c-ink-soft)" }}>{t("onboarding:readyHint", { defaultValue: "Choose how you'd like to start. You can change this any time in Settings." })}</p>

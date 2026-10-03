@@ -66,9 +66,14 @@ export function mergeIncidents(local: Incident[], incoming: Incident[]): MergeRe
   return { merged, added, updated, skipped };
 }
 
-/** Build the device snapshot: every non-demo incident as plain JSON. */
-export function snapshotFrom(incidents: Incident[]): string {
-  return JSON.stringify({ app: "wildlife-incident-handoff/1", incidents: incidents.filter((i) => !i.isDemo) });
+/** Build the device snapshot: every non-demo incident as plain JSON, with an
+ *  optional device display name (used by the local reporter leaderboard). */
+export function snapshotFrom(incidents: Incident[], deviceName?: string): string {
+  return JSON.stringify({
+    app: "wildlife-incident-handoff/1",
+    deviceName: deviceName || undefined,
+    incidents: incidents.filter((i) => !i.isDemo),
+  });
 }
 
 /** Extract records from a peer snapshot payload; tolerant of shape drift. */
@@ -79,6 +84,16 @@ export function incidentsFromPayload(payload: string): Incident[] {
     return Array.isArray(parsed.incidents) ? parsed.incidents : [];
   } catch {
     return [];
+  }
+}
+
+/** Peer device display name from a snapshot payload, if provided. */
+export function deviceNameFromPayload(payload: string): string | null {
+  try {
+    const parsed = JSON.parse(payload) as { deviceName?: string };
+    return typeof parsed.deviceName === "string" && parsed.deviceName.trim() ? parsed.deviceName.trim() : null;
+  } catch {
+    return null;
   }
 }
 
@@ -117,6 +132,10 @@ export async function lanPingPeer(url: string): Promise<boolean> {
   }
 }
 
+export async function lanFetchSnapshot(url: string): Promise<string> {
+  return invoke<string>("lan_sync_fetch_peer", { url });
+}
+
 export async function lanPullPeer(url: string): Promise<Incident[]> {
   const payload = await invoke<string>("lan_sync_fetch_peer", { url });
   return incidentsFromPayload(payload);
@@ -133,10 +152,11 @@ export async function lanLocalAddress(port: number): Promise<string> {
 /** One sync round: refresh snapshot, drain inbox, pull+push each peer. */
 export async function runSyncRound(
   config: LanSyncConfig,
-  log: (line: string) => void
+  log: (line: string) => void,
+  deviceName?: string
 ): Promise<{ added: number; updated: number; peersUp: number }> {
   const local = (await getAllIncidents()).filter((i) => !i.isDemo && !i.deletedAt);
-  const snapshot = snapshotFrom(local);
+  const snapshot = snapshotFrom(local, deviceName);
   await lanSetSnapshot(snapshot);
 
   let added = 0;

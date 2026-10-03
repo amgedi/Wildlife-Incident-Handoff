@@ -125,7 +125,11 @@
     "professionalWorkspace": "Poste de travail professionnel",
     "verifiedWorkspace": "Vérifié",
     "professionalPreview": "Professional Preview",
-    "openDashboard": "Ouvrir le tableau de bord des opérations"
+    "openDashboard": "Ouvrir le tableau de bord des opérations",
+    "leaderboard": "Classement des reporteurs",
+    "leaderboardBlurb": "Un motivateur local et sympathique : vos jalons de signalement, plus les compteurs des appareils synchronisés sur le même réseau. Rien n'est classé mondialement et rien ne quitte les appareils concernés.",
+    "you": "Vous",
+    "toNext": "signalements avant {{level}}"
   },
   "reports": {
     "title": "Mes signalements",
@@ -491,7 +495,21 @@
     "syncEnabledToast": "Sync LAN activée",
     "syncDisabledToast": "Sync LAN désactivée",
     "add": "Ajouter",
-    "remove": "Retirer"
+    "remove": "Retirer",
+    "testView": "Vue test",
+    "testViewBanner": "Vue test — des incidents fictifs de démonstration sont mélangés à ce tableau de bord pour l'entraînement. Rien ne touche les dossiers réels et les exports gardent leur mention de démonstration fictive.",
+    "photoUpload": "Ajouter une photo",
+    "photoChange": "Changer la photo",
+    "photoRemove": "Retirer",
+    "photoBorder": "Style de bordure de la photo",
+    "photoHint": "Visible uniquement dans votre barre latérale, sur cet appareil.",
+    "photoSaved": "Photo de profil enregistrée",
+    "photoNotImage": "Ce fichier n'est pas une image",
+    "photoBorder_none": "Simple",
+    "photoBorder_leaves": "Feuilles",
+    "photoBorder_wood": "Bois",
+    "photoBorder_rope": "Corde",
+    "photoBorder_stars": "Étoiles"
   },
   "tabs": {
     "tabsOverview": "Aperçu",
@@ -744,7 +762,16 @@
     "legendTransfer": "Transfert / en soins",
     "legendClosed": "Fermé",
     "range24h": "24 heures",
-    "rangeDays": "{{d}} jours"
+    "rangeDays": "{{d}} jours",
+    "basemapToggle": "Fond de carte",
+    "basemapSatellite": "Satellite",
+    "basemapStreets": "Rues",
+    "stageCases": "dossier(s) à cette étape",
+    "sortEarliest": "Plus ancien",
+    "sortLatest": "Plus récent",
+    "stageEmpty": "Rien à cette étape pour le moment.",
+    "trendInfoTitle": "Détails de la période",
+    "trendNet": "Encore ouvert de cette période"
   },
   "guide": {
     "whatHappened": {
@@ -967,6 +994,18 @@
     "workPhone": "Téléphone professionnel",
     "serviceArea": "Zone d'intervention",
     "serviceAreaHint": "Vous pourrez la tracer ou la décrire plus tard dans le tableau de bord professionnel.",
-    "openProfessional": "Ouvrir le poste de travail professionnel"
+    "openProfessional": "Ouvrir le poste de travail professionnel",
+    "themeTitle": "Choisissez un style qui vous plaît",
+    "themeHint": "Vous pouvez changer à tout moment dans Paramètres → Apparence.",
+    "tourPromptTitle": "Nouveau ici ?",
+    "tourPromptBody": "Voulez-vous une visite guidée rapide de l'interface ? Environ deux minutes, et vous pouvez partir à tout moment.",
+    "tourPromptLater": "Peut-être plus tard",
+    "tourPromptStart": "Faire le tour"
+  },
+  "social": {
+    "leaderboard": "Classement des reporteurs",
+    "leaderboardBlurb": "Un motivateur local et sympathique : vos jalons de signalement, plus les compteurs des appareils synchronisés sur le même réseau. Rien n'est classé mondialement et rien ne quitte les appareils concernés.",
+    "you": "Vous",
+    "toNext": "signalements avant {{level}}"
   }
 }

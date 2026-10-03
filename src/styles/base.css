@@ -1114,3 +1114,33 @@ h3 { font-size: 1rem; }
   .fullmap-grid { grid-template-columns: 1fr !important; }
   .fullmap-grid aside { max-height: 320px !important; }
 }
+
+
+/* dev.14 — titlebar bell (top-right of the screen) */
+.titlebar-bell { display: flex; align-items: center; margin-left: auto; margin-right: 6px; }
+.titlebar-bell .btn { color: inherit; }
+.titlebar-bell .btn:hover { background: rgb(255 255 255 / 0.12); }
+
+/* Needs attention: one uniform compact row + optional oldest line */
+.attn-card { display: block; }
+.attn-row1 { display: flex; align-items: center; gap: 10px; }
+.attn-row1 .attn-reason { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.attn-row2 { display: flex; justify-content: flex-end; margin-top: 2px; font-size: 0.75rem; color: var(--c-ink-faint); }
+
+/* Live activity: event text tinted by event kind */
+.ops-feed-event[data-evt="incident_created"] { color: var(--c-ink-soft); }
+.ops-feed-event[data-evt="status_changed"] { color: var(--c-primary); font-weight: 550; }
+.ops-feed-event[data-evt="handoff_started"], .ops-feed-event[data-evt="handoff_completed"] { color: var(--status-transferred-fg, var(--c-primary)); font-weight: 550; }
+.ops-feed-event[data-evt="custody_changed"] { color: var(--status-awaiting_pickup-fg, var(--c-primary)); }
+.ops-feed-event[data-evt="field_corrected"] { color: var(--c-warn); }
+.ops-feed-event[data-evt="incident_closed"] { color: var(--c-ink-faint); }
+
+/* Trend details card (click a dot) */
+.trend-info-box { position: absolute; transform: translateX(-50%); width: 240px; max-width: 90%; z-index: 30; padding: var(--space-3); box-shadow: var(--shadow-lg); animation: inspector-in var(--motion-normal) var(--ease); }
+.trend-info-box .kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; }
+.trend-info-box .kv dt { color: var(--c-ink-soft); font-size: 0.82rem; }
+.trend-info-box .kv dd { margin: 0; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pipeline-stage.is-selected { background: color-mix(in srgb, var(--c-primary) 14%, transparent); }
+
+.web-bell { position: fixed; }
+@media (max-width: 860px) { .web-bell { display: none; } }

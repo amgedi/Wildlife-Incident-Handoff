@@ -70,6 +70,12 @@ export interface AppSettings {
   /** Active role context among held roles (tailors dashboard/help/tours). */
   activeProfessionalRole: string | null;
   tourCompleted: boolean;
+  /** Newcomer tour prompt dismissed ("maybe later") — dev.14. */
+  tourPromptDismissed: boolean;
+  /** Circular profile photo as a small data URL (dev.14). */
+  profilePhoto: string | null;
+  /** Decorative ring around the profile photo. */
+  photoBorder: PhotoBorderStyle;
   language: string;
   /** When false, maps render local incident positions only — no tile downloads. */
   mapTilesEnabled: boolean;
@@ -139,12 +145,18 @@ export const DEFAULT_SETTINGS: AppSettings = {
   professionalRoles: [],
   activeProfessionalRole: null,
   tourCompleted: false,
+  tourPromptDismissed: false,
+  profilePhoto: null,
+  photoBorder: "leaves" as PhotoBorderStyle,
   language: "en",
   mapTilesEnabled: true,
   notifications: DEFAULT_NOTIFICATION_PREFERENCES,
   onboardingPreviewActive: false,
   devPreviewLocales: false,
 };
+
+/** Decorative ring styles for the circular profile photo (dev.14). */
+export type PhotoBorderStyle = "none" | "leaves" | "wood" | "rope" | "stars";
 
 /** Versioned backup container. */
 export interface BackupFormat {

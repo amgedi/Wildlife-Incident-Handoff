@@ -43,5 +43,11 @@
   "workPhone": "Work phone",
   "serviceArea": "Service area",
   "serviceAreaHint": "You can draw or describe this later in the professional dashboard.",
-  "openProfessional": "Open professional workspace"
+  "openProfessional": "Open professional workspace",
+  "themeTitle": "Pick a look you like",
+  "themeHint": "You can change this any time in Settings → Appearance.",
+  "tourPromptTitle": "New here?",
+  "tourPromptBody": "Would you like a quick guided tour of the interface? It takes about two minutes and you can leave any time.",
+  "tourPromptLater": "Maybe later",
+  "tourPromptStart": "Take the tour"
 }

@@ -10,6 +10,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "../../app/AppContext";
 import { Icons } from "../../components/Icons";
 import { BearPawMark } from "../../components/BrandMark";
+import { LeaderboardCard } from "../social/LeaderboardCard";
 
 import { EmptyState } from "../../components/ui";
 import { StatusBadge } from "../../components/ui";
@@ -165,6 +166,10 @@ export function HomePage() {
             <Icons.compass size={16} />
             {t("home:guideMe", { defaultValue: "Guide me" })}
           </Link>
+        </div>
+
+        <div style={{ marginTop: "var(--space-5)" }} data-tour-id="leaderboard-card">
+          <LeaderboardCard />
         </div>
 
         {draft && (

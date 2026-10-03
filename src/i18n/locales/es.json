@@ -125,7 +125,11 @@
     "professionalWorkspace": "Espacio de trabajo profesional",
     "verifiedWorkspace": "Verificado",
     "professionalPreview": "Professional Preview",
-    "openDashboard": "Abrir el panel de operaciones"
+    "openDashboard": "Abrir el panel de operaciones",
+    "leaderboard": "Clasificación de reportadores",
+    "leaderboardBlurb": "Un motivador local y amable: tus hitos de reportes, más los conteos de los dispositivos con los que sincronizas en la misma red. Nada se clasifica globalmente y nada sale de los dispositivos implicados.",
+    "you": "Tú",
+    "toNext": "informes para {{level}}"
   },
   "reports": {
     "title": "Mis reportes",
@@ -491,7 +495,21 @@
     "syncEnabledToast": "Sincronización LAN activada",
     "syncDisabledToast": "Sincronización LAN desactivada",
     "add": "Agregar",
-    "remove": "Quitar"
+    "remove": "Quitar",
+    "testView": "Vista de prueba",
+    "testViewBanner": "Vista de prueba: incidentes ficticios de demostración se mezclan en este panel para entrenamiento. Nada toca los registros reales y las exportaciones mantienen su etiqueta de demostración ficticia.",
+    "photoUpload": "Agregar una foto",
+    "photoChange": "Cambiar foto",
+    "photoRemove": "Quitar",
+    "photoBorder": "Estilo del marco de la foto",
+    "photoHint": "Visible solo en tu barra lateral, en este dispositivo.",
+    "photoSaved": "Foto de perfil guardada",
+    "photoNotImage": "Ese archivo no es una imagen",
+    "photoBorder_none": "Sencillo",
+    "photoBorder_leaves": "Hojas",
+    "photoBorder_wood": "Madera",
+    "photoBorder_rope": "Cuerda",
+    "photoBorder_stars": "Estrellas"
   },
   "tabs": {
     "tabsOverview": "Resumen",
@@ -744,7 +762,16 @@
     "legendTransfer": "Traslado / en cuidado",
     "legendClosed": "Cerrado",
     "range24h": "24 horas",
-    "rangeDays": "{{d}} días"
+    "rangeDays": "{{d}} días",
+    "basemapToggle": "Mapa base",
+    "basemapSatellite": "Satélite",
+    "basemapStreets": "Calles",
+    "stageCases": "caso(s) en esta etapa",
+    "sortEarliest": "Más antiguo",
+    "sortLatest": "Más reciente",
+    "stageEmpty": "Nada en esta etapa ahora mismo.",
+    "trendInfoTitle": "Detalles del período",
+    "trendNet": "Aún abiertos de este período"
   },
   "guide": {
     "whatHappened": {
@@ -967,6 +994,18 @@
     "workPhone": "Teléfono de trabajo",
     "serviceArea": "Área de servicio",
     "serviceAreaHint": "Podrá dibujarla o describirla más tarde en el panel profesional.",
-    "openProfessional": "Abrir el espacio de trabajo profesional"
+    "openProfessional": "Abrir el espacio de trabajo profesional",
+    "themeTitle": "Elige un aspecto que te guste",
+    "themeHint": "Puedes cambiarlo cuando quieras en Configuración → Apariencia.",
+    "tourPromptTitle": "¿Nuevo por aquí?",
+    "tourPromptBody": "¿Quieres un recorrido guiado rápido por la interfaz? Toma unos dos minutos y puedes salir en cualquier momento.",
+    "tourPromptLater": "Quizás después",
+    "tourPromptStart": "Hacer el recorrido"
+  },
+  "social": {
+    "leaderboard": "Clasificación de reportadores",
+    "leaderboardBlurb": "Un motivador local y amable: tus hitos de reportes, más los conteos de los dispositivos con los que sincronizas en la misma red. Nada se clasifica globalmente y nada sale de los dispositivos implicados.",
+    "you": "Tú",
+    "toNext": "informes para {{level}}"
   }
 }

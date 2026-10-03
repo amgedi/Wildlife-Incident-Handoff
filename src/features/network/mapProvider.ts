@@ -132,6 +132,18 @@ export interface MapProviderDescriptor {
 
 export const MAP_PROVIDERS: MapProviderDescriptor[] = [
   {
+    id: "esri-satellite",
+    label: "Satellite imagery (Esri World Imagery)",
+    kind: "raster-tiles",
+    tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
+    attribution: "Imagery \u00a9 Esri, Maxar, Earthstar Geographics",
+    maxZoom: 19,
+    requiresNetwork: true,
+    usageNote:
+      "Real-world satellite imagery for operational context. The app only requests viewport tiles and never uploads incident data.",
+    healthCheckUrl: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/0/0/0",
+  },
+  {
     id: "osm-raster",
     label: "OpenStreetMap raster tiles",
     kind: "raster-tiles",

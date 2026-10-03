@@ -1,0 +1,6 @@
+{
+  "leaderboard": "Reporter leaderboard",
+  "leaderboardBlurb": "A friendly local motivator: your report milestones, plus counts from devices you sync with on the same network. Nothing is ranked globally and nothing leaves the devices involved.",
+  "you": "You",
+  "toNext": "reports to {{level}}"
+}

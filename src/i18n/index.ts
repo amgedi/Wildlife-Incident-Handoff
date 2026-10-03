@@ -33,6 +33,7 @@ import enTabs from "./locales/en/tabs.json";
 import enGlossary from "./locales/en/glossary.json";
 import enHelp from "./locales/en/help.json";
 import enOnboarding from "./locales/en/onboarding.json";
+import enSocial from "./locales/en/social.json";
 
 export const EN_NAMESPACES = {
   common: enCommon,
@@ -52,6 +53,7 @@ export const EN_NAMESPACES = {
   glossary: enGlossary,
   help: enHelp,
   onboarding: enOnboarding,
+  social: enSocial,
 };
 
 export type NamespaceName = keyof typeof EN_NAMESPACES;

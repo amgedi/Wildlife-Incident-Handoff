@@ -166,5 +166,14 @@
   "legendTransfer": "Transfer / in care",
   "legendClosed": "Closed",
   "range24h": "24 hours",
-  "rangeDays": "{{d}} days"
+  "rangeDays": "{{d}} days",
+  "basemapToggle": "Basemap",
+  "basemapSatellite": "Satellite",
+  "basemapStreets": "Streets",
+  "stageCases": "case(s) at this stage",
+  "sortEarliest": "Earliest",
+  "sortLatest": "Latest",
+  "stageEmpty": "Nothing at this stage right now.",
+  "trendInfoTitle": "Period details",
+  "trendNet": "Still open from this period"
 }

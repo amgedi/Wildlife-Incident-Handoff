@@ -125,7 +125,11 @@
     "professionalWorkspace": "Professioneller Arbeitsbereich",
     "verifiedWorkspace": "Verifiziert",
     "professionalPreview": "Professionelle Vorschau",
-    "openDashboard": "Einsatzübersicht öffnen"
+    "openDashboard": "Einsatzübersicht öffnen",
+    "leaderboard": "Melder-Bestenliste",
+    "leaderboardBlurb": "Ein freundlicher lokaler Anreiz: Ihre Meldungs-Meilensteine plus Zähler von Geräten, mit denen Sie im selben Netzwerk synchronisieren. Nichts wird global gewertet und nichts verlässt die beteiligten Geräte.",
+    "you": "Sie",
+    "toNext": "Meldungen bis {{level}}"
   },
   "reports": {
     "title": "Meine Meldungen",
@@ -520,7 +524,13 @@
     "workPhone": "Dienstliches Telefon",
     "serviceArea": "Einsatzgebiet",
     "serviceAreaHint": "Sie können dies später in der Einsatzübersicht einzeichnen oder beschreiben.",
-    "openProfessional": "Professionellen Arbeitsbereich öffnen"
+    "openProfessional": "Professionellen Arbeitsbereich öffnen",
+    "themeTitle": "Wählen Sie einen Look",
+    "themeHint": "Jederzeit änderbar unter Einstellungen → Darstellung.",
+    "tourPromptTitle": "Neu hier?",
+    "tourPromptBody": "Möchten Sie eine kurze geführte Tour durch die Oberfläche? Dauert etwa zwei Minuten und Sie können jederzeit abbrechen.",
+    "tourPromptLater": "Vielleicht später",
+    "tourPromptStart": "Tour starten"
   },
   "help": {
     "title": "Hilfe-Center",
@@ -777,7 +787,21 @@
     "syncEnabledToast": "LAN-Sync aktiviert",
     "syncDisabledToast": "LAN-Sync deaktiviert",
     "add": "Hinzufügen",
-    "remove": "Entfernen"
+    "remove": "Entfernen",
+    "testView": "Testansicht",
+    "testViewBanner": "Testansicht — fiktive Demo-Vorfälle sind für Übungen in dieser Einsatzübersicht gemischt. Nichts berührt echte Datensätze, Exporte behalten ihre Fiktiv-Kennzeichnung.",
+    "photoUpload": "Foto hinzufügen",
+    "photoChange": "Foto ändern",
+    "photoRemove": "Entfernen",
+    "photoBorder": "Fotorahmen-Stil",
+    "photoHint": "Nur in Ihrer Seitenleiste auf diesem Gerät sichtbar.",
+    "photoSaved": "Profilfoto gespeichert",
+    "photoNotImage": "Diese Datei ist kein Bild",
+    "photoBorder_none": "Schlicht",
+    "photoBorder_leaves": "Blätter",
+    "photoBorder_wood": "Holz",
+    "photoBorder_rope": "Seil",
+    "photoBorder_stars": "Sterne"
   },
   "professional": {
     "title": "Respons-Netzwerk",
@@ -947,6 +971,21 @@
     "legendTransfer": "Übergabe / in Betreuung",
     "legendClosed": "Abgeschlossen",
     "range24h": "24 Stunden",
-    "rangeDays": "{{d}} Tage"
+    "rangeDays": "{{d}} Tage",
+    "basemapToggle": "Kartenhintergrund",
+    "basemapSatellite": "Satellit",
+    "basemapStreets": "Straßen",
+    "stageCases": "Fall/Fälle in dieser Phase",
+    "sortEarliest": "Älteste zuerst",
+    "sortLatest": "Neueste zuerst",
+    "stageEmpty": "Im Moment nichts in dieser Phase.",
+    "trendInfoTitle": "Periodendetails",
+    "trendNet": "Aus dieser Zeit noch offen"
+  },
+  "social": {
+    "leaderboard": "Melder-Bestenliste",
+    "leaderboardBlurb": "Ein freundlicher lokaler Anreiz: Ihre Meldungs-Meilensteine plus Zähler von Geräten, mit denen Sie im selben Netzwerk synchronisieren. Nichts wird global gewertet und nichts verlässt die beteiligten Geräte.",
+    "you": "Sie",
+    "toNext": "Meldungen bis {{level}}"
   }
 }

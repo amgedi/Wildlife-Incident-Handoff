@@ -1,10 +1,13 @@
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { REPORTER_NAV_ITEMS, PROFESSIONAL_NAV_ITEMS, FOOTER_NAV_ITEMS } from "./app/navigation";
 import { useApp } from "./app/AppContext";
 import { Icons } from "./components/Icons";
 import { BrandMark } from "./components/BrandMark";
+import { ProfilePhoto } from "./components/ProfilePhoto";
+import { Dialog } from "./components/Dialog";
+import { buildInterfaceTourSteps } from "./features/tutorial/guidance";
 import { TitleBar } from "./components/TitleBar";
 import { HomePage } from "./features/home/HomePage";
 import { OnboardingPage } from "./features/onboarding/OnboardingPage";
@@ -19,6 +22,7 @@ import { HelpPage } from "./features/help/HelpPage";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { NotificationBell } from "./components/NotificationCenter";
 import { registerNavigate } from "./app/routerNavigate";
+import { isTauri } from "./utils/platformFile";
 import { registerTourLauncher } from "./features/help/launchTour";
 
 function roleLine(settings: ReturnType<typeof useApp>["settings"], t: (k: string, o?: unknown) => string): string {
@@ -34,11 +38,12 @@ function roleLine(settings: ReturnType<typeof useApp>["settings"], t: (k: string
 }
 
 export function App() {
-  const { settings, storageReady, guidance, startGuidance, endGuidance } = useApp();
+  const { settings, updateSettings, storageReady, guidance, startGuidance, endGuidance } = useApp();
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [tourPromptOpen, setTourPromptOpen] = useState(false);
   const previewingOnboarding = settings.onboardingPreviewActive === true;
   // Non-React modules (Help tutorials) navigate/launch via these bridges.
   useEffect(() => {
@@ -60,6 +65,24 @@ export function App() {
   useEffect(() => {
     setDrawerOpen(false);
   }, [location.pathname, location.search]);
+
+  // Newcomer tutorial prompt: first arrival on Home, tour not completed,
+  // not previously dismissed (dev.14 — a new user should never have to find
+  // the tutorial in Settings).
+  useEffect(() => {
+    if (
+      storageReady &&
+      settings.onboarded &&
+      !previewingOnboarding &&
+      !settings.tourCompleted &&
+      !settings.tourPromptDismissed &&
+      location.pathname === "/" &&
+      !guidance
+    ) {
+      const id = window.setTimeout(() => setTourPromptOpen(true), 900);
+      return () => window.clearTimeout(id);
+    }
+  }, [storageReady, settings.onboarded, previewingOnboarding, settings.tourCompleted, settings.tourPromptDismissed, location.pathname, guidance]);
 
   useEffect(() => {
     document.body.classList.toggle("drawer-open", drawerOpen);
@@ -97,10 +120,17 @@ export function App() {
     : (firstName || t("home:welcome", { defaultValue: "Welcome" }));
   const subLine = roleLine(settings, t as never);
 
+  // Map is only "active" on /network?view=map; Response network on /network without it.
+  const navIsActive = (item: (typeof navItems)[number], isActive: boolean): boolean => {
+    if (item.to === "/network?view=map") return location.pathname === "/network" && new URLSearchParams(location.search).get("view") === "map";
+    if (item.to === "/network") return location.pathname === "/network" && new URLSearchParams(location.search).get("view") !== "map";
+    return isActive;
+  };
+
   const navList = (
     <>
       {navItems.map((item) => (
-        <NavLink key={item.to} to={item.to} end={item.end ?? item.to === "/"} data-tour-id={item.tourId} className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}>
+        <NavLink key={item.to} to={item.to} end={item.end ?? item.to === "/"} data-tour-id={item.tourId} className={({ isActive }) => `nav-item${navIsActive(item, isActive) ? " active" : ""}`}>
           <item.icon size={18} />
           {t(item.labelKey, { ns: "navigation" })}
         </NavLink>
@@ -111,14 +141,10 @@ export function App() {
   const footerList = (
     <>
       {FOOTER_NAV_ITEMS.map((item) => (
-        <Fragment key={item.to}>
-          {/* The bell lives IN the footer nav as a labeled item — never floating alone. */}
-          {item.tourId === "nav-settings" && <NotificationBell withLabel />}
-          <NavLink to={item.to} data-tour-id={item.tourId} className={({ isActive }) => `nav-item nav-item-footer${isActive ? " active" : ""}`}>
-            <item.icon size={17} />
-            {t(item.labelKey, { ns: "navigation" })}
-          </NavLink>
-        </Fragment>
+        <NavLink key={item.to} to={item.to} data-tour-id={item.tourId} className={({ isActive }) => `nav-item nav-item-footer${isActive ? " active" : ""}`}>
+          <item.icon size={17} />
+          {t(item.labelKey, { ns: "navigation" })}
+        </NavLink>
       ))}
     </>
   );
@@ -134,7 +160,7 @@ export function App() {
         <aside className={`sidebar${drawerOpen ? " drawer-open" : ""}`} aria-label={t("navigation:mainNav")}>
           {/* Compact identity header — the desktop titlebar already carries the product name. */}
           <NavLink to="/" className="brand">
-            <BrandMark size={30} />
+            <ProfilePhoto src={settings.profilePhoto} size={34} border={settings.photoBorder} title={identityLine} />
             <span className="brand-name">
               <strong>{identityLine}</strong>
               <span className="brand-sub">{subLine}</span>
@@ -152,6 +178,12 @@ export function App() {
         </aside>
 
       <div className="main-area">
+        {/* Web/PWA desktop has no titlebar — fixed top-right bell instead. */}
+        {!isTauri() && (
+          <div className="web-bell" style={{ position: "fixed", top: 12, right: 16, zIndex: 120 }}>
+            <NotificationBell />
+          </div>
+        )}
         <header className="mobile-header">
           <button className="hamburger" aria-label={t("navigation:openMenu", { defaultValue: "Open menu" })} aria-expanded={drawerOpen} onClick={() => setDrawerOpen(true)}>
             <span /><span /><span />
@@ -206,6 +238,46 @@ export function App() {
           {t("navigation:settings")}
         </NavLink>
       </nav>
+
+      {/* Newcomer tour prompt (dev.14) */}
+      <Dialog
+        open={tourPromptOpen}
+        title={t("onboarding:tourPromptTitle", { defaultValue: "New here?" })}
+        onClose={() => {
+          setTourPromptOpen(false);
+          void updateSettings({ tourPromptDismissed: true });
+        }}
+        actions={
+          <>
+            <button
+              className="btn btn-secondary"
+              onClick={() => {
+                setTourPromptOpen(false);
+                void updateSettings({ tourPromptDismissed: true });
+              }}
+            >
+              {t("onboarding:tourPromptLater", { defaultValue: "Maybe later" })}
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={async () => {
+                setTourPromptOpen(false);
+                void updateSettings({ tourPromptDismissed: true });
+                const steps = await buildInterfaceTourSteps(settings.workspace);
+                startGuidance("interface-tour", steps);
+              }}
+            >
+              {t("onboarding:tourPromptStart", { defaultValue: "Take the tour" })}
+            </button>
+          </>
+        }
+      >
+        <p>
+          {t("onboarding:tourPromptBody", {
+            defaultValue: "Would you like a quick guided tour of the interface? It takes about two minutes and you can leave any time.",
+          })}
+        </p>
+      </Dialog>
 
       {guidance && (
         <SpotlightTour

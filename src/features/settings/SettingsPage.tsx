@@ -1,5 +1,5 @@
 /** Settings: left nav sections + right content, settings search, storage health. */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useApp } from "../../app/AppContext";
 import { Icons } from "../../components/Icons";
@@ -19,6 +19,7 @@ import { DEFAULT_NOTIFICATION_CATEGORIES } from "../../types/settings";
 import { displayPhone, normalizePhoneForStorage, isValidPhone, parsePhone } from "../../utils/phone";
 import { resetAllGuidance } from "../../features/tutorial/guidance";
 import { getMapProviderDescriptor } from "../network/mapProvider";
+import { ProfilePhoto, PHOTO_BORDER_STYLES } from "../../components/ProfilePhoto";
 import {
   DEFAULT_LAN_SYNC_CONFIG, lanLocalAddress, lanStart, lanStop,
   runSyncRound, lanSyncSupported, type LanSyncConfig,
@@ -865,6 +866,29 @@ function ProfessionalRolesCard() {
 function ProfileSection() {
   const { settings, updateSettings, showToast } = useApp();
   const { t } = useTranslation("settings");
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      showToast(t("photoNotImage", { defaultValue: "That file is not an image" }));
+      return;
+    }
+    // Downscale to a small square data URL (keeps local storage light).
+    const bitmap = await createImageBitmap(file);
+    const size = 256;
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d")!;
+    const scale = Math.max(size / bitmap.width, size / bitmap.height);
+    ctx.drawImage(bitmap, (size - bitmap.width * scale) / 2, (size - bitmap.height * scale) / 2, bitmap.width * scale, bitmap.height * scale);
+    updateSettings({ profilePhoto: canvas.toDataURL("image/jpeg", 0.85) });
+    showToast(t("photoSaved", { defaultValue: "Profile picture saved" }));
+  }
+
   const saved = settings.savedReporterContact;
   const [draft, setDraft] = useState({
     name: saved?.name ?? "",
@@ -888,6 +912,45 @@ function ProfileSection() {
         <div className="notice" style={{ margin: "var(--space-3) 0" }}>
           <Icons.shield size={16} />
           <span>{t("profileLocal", { defaultValue: "Stored locally on this device. Pre-fills reports only — final report privacy controls decide what is shared." })}</span>
+        </div>
+        <div className="row" style={{ gap: "var(--space-4)", flexWrap: "wrap", alignItems: "center", margin: "var(--space-3) 0" }} data-testid="profile-photo">
+          <ProfilePhoto src={settings.profilePhoto} size={72} border={settings.photoBorder} title={t("profileTitle", { defaultValue: "Your profile" })} />
+          <div className="stack" style={{ gap: 6 }}>
+            <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+              <button className="btn btn-secondary btn-sm" onClick={() => photoInputRef.current?.click()}>
+                {settings.profilePhoto ? t("photoChange", { defaultValue: "Change picture" }) : t("photoUpload", { defaultValue: "Add a picture" })}
+              </button>
+              {settings.profilePhoto && (
+                <button className="btn btn-quiet btn-sm" onClick={() => updateSettings({ profilePhoto: null })}>
+                  {t("photoRemove", { defaultValue: "Remove" })}
+                </button>
+              )}
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={(e) => void handlePhotoChange(e)}
+                aria-hidden="true"
+                tabIndex={-1}
+              />
+            </div>
+            <div className="row" style={{ gap: 6, flexWrap: "wrap" }} role="group" aria-label={t("photoBorder", { defaultValue: "Picture border style" })}>
+              {PHOTO_BORDER_STYLES.map((style) => (
+                <button
+                  key={style}
+                  className="chip"
+                  aria-pressed={settings.photoBorder === style}
+                  onClick={() => updateSettings({ photoBorder: style })}
+                >
+                  {t(`photoBorder_${style}`, {
+                    defaultValue: ({ none: "Plain", leaves: "Leaves", wood: "Wood", rope: "Rope", stars: "Stars" } as Record<string, string>)[style] ?? style,
+                  })}
+                </button>
+              ))}
+            </div>
+            <p className="hint" style={{ margin: 0 }}>{t("photoHint", { defaultValue: "Shown only in your sidebar, on this device." })}</p>
+          </div>
         </div>
         <div className="grid-2">
           <TextField label={t("profileName", { defaultValue: "Name" })} value={draft.name} onChange={(v) => setDraft({ ...draft, name: v })} optional />

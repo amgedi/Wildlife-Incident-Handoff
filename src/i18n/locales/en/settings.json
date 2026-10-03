@@ -171,5 +171,19 @@
   "syncEnabledToast": "LAN sync enabled",
   "syncDisabledToast": "LAN sync disabled",
   "add": "Add",
-  "remove": "Remove"
+  "remove": "Remove",
+  "testView": "Test view",
+  "testViewBanner": "Test view — fictional demo incidents are mixed into this dashboard for training. Nothing here touches real records, and exports keep their fictional-demo labels.",
+  "photoUpload": "Add a picture",
+  "photoChange": "Change picture",
+  "photoRemove": "Remove",
+  "photoBorder": "Picture border style",
+  "photoHint": "Shown only in your sidebar, on this device.",
+  "photoSaved": "Profile picture saved",
+  "photoNotImage": "That file is not an image",
+  "photoBorder_none": "Plain",
+  "photoBorder_leaves": "Leaves",
+  "photoBorder_wood": "Wood",
+  "photoBorder_rope": "Rope",
+  "photoBorder_stars": "Stars"
 }

@@ -52,6 +52,7 @@ export function NetworkMap({
   const [state, setState] = useState<MapState>(() => (incidents.length === 0 ? "no-coordinates" : "loading"));
   const [retryToken, setRetryToken] = useState(0);
   const [inspected, setInspected] = useState<number | null>(null);
+  const [basemap, setBasemap] = useState<"satellite" | "streets">("satellite");
   const providerRef = useRef<ReturnType<typeof createMapLibreProvider> | null>(null);
 
   useEffect(() => {
@@ -64,7 +65,7 @@ export function NetworkMap({
     const provider = createMapLibreProvider({
       serviceArea,
       fitMode,
-      providerId: offline ? "offline-basemap" : null,
+      providerId: offline ? "offline-basemap" : basemap === "streets" ? "osm-raster" : "esri-satellite",
     });
     // Bounded failure detection: if tiles haven't produced a load event within
     // 8 seconds while errors fired, classify as provider failure.
@@ -112,7 +113,7 @@ export function NetworkMap({
       provider.destroy();
       providerRef.current = null;
     };
-  }, [incidents, privacy, retryToken, serviceArea, fitMode, offline]);
+  }, [incidents, privacy, retryToken, serviceArea, fitMode, offline, basemap]);
 
   const inspectedIncident = inspected != null ? incidents[inspected] : undefined;
 
@@ -203,6 +204,14 @@ export function NetworkMap({
         </div>
       ) : (
         <div style={{ position: "relative" }}>
+          {!offline && (
+            <div style={{ position: "absolute", top: 10, left: 10, zIndex: 20 }}>
+              <div className="segmented" role="group" aria-label={t("basemapToggle", { defaultValue: "Basemap" })} style={{ boxShadow: "var(--shadow-sm)" }}>
+                <button aria-pressed={basemap === "satellite"} onClick={() => setBasemap("satellite")}>{t("basemapSatellite", { defaultValue: "Satellite" })}</button>
+                <button aria-pressed={basemap === "streets"} onClick={() => setBasemap("streets")}>{t("basemapStreets", { defaultValue: "Streets" })}</button>
+              </div>
+            </div>
+          )}
           <div
             ref={containerRef}
             style={{

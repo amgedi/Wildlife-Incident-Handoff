@@ -27,6 +27,7 @@ import { formatDistance } from "../../utils/units";
 const NetworkMap = lazy(() => import("./NetworkMap").then((m) => ({ default: m.NetworkMap })));
 import { getSetting, setSetting } from "../../storage/repositories";
 import { changeStatus } from "../../storage/incidentService";
+import { putIncident } from "../../storage/repositories";
 import * as analytics from "./incidentAnalytics";
 import { TrendChart } from "./TrendChart";
 import { AnimatedNumber } from "./dashboard/AnimatedNumber";
@@ -82,6 +83,8 @@ export function NetworkPage() {
   const [range, setRange] = useState<1 | 7 | 30 | 90>(7);
   const [now, setNow] = useState(() => new Date());
   const [layout, setLayout] = useState<DashboardLayout | null>(null);
+  const [testView, setTestView] = useState(false);
+  const [stageFocus, setStageFocus] = useState<string | null>(null);
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [confirmHideAttention, setConfirmHideAttention] = useState(false);
   const org = LOCAL_ORG_REGISTRY[0];
@@ -96,6 +99,9 @@ export function NetworkPage() {
     });
     getSetting<DashboardLayout>(DASHBOARD_LAYOUT_KEY).then((saved) => {
       if (saved && Array.isArray(saved.order) && Array.isArray(saved.hidden)) setLayout(saved);
+    });
+    getSetting<boolean>("network-test-view").then((v) => {
+      if (v === true) setTestView(true);
     });
   }, []);
 
@@ -134,7 +140,12 @@ export function NetworkPage() {
     void setSetting("network-service-area", next);
   };
 
-  const live = useMemo(() => (incidents ?? []).filter((i) => !i.deletedAt && !i.archivedAt && !i.isDemo), [incidents]);
+  // Test view (dev.14): fictional demo incidents join the dashboard for
+  // rehearsal/training. Presentation only — real records are never modified.
+  const live = useMemo(
+    () => (incidents ?? []).filter((i) => !i.deletedAt && !i.archivedAt && (testView || !i.isDemo)).map((i) => (testView ? { ...i, isDemo: false } : i)),
+    [incidents, testView]
+  );
 
   // Unified dashboard filtering (W): applied consistently to every widget.
   const filtered = useMemo(() => {
@@ -331,11 +342,13 @@ export function NetworkPage() {
         <div className="attn-grid" style={{ gridTemplateColumns: "1fr", flex: 1 }}>
           {attentionCards.map((c) => (
             <button key={c.key} className={`attn-card severity-${c.severity}`} onClick={() => navigate(c.to)}>
-              <span className="attn-icon" aria-hidden="true">{c.icon}</span>
-              <span className="attn-count"><AnimatedNumber value={c.count} /></span>
-              <span className="attn-action">{c.action} <Icons.chevronRight size={12} /></span>
-              <span className="attn-reason">{c.reason}</span>
-              {c.time && <span className="attn-time">{t("attnOldest", { defaultValue: "Oldest: {{time}}", time: c.time })}</span>}
+              <span className="attn-row1">
+                <span className="attn-icon" aria-hidden="true">{c.icon}</span>
+                <span className="attn-count"><AnimatedNumber value={c.count} /></span>
+                <span className="attn-reason">{c.reason}</span>
+                <span className="attn-action">{c.action} <Icons.chevronRight size={12} /></span>
+              </span>
+              {c.time && <span className="attn-row2">{t("attnOldest", { defaultValue: "Oldest: {{time}}", time: c.time })}</span>}
             </button>
           ))}
         </div>
@@ -357,7 +370,7 @@ export function NetworkPage() {
               <button onClick={() => navigate(`/incidents/${e.incidentId}`)} className="ops-feed-item">
                 <span className="ops-feed-time">{new Date(e.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                 <span className="ops-feed-body">
-                  <span className="ops-feed-event">{e.summary}</span>
+                  <span className="ops-feed-event" data-evt={e.eventType}>{e.summary}</span>
                   <span className="ops-feed-ref">{e.incidentRef}{e.animalLabel ? ` · ${e.animalLabel}` : ""}</span>
                 </span>
               </button>
@@ -387,15 +400,22 @@ export function NetworkPage() {
       <div className="pipeline-wrap" style={{ flex: 1, display: "grid", alignContent: "center" }}>
         <div className="pipeline" role="list" aria-label={t("pipelineTitle", { defaultValue: "Response flow" })}>
           {pipeline.map((s) => (
-            <button key={s.key} role="listitem" className={`pipeline-stage${s.count === 0 ? " is-zero" : ""}`} onClick={() => navigate(s.to)}>
+            <button
+              key={s.key}
+              role="listitem"
+              aria-pressed={stageFocus === s.key}
+              className={`pipeline-stage${s.count === 0 ? " is-zero" : ""}${stageFocus === s.key ? " is-selected" : ""}`}
+              onClick={() => setStageFocus(stageFocus === s.key ? null : s.key)}
+            >
               <span className="pipeline-count"><AnimatedNumber value={s.count} /></span>
               <span className="pipeline-label">{s.label}</span>
             </button>
           ))}
         </div>
         <p className="hint" style={{ margin: "10px 0 0" }}>
-          {t("pipelineHint", { defaultValue: "Cases currently sitting at each stage. Select a stage to open the filtered queue." })}
+          {t("pipelineHint", { defaultValue: "Cases currently sitting at each stage. Select a stage to see them here." })}
         </p>
+        {stageFocus && <StageCaseList stage={stageFocus} />}
       </div>
     </div>
   );
@@ -604,8 +624,35 @@ export function NetworkPage() {
           >
             <Icons.list size={14} /> {t("customize", { defaultValue: "Customize" })}
           </button>
+          <button
+            className="btn btn-ghost btn-sm"
+            data-testid="test-view"
+            aria-pressed={testView}
+            onClick={async () => {
+              const next = !testView;
+              setTestView(next);
+              await setSetting("network-test-view", next);
+              if (next) {
+                const { buildDemoIncidents } = await import("../tutorial/demoData");
+                const existing = new Set((incidents ?? []).map((i) => i.id));
+                for (const d of buildDemoIncidents()) {
+                  if (!existing.has(d.id)) await putIncident(d);
+                }
+                await refresh();
+              }
+            }}
+          >
+            <Icons.eye size={14} /> {t("testView", { defaultValue: "Test view" })}
+          </button>
         </div>
       </div>
+
+      {testView && (
+        <div className="notice warning" role="status" style={{ marginTop: "var(--space-3)" }}>
+          <Icons.eye size={16} />
+          <span>{t("testViewBanner", { defaultValue: "Test view — fictional demo incidents are mixed into this dashboard for training. Nothing here touches real records, and exports keep their fictional-demo labels." })}</span>
+        </div>
+      )}
 
       {filtersOpen && (
         <div className="card ops-filters fade-in" role="group" aria-label={t("filters", { defaultValue: "Filters" })}>
@@ -658,7 +705,8 @@ export function NetworkPage() {
           {/* P80 — widgets render in the user's saved order (role-recommended by default).
               The map is the primary context and cannot be hidden. */}
           {widgetOrder
-            .filter((id) => !hiddenWidgets.has(id) || id === "map")
+            .filter((id) => id !== "map") // List view has no map — Map view is the map
+            .filter((id) => !hiddenWidgets.has(id))
             .map((id) => (
               <Fragment key={id}>{widgetNodes[id]}</Fragment>
             ))}
@@ -940,6 +988,59 @@ export function NetworkPage() {
         <p>{t("attentionHideWarnBody", { defaultValue: "Needs attention surfaces incidents that may be waiting too long, missing a responder, or missing a usable location. You can re-enable it any time from Customize dashboard." })}</p>
       </Dialog>
     </main>
+  );
+}
+
+const STAGE_STATUSES: Record<string, string[]> = {
+  reported: ["reported", "response_requested"],
+  assigned: ["responder_assigned"],
+  enroute: ["in_transport"],
+  pickup: ["awaiting_pickup"],
+  transfer: ["transferred"],
+  care: ["in_care", "veterinary_care", "monitoring"],
+  closed: ["released", "deceased", "closed", "cancelled"],
+};
+
+/** Inline, sorted case list for a selected response-flow stage (stays on the dashboard). */
+function StageCaseList({ stage }: { stage: string }) {
+  const { t } = useTranslation("professional");
+  const [sort, setSort] = useState<"earliest" | "latest">("earliest");
+  const navigate = useNavigate();
+  const { incidents } = useIncidents();
+  const statuses = STAGE_STATUSES[stage] ?? [];
+  const cases = (incidents ?? [])
+    .filter((i) => !i.deletedAt && !i.archivedAt && !i.isDemo && statuses.includes(i.status))
+    .sort((a, b) => {
+      const ka = a.occurredAt ?? a.createdAt;
+      const kb = b.occurredAt ?? b.createdAt;
+      return sort === "earliest" ? ka.localeCompare(kb) : kb.localeCompare(ka);
+    });
+  return (
+    <div className="stage-case-list" role="region" aria-label={stage} style={{ marginTop: 10, border: "1px solid var(--c-border)", borderRadius: "var(--radius-sm)", padding: 10, background: "var(--c-surface-alt)" }}>
+      <div className="row between" style={{ gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
+        <strong style={{ fontSize: "0.85rem" }}>{cases.length} {t("stageCases", { defaultValue: "case(s) at this stage" })}</strong>
+        <div className="segmented">
+          <button aria-pressed={sort === "earliest"} onClick={() => setSort("earliest")}>{t("sortEarliest", { defaultValue: "Earliest" })}</button>
+          <button aria-pressed={sort === "latest"} onClick={() => setSort("latest")}>{t("sortLatest", { defaultValue: "Latest" })}</button>
+        </div>
+      </div>
+      {cases.length === 0 ? (
+        <p className="hint" style={{ margin: 0 }}>{t("stageEmpty", { defaultValue: "Nothing at this stage right now." })}</p>
+      ) : (
+        <ul style={{ listStyle: "none", margin: 0, padding: 0, maxHeight: 220, overflowY: "auto" }}>
+          {cases.map((i) => (
+            <li key={i.id}>
+              <button className="dist-row" style={{ width: "100%" }} onClick={() => navigate(`/incidents/${i.id}`)}>
+                <StatusBadge status={i.status} />
+                <span style={{ flex: 1, textAlign: "left", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {i.humanReference} · {relativeTime(i.occurredAt ?? i.createdAt)} · {i.location.description || i.animal.description || i.animal.species || ""}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 

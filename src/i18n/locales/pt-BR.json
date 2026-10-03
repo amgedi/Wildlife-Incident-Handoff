@@ -125,7 +125,11 @@
     "professionalWorkspace": "Espaço profissional",
     "verifiedWorkspace": "Verificado",
     "professionalPreview": "Prévia profissional",
-    "openDashboard": "Abrir painel de operações"
+    "openDashboard": "Abrir painel de operações",
+    "leaderboard": "Classificação de reportadores",
+    "leaderboardBlurb": "Um motivador local e amigável: seus marcos de relatos, mais as contagens dos aparelhos com os quais você sincroniza na mesma rede. Nada é classificado globalmente e nada sai dos aparelhos envolvidos.",
+    "you": "Você",
+    "toNext": "relatos para {{level}}"
   },
   "reports": {
     "title": "Meus relatos",
@@ -520,7 +524,13 @@
     "workPhone": "Telefone profissional",
     "serviceArea": "Área de serviço",
     "serviceAreaHint": "Você pode desenhar ou descrever isso depois no painel profissional.",
-    "openProfessional": "Abrir espaço profissional"
+    "openProfessional": "Abrir espaço profissional",
+    "themeTitle": "Escolha uma aparência",
+    "themeHint": "Você pode mudar quando quiser em Configurações → Aparência.",
+    "tourPromptTitle": "Novo por aqui?",
+    "tourPromptBody": "Gostaria de um tour guiado rápido pela interface? Leva cerca de dois minutos e você pode sair a qualquer momento.",
+    "tourPromptLater": "Talvez depois",
+    "tourPromptStart": "Fazer o tour"
   },
   "help": {
     "title": "Central de ajuda",
@@ -777,7 +787,21 @@
     "syncEnabledToast": "Sincronização LAN ativada",
     "syncDisabledToast": "Sincronização LAN desativada",
     "add": "Adicionar",
-    "remove": "Remover"
+    "remove": "Remover",
+    "testView": "Vista de teste",
+    "testViewBanner": "Vista de teste — ocorrências fictícias de demonstração são misturadas a este painel para treinamento. Nada toca nos registros reais e as exportações mantêm a marcação de demo fictícia.",
+    "photoUpload": "Adicionar foto",
+    "photoChange": "Mudar foto",
+    "photoRemove": "Remover",
+    "photoBorder": "Estilo da moldura da foto",
+    "photoHint": "Visível apenas na sua barra lateral, neste aparelho.",
+    "photoSaved": "Foto de perfil salva",
+    "photoNotImage": "Esse arquivo não é uma imagem",
+    "photoBorder_none": "Simples",
+    "photoBorder_leaves": "Folhas",
+    "photoBorder_wood": "Madeira",
+    "photoBorder_rope": "Corda",
+    "photoBorder_stars": "Estrelas"
   },
   "professional": {
     "title": "Rede de resposta",
@@ -947,6 +971,21 @@
     "legendTransfer": "Transferência / em cuidado",
     "legendClosed": "Encerrado",
     "range24h": "24 horas",
-    "rangeDays": "{{d}} dias"
+    "rangeDays": "{{d}} dias",
+    "basemapToggle": "Mapa base",
+    "basemapSatellite": "Satélite",
+    "basemapStreets": "Ruas",
+    "stageCases": "caso(s) nesta fase",
+    "sortEarliest": "Mais antigos",
+    "sortLatest": "Mais recentes",
+    "stageEmpty": "Nada nesta fase no momento.",
+    "trendInfoTitle": "Detalhes do período",
+    "trendNet": "Ainda abertos deste período"
+  },
+  "social": {
+    "leaderboard": "Classificação de reportadores",
+    "leaderboardBlurb": "Um motivador local e amigável: seus marcos de relatos, mais as contagens dos aparelhos com os quais você sincroniza na mesma rede. Nada é classificado globalmente e nada sai dos aparelhos envolvidos.",
+    "you": "Você",
+    "toNext": "relatos para {{level}}"
   }
 }

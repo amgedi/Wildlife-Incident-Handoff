@@ -2,6 +2,28 @@
 
 All notable changes to Wildlife Incident Handoff are documented here. Format based on [Keep a Changelog](https://keepachangelog.com/); versioning follows [SemVer](https://semver.org/).
 
+## 0.2.0-dev.14 — dashboard interaction pass, satellite view, onboarding & newcomer flow
+
+### Changed
+- **Map is a real-life view**: the professional map now defaults to **satellite imagery** (Esri World Imagery, attributed) with a Satellite/Streets toggle on the map itself; street tiles remain one tap away. CSP updated for the new host.
+- **List/Map semantics fixed**: the List view no longer embeds a map (the full Map view is the map), and the sidebar "Map" item is only active on `/network?view=map` — clicking Response network no longer leaves Map highlighted.
+- **Response flow stays in place**: clicking a stage (e.g. Reported) opens an inline, sorted case list (Earliest/Latest toggle) right in the widget instead of navigating away.
+- **Needs Attention cards redesigned**: one uniform compact row (icon · count · reason · action) with the oldest-age line tucked underneath — consistent across cards.
+- **Live activity is color-coded** by event kind (created / status change / handoff / custody / correction / closure).
+- **Notifications moved to the top right** — the bell now lives in the desktop titlebar (right of the app name, left of the window controls); web/PWA gets a fixed top-right bell; mobile keeps the header bell. The sidebar footer is nav-only again.
+- **Animations on by default**: the OS reduced-motion preference no longer silently downgrades the whole interface — it only tones down the decorative ambient background. Reduced/Off remain user choices.
+- **Onboarding now includes a theme step** (language → region → profile → theme → privacy → ready) — pick your look before you start.
+
+### Added
+- **Test view** on the operations dashboard: one click mixes fictional demo incidents into every widget for training/rehearsal, with a visible banner; real records are never touched and demo labels persist in exports.
+- **Reporter leaderboard** (reporter home): milestone levels (Newcomer → First Reporter → Helper → Guardian → Protector → Steward → Champion) with progress to the next level, plus friendly counts from devices you LAN-sync with. Deliberately local-network only — no global ranking exists anywhere.
+- **Profile pictures with decorative circular borders**: upload a photo in Profile (auto-cropped to a circle), choose a ring style — Plain, **Leaves**, **Wood**, Rope, Stars — theme-colored; it replaces the paw in your sidebar identity.
+- **Newcomer tutorial prompt**: first time on Home after onboarding, the app asks "New here?" and offers a two-minute guided tour — no Settings digging. "Maybe later" persists.
+- **Analytics detail box**: click (or keyboard-activate) any dot in Reports over time for a card with the period's reported/resolved/still-open counts; the trend line is now smoothed.
+
+### Tests
+- 274 tests (was 267): leaderboard ranks/milestones/tie-breaks, satellite default provider + CSP host, photo border styles, tour-prompt gating, onboarding theme step.
+
 ## 0.2.0-dev.13 — notification fix, map views, Help Q&A, LAN sync v1
 
 ### Fixed

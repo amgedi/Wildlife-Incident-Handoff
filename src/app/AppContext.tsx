@@ -94,9 +94,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         };
         const merged: AppSettings = { ...DEFAULT_SETTINGS, ...stored, notifications: notificationsPrefs };
         void changeLanguage(merged.language);
-        // Respect OS reduced-motion until the user makes an explicit choice.
-        if (stored.motion === DEFAULT_SETTINGS.motion && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-          merged.motion = "reduced";
+        // dev.14: animations stay ON by default (motion: "full") even when the
+        // OS requests reduced motion — only the decorative AMBIENT background
+        // is toned down automatically. Users can still pick Reduced/Off; the
+        // settings hint documents the OS preference handling.
+        if (stored.motion === DEFAULT_SETTINGS.motion && stored.ambient === DEFAULT_SETTINGS.ambient && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          merged.ambient = "reduced";
         }
         setSettings(merged);
       }

@@ -156,6 +156,12 @@ export const Icons = {
   zap: (p: IconProps) => (
     <Icon {...p}><path d="M13 3 5 13.5h5L10.5 21l8-10.5h-5L13 3Z" /></Icon>
   ),
+  award: (p: IconProps) => (
+    <svg width={p.size ?? 18} height={p.size ?? 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={p.strokeWidth ?? 1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="9" r="5.5" />
+      <path d="M8.8 13.8 7 21l5-2.6L17 21l-1.8-7.2" />
+    </svg>
+  ),
   users: (p: IconProps) => (
     <Icon {...p}><circle cx="9" cy="8.5" r="3.2" /><path d="M3 19.5c1-3 3.4-4.6 6-4.6s5 1.6 6 4.6" /><path d="M15.5 5.6a3.2 3.2 0 0 1 0 5.8" /><path d="M17.5 15.2c1.6.7 2.9 2.1 3.5 4.3" /></Icon>
   ),
