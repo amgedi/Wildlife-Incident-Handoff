@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="branding/wildlife-incident-handoff-emblem.png" alt="Wildlife Incident Handoff — bear-paw emblem over a mountain forest" width="160">
+
 # Wildlife Incident Handoff
 
 **An open-source, local-first tool for creating clear and traceable wildlife incident handoffs.**
@@ -31,7 +33,7 @@ Where relevant, the app encourages safe behavior: observe from a distance, avoid
 ## Highlights (0.2.0-dev additions in *italics*)
 
 - *🧭 **Real spotlight tour*** — the tour navigates into the actual screens (incident list, timeline, handoff, export), dims everything except the target through an SVG-mask cutout, and follows the interface on resize.
-- *🐻 **Canonical bear-paw brand mark*** — one shape across app, favicon, PWA icons and social preview.
+- *🐻 **Canonical bear-paw brand mark** (scenic emblem, theme-aware in-app; full logo with wordmark in `branding/`) — one shape across app, favicon, PWA icons and installer.*
 - *📍 **Use my current location*** — optional, permission-gated geolocation with accuracy capture; denied permission never breaks the form.
 - *🙋 **Reporter contact by choice*** — anonymous by default; opt-in contact details with optional (off-by-default, clearable) remembering on this device; a review screen shows exactly what the report includes and a sharing profile (Private record / Responder report / Public).
 - *🤝 **Response network (local preview)** — a professional dashboard over local incidents: service area, grouped feed (new / active / transfer / closed), accept action, possible-duplicate detection, map-provider abstraction. Nothing is transmitted; see [docs/NETWORK_ARCHITECTURE.md](docs/NETWORK_ARCHITECTURE.md).

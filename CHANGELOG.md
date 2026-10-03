@@ -2,6 +2,20 @@
 
 All notable changes to Wildlife Incident Handoff are documented here. Format based on [Keep a Changelog](https://keepachangelog.com/); versioning follows [SemVer](https://semver.org/).
 
+## 0.2.0-dev.11 — new brand identity
+
+### Added
+- **New logo integrated everywhere.** The supplied artwork (bear paw filled with a mountain-forest scene) is now the product mark:
+  - **In-app**: the canonical `BrandMark` paw keeps its tested geometry (4 toes, 4 claws, one pad — 257 tests still assert this) and the main pad now carries the scenic emblem drawn as theme-aware SVG (mountain ridge with snowcaps, serrated treeline, winding river). It uses only `--brand-icon-bg`/`--brand-icon-fg`, so it follows every theme and density automatically, and shows **no wordmark** inside the app. Verified in-app in dark and light themes.
+  - **Outside the app**: `scripts/make-brand-assets.py` derives, from the supplied PNG (background removed, leaf of the wordmark masked): the full logo and the emblem-only mark in `branding/`, the Tauri icon set (`icon.ico` 16–256, PNG sizes, Windows Store logos), and PWA icons (`icon-192/512`, apple-touch, maskable). README header now uses the emblem.
+- `branding/` folder: `wildlife-incident-handoff-logo.png` (full logo with wordmark, transparent background) and `wildlife-incident-handoff-emblem.png` (paw only).
+
+### Changed
+- PWA/favicon/desktop icons now carry the scenic emblem instead of the plain paw.
+
+### Tests
+- 257 passing — the paw geometry contract (4 toes / 4 claws / one `<path>` pad / symmetry) is unchanged by the scene, enforced by the existing tests.
+
 ## 0.2.0-dev.10 — GUI overhaul pass (judged from the rendered app)
 
 This pass was driven by a **visual audit of the running application** (see
