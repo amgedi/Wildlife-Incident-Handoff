@@ -1,13 +1,23 @@
-/** Reusable dashboard chart pieces: horizontal bar distribution with
- *  click-through, and the case-aging timeline strip. Accessible: each row
- *  is a real button with text (never color alone), and the whole chart has
- *  a text fallback by construction. */
+/** Dashboard chart pieces (0.2.0-dev.10 redesign).
+ *
+ *  Distribution = one stacked segmented bar (the shape of the whole) above a
+ *  compact legend list with counts and shares; each segment/list row is a
+ *  real button with text (never color alone). Aging = a single proportional
+ *  strip where the 4h+ bucket gets attention emphasis, plus bucket counts.
+ *  Both remain their own accessible data table by construction. */
 import type { DistributionEntry } from "../incidentAnalytics";
 import { useTranslation } from "react-i18next";
 
+const SEGMENT_COLORS = [
+  "var(--c-primary)",
+  "color-mix(in srgb, var(--c-primary) 62%, var(--c-ink-soft))",
+  "color-mix(in srgb, var(--c-primary) 34%, transparent)",
+  "color-mix(in srgb, var(--c-primary) 18%, transparent)",
+  "var(--c-ink-faint)",
+];
+
 export function BarDistribution({
   entries,
-  max,
   onPick,
   accent,
   note,
@@ -20,52 +30,49 @@ export function BarDistribution({
   note?: string | null;
   total?: number;
 }) {
-  const maxValue = Math.max(1, max ?? entries.reduce((m, e) => Math.max(m, e.count), 0));
+  const { t } = useTranslation("professional");
   const sum = total ?? entries.reduce((s, e) => s + e.count, 0);
+  const colors = entries.map((_, i) => (accent ? accent : SEGMENT_COLORS[i % SEGMENT_COLORS.length]));
   return (
-    <div role="group" aria-label="Distribution" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      {entries.map((e) => {
-        const pct = Math.round((e.count / maxValue) * 100);
-        const share = sum > 0 ? Math.round((e.count / sum) * 100) : 0;
-        const inner = onPick ? (
-          <>
-            <span style={{ position: "relative", zIndex: 1, display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center", padding: "3px 10px" }}>
-              <span>{e.label}</span>
-              <span style={{ color: "var(--c-ink-faint)", fontSize: "0.8rem" }}>{e.count}{sum > 0 ? ` · ${share}%` : ""}</span>
-            </span>
-          </>
-        ) : (
-          <>
-            <span style={{ position: "relative", zIndex: 1, display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center", padding: "3px 10px" }}>
-              <span>{e.label}</span>
-              <span style={{ color: "var(--c-ink-faint)", fontSize: "0.8rem" }}>{e.count}{sum > 0 ? ` · ${share}%` : ""}</span>
-            </span>
-          </>
-        );
-        return (
-          <button
-            key={e.key}
-            className="dist-row"
-            onClick={onPick ? () => onPick(e.key) : undefined}
-            disabled={!onPick}
-            style={{ width: "100%", textAlign: "left", font: "inherit", cursor: onPick ? "pointer" : "default", border: "none", background: "transparent", padding: 0, borderRadius: 8 }}
-          >
-            <span
-              aria-hidden="true"
-              className="dist-bar"
-              style={{
-                position: "absolute", inset: 0, width: `${pct}%`, borderRadius: 8,
-                background: accent ?? "var(--c-primary)", opacity: 0.22,
-              }}
-            />
-            <span style={{ position: "relative", display: "flex", alignItems: "center" }}>{inner}</span>
-          </button>
-        );
-      })}
-      {entries.length === 0 && <p className="hint" style={{ margin: 0 }}>No data yet</p>}
-      {note && (
-        <p className="hint" style={{ margin: 0, color: "var(--c-warn)" }}>{note}</p>
+    <div role="group" aria-label={t("distributionLabel", { defaultValue: "Distribution" })} style={{ display: "grid", gap: 10 }}>
+      {sum > 0 && (
+        <div style={{ display: "flex", height: 12, borderRadius: 999, overflow: "hidden", background: "var(--c-surface-raised, rgb(127 127 127 / 0.14))" }} aria-hidden="true">
+          {entries.map((e, i) =>
+            e.count > 0 ? (
+              <span
+                key={e.key}
+                style={{ width: `${(e.count / sum) * 100}%`, background: colors[i] }}
+                title={`${e.label} · ${e.count}`}
+              />
+            ) : null
+          )}
+        </div>
       )}
+      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 4 }}>
+        {entries.map((e, i) => {
+          const share = sum > 0 ? Math.round((e.count / sum) * 100) : 0;
+          const row = (
+            <>
+              <span className="dist-dot" style={{ background: colors[i] }} aria-hidden="true" />
+              <span style={{ flex: 1, textAlign: "left" }}>{e.label}</span>
+              <span style={{ color: "var(--c-ink-faint)", fontSize: "0.82rem", fontVariantNumeric: "tabular-nums" }}>
+                {e.count}{sum > 0 ? ` · ${share}%` : ""}
+              </span>
+            </>
+          );
+          return (
+            <li key={e.key}>
+              {onPick ? (
+                <button className="dist-row" onClick={() => onPick(e.key)} style={{ width: "100%" }}>{row}</button>
+              ) : (
+                <div className="dist-row" style={{ width: "100%" }}>{row}</div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      {entries.length === 0 && <p className="hint" style={{ margin: 0 }}>{t("noDataYet", { defaultValue: "No data yet" })}</p>}
+      {note && <p className="hint" style={{ margin: 0, color: "var(--c-warn)" }}>{note}</p>}
     </div>
   );
 }
@@ -85,31 +92,46 @@ export function AgingStrip({
     { key: "h2to4", label: t("aging2to4", { defaultValue: "2–4 h" }), count: buckets.h2to4, level: "warn" },
     { key: "over4", label: t("agingOver4", { defaultValue: "4+ h" }), count: buckets.over4, level: "alert" },
   ];
-  const max = Math.max(1, ...rows.map((r) => r.count));
+  const sum = rows.reduce((s, r) => s + r.count, 0);
   return (
-    <div role="group" aria-label="Case aging" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      {rows.map((r) => (
-        <button
-          key={r.key}
-          onClick={onPick}
-          disabled={!onPick}
-          className="dist-row"
-          style={{ display: "grid", gridTemplateColumns: "72px 1fr 34px", alignItems: "center", gap: 10, font: "inherit", color: "var(--c-ink)", border: "none", background: "transparent", padding: 0, cursor: onPick ? "pointer" : "default", textAlign: "left" }}
-        >
-          <span style={{ fontSize: "0.8rem", color: "var(--c-ink-faint)" }}>{r.label}</span>
-          <span style={{ position: "relative", height: 10, borderRadius: 999, background: "var(--c-surface-raised, rgb(127 127 127 / 0.15))", overflow: "hidden" }}>
+    <div role="group" aria-label={t("caseAging", { defaultValue: "Case aging" })} style={{ display: "grid", gap: 10 }}>
+      <div
+        style={{ display: "flex", height: 14, borderRadius: 999, overflow: "hidden", background: "var(--c-surface-raised, rgb(127 127 127 / 0.14))" }}
+        aria-hidden="true"
+      >
+        {rows.map((r) =>
+          r.count > 0 ? (
             <span
-              aria-hidden="true"
+              key={r.key}
               data-aging-level={r.level}
-              style={{
-                position: "absolute", inset: 0, width: `${(r.count / max) * 100}%`,
-                borderRadius: 999, background: "currentColor", opacity: 0.8, transition: "width 400ms var(--ease, ease)",
-              }}
+              style={{ width: `${(r.count / sum) * 100}%`, opacity: r.level === "alert" ? 1 : 0.75 }}
+              title={`${r.label} · ${r.count}`}
             />
-          </span>
-          <span style={{ fontSize: "0.85rem", textAlign: "right" }}>{r.count}</span>
-        </button>
-      ))}
+          ) : null
+        )}
+      </div>
+      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 4 }}>
+        {rows.map((r) => {
+          const stale = r.level === "alert" && r.count > 0;
+          const row = (
+            <>
+              <span style={{ fontSize: "0.8rem", color: stale ? "var(--c-danger, var(--c-warn))" : "var(--c-ink-faint)", fontWeight: stale ? 700 : 400 }}>{r.label}</span>
+              <span style={{ flex: 1, textAlign: "right", fontSize: "0.85rem", fontVariantNumeric: "tabular-nums", fontWeight: stale ? 700 : 400 }}>
+                {r.count}
+              </span>
+            </>
+          );
+          return (
+            <li key={r.key}>
+              {onPick ? (
+                <button className="dist-row" onClick={onPick} style={{ width: "100%" }}>{row}</button>
+              ) : (
+                <div className="dist-row" style={{ width: "100%" }}>{row}</div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

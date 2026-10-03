@@ -23,7 +23,8 @@ const root = "C:/Users/jiggy/Desktop/Wildlife Incident Handoff";
 describe("language picker integrity", () => {
   it("normal users only see languages with complete interface coverage", () => {
     const selectable = selectableLanguages(false);
-    expect(selectable.map((l) => l.code)).toEqual(["en", "fr", "es"]);
+    // 0.2.0-dev.10: de and pt-BR packs were authored to full coverage.
+    expect(selectable.map((l) => l.code)).toEqual(["en", "fr", "es", "de", "pt-BR"]);
   });
   it("developer preview exposes incomplete locales + pseudo-locale", () => {
     const all = selectableLanguages(true);

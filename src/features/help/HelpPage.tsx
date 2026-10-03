@@ -64,8 +64,6 @@ const PROFESSIONAL_ARTICLES: Article[] = [
 const CATEGORY_ORDER_REPORTER = ["gettingStarted", "reporting", "safety", "location", "media", "statuses", "privacy", "backups", "troubleshooting"];
 const CATEGORY_ORDER_PRO = ["gettingStarted", "dashboard", "network", "assignments", "map", "intake", "custody", "handoffs", "analytics", "notifications", "privacyAccess", "roles", "security", "troubleshooting"];
 
-const QUICK_HELP = ["getting-started", "how-to-report", "safety", "location", "media", "statuses"];
-
 export function HelpPage() {
   const { settings } = useApp();
   const { t } = useTranslation(["help", "glossary"]);
@@ -75,8 +73,8 @@ export function HelpPage() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string>("all");
   const [openArticle, setOpenArticle] = useState<Article | null>(null);
-  const [showGlossary, setShowGlossary] = useState(false);
-  const [supportOpen, setSupportOpen] = useState(false);
+  const [view, setView] = useState<"topics" | "glossary" | "support">("topics");
+  const [helpful, setHelpful] = useState<Record<string, boolean>>({});
 
   const allArticles = role === "professional" ? PROFESSIONAL_ARTICLES : REPORTER_ARTICLES;
   const categoryOrder = role === "professional" ? CATEGORY_ORDER_PRO : CATEGORY_ORDER_REPORTER;
@@ -101,157 +99,161 @@ export function HelpPage() {
   // P13: reporters cannot switch into Professional Help.
   const canSwitch = isPro;
 
+  const openTopic = (a: Article) => { setOpenArticle(a); setView("topics"); };
+
+  const related = openArticle
+    ? allArticles.filter((a) => a.category === openArticle.category && a.id !== openArticle.id)
+    : [];
+
   return (
     <main className="content wide" id="main-content">
-      <h1>{t("help:title", { defaultValue: "Help center" })}</h1>
-      <div className="row" style={{ gap: 10, flexWrap: "wrap", marginBottom: "var(--space-4)", alignItems: "center" }}>
+      <div className="row between" style={{ flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: "var(--space-4)" }}>
+        <h1 style={{ margin: 0 }}>{t("help:title", { defaultValue: "Help center" })}</h1>
         {canSwitch && (
           <div className="segmented" role="tablist" aria-label={t("help:role", { defaultValue: "Help for" })}>
-            <button role="tab" aria-selected={role === "reporter"} className={role === "reporter" ? "active" : ""} onClick={() => { setRole("reporter"); setOpenArticle(null); setCategory("all"); }}>
+            <button role="tab" aria-selected={role === "reporter"} aria-pressed={role === "reporter"} onClick={() => { setRole("reporter"); setOpenArticle(null); setCategory("all"); }}>
               {t("help:reporter", { defaultValue: "Reporter help" })}
             </button>
-            <button role="tab" aria-selected={role === "professional"} className={role === "professional" ? "active" : ""} onClick={() => { setRole("professional"); setOpenArticle(null); setCategory("all"); }}>
+            <button role="tab" aria-selected={role === "professional"} aria-pressed={role === "professional"} onClick={() => { setRole("professional"); setOpenArticle(null); setCategory("all"); }}>
               {t("help:professional", { defaultValue: "Professional help" })}
             </button>
           </div>
         )}
-        <input
-          className="input"
-          style={{ maxWidth: 320 }}
-          type="search"
-          placeholder={t("help:searchPlaceholder", { defaultValue: "Search help articles…" })}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          aria-label={t("help:searchPlaceholder", { defaultValue: "Search help articles…" })}
-        />
       </div>
 
-      {openArticle ? (
-        <article className="card help-article" style={{ maxWidth: 780 }}>
-          <div className="row between" style={{ alignItems: "center" }}>
-            <button className="btn btn-quiet btn-sm" onClick={() => setOpenArticle(null)}>
-              <Icons.chevronLeft size={14} /> {t("help:backToTopics", { defaultValue: "All topics" })}
-            </button>
-            <span className="badge">{t(`help:cat_${openArticle.category}`, { defaultValue: openArticle.category })}</span>
-          </div>
-          <h2 style={{ marginBottom: "var(--space-3)" }}>{openArticle.title}</h2>
-          <p style={{ fontSize: "1rem", lineHeight: 1.65, color: "var(--c-ink)" }}>{openArticle.body}</p>
-          {openArticle.tour && (
-            <button className="btn btn-secondary btn-sm" onClick={() => void startGuidedTour(openArticle.tour!)}>
-              <Icons.compass size={14} /> {t("help:showMe", { defaultValue: "Show me" })}
-            </button>
-          )}
-        </article>
-      ) : (
-        <>
-          {/* Quick help */}
-          {category === "all" && !query && (
-            <section aria-label={t("help:quickHelp", { defaultValue: "Quick help" })} style={{ marginBottom: "var(--space-5)" }}>
-              <h2 className="section-label">{t("help:quickHelp", { defaultValue: "Quick help" })}</h2>
-              <div className="chip-row" style={{ flexWrap: "wrap", gap: 8 }}>
-                {QUICK_HELP.filter((id) => allArticles.some((a) => a.id === id)).map((id) => {
-                  const a = allArticles.find((x) => x.id === id)!;
-                  return (
-                    <button key={id} className="chip" onClick={() => setOpenArticle(a)}>{a.title}</button>
-                  );
-                })}
-              </div>
-            </section>
-          )}
-
-          {/* Category tabs */}
-          <div className="row" style={{ gap: 6, flexWrap: "wrap", marginBottom: "var(--space-4)" }} role="tablist" aria-label={t("help:categories", { defaultValue: "Categories" })}>
-            <button className={`chip${category === "all" ? " chip-active" : ""}`} role="tab" aria-selected={category === "all"} onClick={() => setCategory("all")}>
+      <div className="help-shell">
+        {/* ---- Left rail: search + persistent navigation ---- */}
+        <aside className="help-rail" aria-label={t("help:categories", { defaultValue: "Categories" })}>
+          <input
+            className="input"
+            type="search"
+            placeholder={t("help:searchPlaceholder", { defaultValue: "Search help articles…" })}
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setView("topics"); setCategory("all"); }}
+            aria-label={t("help:searchPlaceholder", { defaultValue: "Search help articles…" })}
+          />
+          <nav style={{ display: "grid", gap: 2 }} aria-label={t("help:categories", { defaultValue: "Categories" })}>
+            <button className={"help-rail-item" + (view === "topics" && category === "all" && !openArticle ? " active" : "")} onClick={() => { setView("topics"); setCategory("all"); setOpenArticle(null); }}>
               {t("help:catAll", { defaultValue: "All topics" })}
             </button>
             {categoryOrder.map((c) => (
-              <button key={c} className={`chip${category === c ? " chip-active" : ""}`} role="tab" aria-selected={category === c} onClick={() => setCategory(c)}>
+              <button key={c} className={"help-rail-item" + (view === "topics" && category === c ? " active" : "")} onClick={() => { setView("topics"); setCategory(c); setOpenArticle(null); }}>
                 {t(`help:cat_${c}`, { defaultValue: c })}
               </button>
             ))}
-          </div>
-
-          {grouped.length === 0 && <p className="hint">{t("help:noResults", { defaultValue: "No matching topics. Try another search or check the glossary." })}</p>}
-          {grouped.map(([cat, articles]) => (
-            <section key={cat} aria-label={t(`help:cat_${cat}`, { defaultValue: cat })} style={{ marginBottom: "var(--space-5)" }}>
-              <h2 className="section-label">{t(`help:cat_${cat}`, { defaultValue: cat })}</h2>
-              <div className="help-topics">
-                {articles.map((a) => (
-                  <button key={a.id} className="card help-card" onClick={() => setOpenArticle(a)} style={{ textAlign: "left", font: "inherit", color: "inherit", cursor: "pointer", height: "100%" }}>
-                    <h3 style={{ marginTop: 0, marginBottom: 4 }}>{a.title}</h3>
-                    <p style={{ margin: 0, color: "var(--c-ink-soft)", fontSize: "0.9rem", lineHeight: 1.55 }}>{a.body.length > 160 ? a.body.slice(0, 157).trimEnd() + "…" : a.body}</p>
-                    <span className="help-card-more">{t("help:readArticle", { defaultValue: "Read article" })} <Icons.chevronRight size={12} /></span>
-                  </button>
-                ))}
-              </div>
-            </section>
-          ))}
-        </>
-      )}
-
-      {/* Tutorials */}
-      <section style={{ marginTop: "var(--space-6)" }}>
-        <h2>{t("help:tutorialsTitle", { defaultValue: "Tutorials" })}</h2>
-        <div className="grid-2">
-          <div className="card">
-            <h3 style={{ marginTop: 0 }}>{t("help:tutorialTour", { defaultValue: "Take the tour" })}</h3>
-            <p className="hint">{t("help:tutorialTourHint", { defaultValue: "A guided spotlight tour of the main interface." })}</p>
-            <button className="btn btn-secondary btn-sm" onClick={() => void startGuidedTour("interface")}>
+          </nav>
+          <div className="help-rail-group">
+            <span className="help-rail-heading">{t("help:tutorialsTitle", { defaultValue: "Tutorials" })}</span>
+            <button className="help-rail-item" onClick={() => void startGuidedTour("interface")}>
               <Icons.compass size={14} /> {t("help:startTour", { defaultValue: "Start tour" })}
             </button>
-          </div>
-          <div className="card">
-            <h3 style={{ marginTop: 0 }}>{t("help:tutorialFirst", { defaultValue: "Report your first animal" })}</h3>
-            <p className="hint">{t("help:tutorialFirstHint", { defaultValue: "A step-by-step guided first report." })}</p>
-            <button className="btn btn-secondary btn-sm" onClick={() => void startGuidedTour("first-report")}>
-              <Icons.compass size={14} /> {t("help:openTutorial", { defaultValue: "Open tutorial" })}
+            <button className="help-rail-item" onClick={() => void startGuidedTour("first-report")}>
+              <Icons.compass size={14} /> {t("help:openTutorial", { defaultValue: "Guided first report" })}
+            </button>
+            <button className="help-rail-item" onClick={() => navigate("/examples")}>
+              <Icons.eye size={14} /> {t("help:openExamples", { defaultValue: "Fictional demo" })}
             </button>
           </div>
-          <div className="card">
-            <h3 style={{ marginTop: 0 }}>{t("help:tutorialExamples", { defaultValue: "Practice with a fictional demo" })}</h3>
-            <p className="hint">{t("help:tutorialExamplesHint", { defaultValue: "Explore example incidents clearly marked FICTIONAL DEMO — nothing touches your records." })}</p>
-            <button className="btn btn-secondary btn-sm" onClick={() => navigate("/examples")}>{t("help:openExamples", { defaultValue: "Open examples" })}</button>
+          <div className="help-rail-group">
+            <span className="help-rail-heading">{t("help:reference", { defaultValue: "Reference" })}</span>
+            <button className={"help-rail-item" + (view === "glossary" ? " active" : "")} onClick={() => { setView("glossary"); setOpenArticle(null); }}>
+              {t("glossaryTitle", { ns: "help", defaultValue: "Glossary" })}
+            </button>
+            <button className={"help-rail-item" + (view === "support" ? " active" : "")} onClick={() => { setView("support"); setOpenArticle(null); }}>
+              {t("help:supportTitle", { defaultValue: "Support" })}
+            </button>
           </div>
-        </div>
-      </section>
+        </aside>
 
-      {/* Glossary */}
-      <section style={{ marginTop: "var(--space-6)" }}>
-        <div className="row between">
-          <h2 style={{ margin: 0 }}>{t("glossaryTitle", { ns: "help", defaultValue: "Glossary" })}</h2>
-          <button className="btn btn-secondary btn-sm" aria-expanded={showGlossary} onClick={() => setShowGlossary((v) => !v)}>
-            {showGlossary ? t("common:hide", { defaultValue: "Hide" }) : t("common:show", { defaultValue: "Show" })}
-          </button>
-        </div>
-        {showGlossary && (
-          <dl className="kv" style={{ marginTop: "var(--space-3)", maxWidth: 780 }}>
-            {GLOSSARY_TERMS.map((term) => (
-              <div key={term} style={{ marginBottom: 10 }}>
-                <dt style={{ fontWeight: 650 }}>{t(`glossary:${term}_term`, { defaultValue: term })}</dt>
-                <dd style={{ margin: 0, color: "var(--c-ink-soft)", fontSize: "0.92rem" }}>{t(`glossary:${term}`, { defaultValue: "" })}</dd>
+        {/* ---- Reading pane ---- */}
+        <section className="help-reader" aria-live="polite">
+          {view === "glossary" ? (
+            <article className="card help-article">
+              <h2 style={{ marginTop: 0 }}>{t("glossaryTitle", { ns: "help", defaultValue: "Glossary" })}</h2>
+              <dl className="kv">
+                {GLOSSARY_TERMS.map((term) => (
+                  <div key={term} style={{ marginBottom: 10 }}>
+                    <dt style={{ fontWeight: 650 }}>{t(`glossary:${term}_term`, { defaultValue: term })}</dt>
+                    <dd style={{ margin: 0, color: "var(--c-ink-soft)", fontSize: "0.92rem" }}>{t(`glossary:${term}`, { defaultValue: "" })}</dd>
+                  </div>
+                ))}
+              </dl>
+            </article>
+          ) : view === "support" ? (
+            <SupportComposer />
+          ) : openArticle ? (
+            <article className="card help-article">
+              <div className="row between" style={{ alignItems: "center" }}>
+                <button className="btn btn-quiet btn-sm" onClick={() => setOpenArticle(null)}>
+                  <Icons.chevronLeft size={14} /> {t("help:backToTopics", { defaultValue: "All topics" })}
+                </button>
+                <span className="badge">{t(`help:cat_${openArticle.category}`, { defaultValue: openArticle.category })}</span>
               </div>
-            ))}
-          </dl>
-        )}
-      </section>
-
-      {/* Support */}
-      <section style={{ marginTop: "var(--space-6)" }}>
-        <div className="row between">
-          <h2 style={{ margin: 0 }}>{t("help:supportTitle", { defaultValue: "Support" })}</h2>
-          <button className="btn btn-primary btn-sm" onClick={() => setSupportOpen((v) => !v)} aria-expanded={supportOpen}>
-            {t("help:contactSupport", { defaultValue: "Contact support" })}
-          </button>
-        </div>
-        {supportOpen && <SupportComposer />}
-      </section>
-      <style>{`
-        .help-topics{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:var(--space-3);align-items:stretch}
-        .help-card{display:flex;flex-direction:column;gap:6px}
-        .help-card-more{margin-top:auto;font-size:0.8rem;font-weight:600;color:var(--c-primary);display:inline-flex;align-items:center;gap:2px}
-        .help-article p{white-space:normal;overflow:visible}
-        .chip-active{border-color:var(--c-primary)!important;background:color-mix(in srgb,var(--c-primary) 14%,transparent)!important}
-      `}</style>
+              <h2 style={{ marginBottom: "var(--space-3)" }}>{openArticle.title}</h2>
+              <p style={{ fontSize: "1rem", lineHeight: 1.65, color: "var(--c-ink)" }}>{openArticle.body}</p>
+              {openArticle.tour && (
+                <button className="btn btn-secondary btn-sm" onClick={() => void startGuidedTour(openArticle.tour!)}>
+                  <Icons.compass size={14} /> {t("help:showMe", { defaultValue: "Show me" })}
+                </button>
+              )}
+              <div className="row" style={{ gap: 8, marginTop: "var(--space-4)", alignItems: "center", flexWrap: "wrap" }}>
+                <span className="hint" style={{ margin: 0 }}>{t("help:wasHelpful", { defaultValue: "Was this helpful?" })}</span>
+                <button
+                  className={"btn btn-sm " + (helpful[openArticle.id] === true ? "btn-primary" : "btn-quiet")}
+                  aria-pressed={helpful[openArticle.id] === true}
+                  onClick={() => setHelpful((h) => ({ ...h, [openArticle.id]: true }))}
+                >
+                  {t("help:helpfulYes", { defaultValue: "Yes" })}
+                </button>
+                <button
+                  className={"btn btn-sm " + (helpful[openArticle.id] === false ? "btn-primary" : "btn-quiet")}
+                  aria-pressed={helpful[openArticle.id] === false}
+                  onClick={() => setHelpful((h) => ({ ...h, [openArticle.id]: false }))}
+                >
+                  {t("help:helpfulNo", { defaultValue: "No" })}
+                </button>
+                {helpful[openArticle.id] != null && (
+                  <span className="hint" style={{ margin: 0 }}>{t("help:feedbackThanks", { defaultValue: "Thanks — your feedback is stored on this device only." })}</span>
+                )}
+              </div>
+              {related.length > 0 && (
+                <div style={{ marginTop: "var(--space-5)" }}>
+                  <h3 className="section-label">{t("help:related", { defaultValue: "Related articles" })}</h3>
+                  <ul className="help-related" style={{ listStyle: "none", margin: 0, padding: 0 }}>
+                    {related.map((a) => (
+                      <li key={a.id}>
+                        <button className="help-rail-item" style={{ width: "100%" }} onClick={() => setOpenArticle(a)}>
+                          <Icons.list size={14} /> {a.title}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </article>
+          ) : (
+            <div className="help-topic-list">
+              {grouped.length === 0 && <p className="hint">{t("help:noResults", { defaultValue: "No matching topics. Try another search or check the glossary." })}</p>}
+              {grouped.map(([cat, articles]) => (
+                <section key={cat} aria-label={t(`help:cat_${cat}`, { defaultValue: cat })}>
+                  {category === "all" && <h2 className="section-label">{t(`help:cat_${cat}`, { defaultValue: cat })}</h2>}
+                  <div className="help-topic-list-inner">
+                    {articles.map((a) => (
+                      <button key={a.id} className="help-topic-row" onClick={() => openTopic(a)}>
+                        <span className="help-topic-copy">
+                          <strong>{a.title}</strong>
+                          <span>{a.body.length > 110 ? a.body.slice(0, 107).trimEnd() + "…" : a.body}</span>
+                        </span>
+                        <Icons.chevronRight size={16} />
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
     </main>
   );
 }
@@ -315,35 +317,35 @@ function SupportComposer() {
 
   return (
     <div className="card" style={{ maxWidth: 720, marginTop: "var(--space-3)" }}>
-      <h3 style={{ marginTop: 0 }}>{t("support:whatNeeded", { defaultValue: "What do you need help with?" })}</h3>
+      <h3 style={{ marginTop: 0 }}>{t("whatNeeded", { defaultValue: "What do you need help with?" })}</h3>
       <Select
-        label={t("support:category", { defaultValue: "Category" })}
+        label={t("category", { defaultValue: "Category" })}
         value={category}
         onChange={setCategory}
         options={SUPPORT_CATEGORIES.map((c) => ({ value: c, label: t(`support:cat_${c}`, { defaultValue: c }) }))}
       />
-      <TextField label={t("support:subject", { defaultValue: "Subject" })} value={subject} onChange={setSubject} />
-      <TextField label={t("support:description", { defaultValue: "Description" })} value={description} onChange={setDescription} multiline rows={4} />
-      <TextField label={t("support:email", { defaultValue: "Contact email (optional)" })} type="email" value={email} onChange={setEmail} optional />
+      <TextField label={t("subject", { defaultValue: "Subject" })} value={subject} onChange={setSubject} />
+      <TextField label={t("description", { defaultValue: "Description" })} value={description} onChange={setDescription} multiline rows={4} />
+      <TextField label={t("email", { defaultValue: "Contact email (optional)" })} type="email" value={email} onChange={setEmail} optional />
       <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: "0.9rem", cursor: "pointer", margin: "var(--space-2) 0" }}>
         <input type="checkbox" checked={includeDiagnostics} onChange={(e) => setIncludeDiagnostics(e.target.checked)} />
-        {t("support:includeDiag", { defaultValue: "Include privacy-safe diagnostics (never incident details, contacts or coordinates)" })}
+        {t("includeDiag", { defaultValue: "Include privacy-safe diagnostics (never incident details, contacts or coordinates)" })}
       </label>
       <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
-        <button className="btn btn-primary btn-sm" onClick={() => void prepare()}>{t("support:prepare", { defaultValue: "Prepare support request" })}</button>
-        <a className="btn btn-ghost btn-sm" href="https://github.com/amgedi/wildlife-incident-handoff/issues" target="_blank" rel="noreferrer">{t("support:ghIssue", { defaultValue: "Open GitHub issue" })}</a>
-        <a className="btn btn-ghost btn-sm" href="https://github.com/amgedi/wildlife-incident-handoff/discussions" target="_blank" rel="noreferrer">{t("support:ghDiscussions", { defaultValue: "GitHub discussions" })}</a>
+        <button className="btn btn-primary btn-sm" onClick={() => void prepare()}>{t("prepare", { defaultValue: "Prepare support request" })}</button>
+        <a className="btn btn-ghost btn-sm" href="https://github.com/amgedi/wildlife-incident-handoff/issues" target="_blank" rel="noreferrer">{t("ghIssue", { defaultValue: "Open GitHub issue" })}</a>
+        <a className="btn btn-ghost btn-sm" href="https://github.com/amgedi/wildlife-incident-handoff/discussions" target="_blank" rel="noreferrer">{t("ghDiscussions", { defaultValue: "GitHub discussions" })}</a>
       </div>
       {prepared && (
         <div style={{ marginTop: "var(--space-3)" }}>
-          <p className="hint" style={{ marginTop: 0 }}>{t("support:honesty", { defaultValue: "There is no support server yet — nothing was sent. Copy or download the request below and paste it into a GitHub issue or discussion." })}</p>
+          <p className="hint" style={{ marginTop: 0 }}>{t("honesty", { defaultValue: "There is no support server yet — nothing was sent. Copy or download the request below and paste it into a GitHub issue or discussion." })}</p>
           <pre className="card" style={{ whiteSpace: "pre-wrap", fontSize: "0.78rem", maxHeight: 220, overflowY: "auto", userSelect: "all" }}>{prepared}</pre>
           <div className="row" style={{ gap: 8 }}>
             <button className="btn btn-secondary btn-sm" onClick={async () => { await navigator.clipboard.writeText(prepared); setCopied(true); setTimeout(() => setCopied(false), 2500); }}>
-              {copied ? t("support:copied", { defaultValue: "Copied!" }) : t("support:copy", { defaultValue: "Copy support request" })}
+              {copied ? t("copied", { defaultValue: "Copied!" }) : t("copy", { defaultValue: "Copy support request" })}
             </button>
             <button className="btn btn-secondary btn-sm" onClick={download}>
-              <Icons.download size={14} /> {t("support:download", { defaultValue: "Download support bundle" })}
+              <Icons.download size={14} /> {t("download", { defaultValue: "Download support bundle" })}
             </button>
           </div>
         </div>

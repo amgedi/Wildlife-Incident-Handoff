@@ -160,5 +160,11 @@
   "attentionHideConfirm": "Hide it",
   "offlineBasemapNote": "Offline basemap — the map is drawn entirely on this device and no tile requests are made. Markers respect each incident's location privacy.",
   "done": "Done",
-  "cancel": "Cancel"
+  "cancel": "Cancel",
+  "legendNew": "New / reported",
+  "legendActive": "Assigned / responding",
+  "legendTransfer": "Transfer / in care",
+  "legendClosed": "Closed",
+  "range24h": "24 hours",
+  "rangeDays": "{{d}} days"
 }

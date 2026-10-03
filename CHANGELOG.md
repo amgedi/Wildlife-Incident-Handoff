@@ -2,6 +2,48 @@
 
 All notable changes to Wildlife Incident Handoff are documented here. Format based on [Keep a Changelog](https://keepachangelog.com/); versioning follows [SemVer](https://semver.org/).
 
+## 0.2.0-dev.10 — GUI overhaul pass (judged from the rendered app)
+
+This pass was driven by a **visual audit of the running application** (see
+`docs/GUI_OVERHAUL_AUDIT.md`), not by a requirements checklist. Every major
+screen was opened with realistic seeded data (11 Calgary incidents across all
+response stages + a configured service area), judged, and rewritten where it
+fell short of the quality bar. Map root causes are documented with
+measurements in `docs/MAP_FAILURE_ANALYSIS.md`. Before/after screenshots:
+`screenshots/before/`, `screenshots/after/`, narrative in
+`docs/GUI_OVERHAUL_BEFORE_AFTER.md`.
+
+### Fixed (root causes found by actually looking)
+- **Blank desktop map (root cause)**: the compact dashboard map asked for `height:100%` inside an auto-height parent → 0-height canvas → nothing painted, while the identical mobile map worked. All map containers now use explicit pixel/viewport heights. Marker overlay additionally re-renders on `resize` and on a `requestAnimationFrame` pass so a missed `load` event can never leave it empty; marker clicks survive overlay re-creation via a stable `refId` select handler.
+- **Duplicate map attribution** (style source + manual control both rendered).
+
+### Professional workspace — operations console redesign
+- **Grid holes eliminated**: Live activity no longer floats alone in a 12-column row; the pulse strip sits between the map row and the activity(4)+response-flow(8) pairing.
+- **Map as the primary visual anchor**: dashboard map is a real 380 px panel; the "Open full map" destination is now a **real full-height map page** (`height: calc(100dvh - 240px)`) with a service-area summary, instead of a duplicate dashboard.
+- **Service area ring** drawn on the map (geodesic polygon, subtle fill + dashed outline) so fit-to-area is visually verifiable.
+- **Map inspector (P19)**: clicking a marker opens a lightweight in-map inspector (animal, status, age, location privacy, assignment, Open incident) — no modal.
+- **Charts redesigned**: reports-over-time is now an area/line chart with gradient fill, crosshair + dot hover/focus readout and a padded x-axis (no clipped "Oct"); distributions use a stacked segmented bar plus a compact legend list; case aging is one proportional strip with 4 h+ emphasis.
+- Needs-attention severity ramp (alert/warn/info left border), tighter live-activity rail with tabular clock column, wider content (`1560 px`) so the god's-eye layout breathes at 1920/1600.
+
+### Design system & shell
+- New type rhythm (stronger h1/h2/h3 contrast), thin theme-aware scrollbars, chart primitives (`.dist-row`, `.dist-dot`, aging levels), ops-panel hover states, KPI tabular numerals — appended as a coherent layer, pages no longer invent their own card/bar styling.
+- Sidebar footer verified **inside bounds at 650/720/768/900/1080 px heights** (bell, Help, Settings, Profile never clip); scroll ownership re-verified by interaction at 390 px.
+
+### Help Center — replaced
+- Two-pane knowledge layout: persistent left rail (search, category nav, tutorials, glossary, support) + reading pane; articles open with related links, **Show me** tours, and an optional local "Was this helpful?" feedback. No card-grid-of-paragraphs.
+- Support composer fixed: it referenced a nonexistent `support:` namespace, so the whole form fell back to English in every other language — now uses the `help` namespace (keys existed all along).
+
+### Languages — finished, not hidden
+- **German and Portuguese (Brazil) packs authored to 100% key coverage (872 keys each)** and promoted to production-selectable (5 selectable languages: en, fr, es, de, pt-BR). Machine-assisted; flagged for human review in docs.
+- Pseudo-locale (zz-ZZ) sweep found and fixed hard-coded English: the Incidents/My reports heading, "Last update:" card prefix, map legend labels, dashboard duplicate notice, trend range buttons; plus the missing-key audit (13 `support:` keys) above.
+
+### Performance (measured with 1,014 incidents on-device)
+- Dashboard ready (13 widgets, analytics computed over all records): **~1.3 s**; incident list first 100 cards: **~0.46 s**; filters open: usable; language switch (lazy de pack): **~1.0 s**.
+- **Dense clustering**: above 120 points, markers cluster at any zoom with a zoom-adaptive grid and singleton cells render as markers — map DOM stays bounded (1,014 points → 104 clusters + 9 markers) instead of 1,000+ marker nodes.
+
+### Tests
+- 257 tests (was 245): explicit map-height contract, overlay re-render contract, refId select handler, dense-clustering semantics + polygon ring, Help two-pane layout, 5-language catalog, and source-level sweeps asserting the pseudo-locale findings stay fixed.
+
 ## 0.2.0-dev.9 — operations customization, saved views, map provider registry
 
 ### Added

@@ -72,5 +72,11 @@
   "ghDiscussions": "GitHub discussions",
   "honesty": "There is no support server yet — nothing was sent. Copy or download the request below and paste it into a GitHub issue or discussion.",
   "copy": "Copy support request",
-  "download": "Download support bundle"
+  "download": "Download support bundle",
+  "wasHelpful": "Was this helpful?",
+  "helpfulYes": "Yes",
+  "helpfulNo": "No",
+  "feedbackThanks": "Thanks — your feedback is stored on this device only.",
+  "related": "Related articles",
+  "reference": "Reference"
 }

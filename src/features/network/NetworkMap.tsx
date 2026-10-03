@@ -7,8 +7,22 @@ import type { Incident } from "../../types/incident";
 import { createMapLibreProvider, markerPositionFor, markerStateFor, STATUS_MARKER_COLORS, getMapDiagnostics, type MapPrivacy, type MapServiceArea } from "./mapProvider";
 import { animalLabel } from "../export/exportService";
 import { Icons } from "../../components/Icons";
+import { StatusBadge } from "../../components/ui";
+import { relativeTime } from "../../utils/time";
 
 type MapState = "loading" | "ready" | "offline" | "provider-failed" | "no-coordinates";
+
+/**
+ * Map sizing: every mode uses an explicit pixel/viewport height. A
+ * percentage height against an auto-height parent resolves to 0 and
+ * produced the long-running "blank desktop map" failure (see
+ * docs/MAP_FAILURE_ANALYSIS.md).
+ */
+function heightFor(mode: "compact" | "standard" | "full"): string {
+  if (mode === "compact") return "380px";
+  if (mode === "full") return "calc(100dvh - 240px)";
+  return "460px";
+}
 
 export function NetworkMap({
   incidents,
@@ -17,6 +31,7 @@ export function NetworkMap({
   compact = false,
   serviceArea = null,
   fitMode = "points",
+  full = false,
   offline = false,
 }: {
   incidents: Incident[];
@@ -27,6 +42,8 @@ export function NetworkMap({
   /** P31/P34: fit the camera to the service area instead of the world. */
   serviceArea?: MapServiceArea | null;
   fitMode?: "service-area" | "points";
+  /** Full map destination: fills the workspace. */
+  full?: boolean;
   /** Offline provider: plain device-rendered basemap, zero tile requests (P18/P19). */
   offline?: boolean;
 }) {
@@ -34,6 +51,7 @@ export function NetworkMap({
   const containerRef = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<MapState>(() => (incidents.length === 0 ? "no-coordinates" : "loading"));
   const [retryToken, setRetryToken] = useState(0);
+  const [inspected, setInspected] = useState<number | null>(null);
   const providerRef = useRef<ReturnType<typeof createMapLibreProvider> | null>(null);
 
   useEffect(() => {
@@ -65,45 +83,49 @@ export function NetworkMap({
         setState("ready");
       }
     });
+    // Marker elements are recreated on re-render; selection flows through the
+    // provider with a stable refId so clicks survive camera moves.
+    provider.setSelectHandler((point) => {
+      setInspected(point.refId ?? null);
+    });
     providerRef.current = provider;
 
     const points = incidents
-      .map((i) => {
+      .map((i, idx) => {
         const pos = markerPositionFor(i, privacy);
         if (!pos) return null;
-        return { lat: pos.lat, lon: pos.lon, state: markerStateFor(i), label: animalLabel(i), incident: i };
+        return { lat: pos.lat, lon: pos.lon, state: markerStateFor(i), label: animalLabel(i), refId: idx };
       })
       .filter((p): p is NonNullable<typeof p> => p !== null);
 
     provider.renderMarkers(containerRef.current, points);
-    containerRef.current.querySelectorAll<HTMLDivElement>(".map-marker").forEach((el, idx) => {
-      el.addEventListener("click", () => onSelect?.(points[idx]!.incident));
-    });
-    // Treat a successful render pass as ready unless errors say otherwise.
+
     const readyTimer = window.setTimeout(() => {
       if (!settled) {
         settled = true;
         setState((s) => (s === "loading" ? "ready" : s));
       }
-    }, 3500);
+    }, offline ? 1200 : 3500);
 
     return () => {
       window.clearTimeout(readyTimer);
       provider.destroy();
       providerRef.current = null;
     };
-  }, [incidents, privacy, onSelect, retryToken, serviceArea, fitMode, offline]);
+  }, [incidents, privacy, retryToken, serviceArea, fitMode, offline]);
+
+  const inspectedIncident = inspected != null ? incidents[inspected] : undefined;
 
   return (
-    <div>
+    <div style={{ position: "relative" }}>
       {!offline && (
-      <div className="notice" style={{ marginBottom: "var(--space-3)" }}>
-        <span>
-          Map tiles from <strong>OpenStreetMap</strong> require an internet connection — the incident list works fully
-          offline. Marker positions respect each incident's location privacy: approximate reports are fuzzed to ~1 km and
-          sensitive reports never show a precise point.
-        </span>
-      </div>
+        <div className="notice" style={{ marginBottom: "var(--space-3)" }}>
+          <span>
+            Map tiles from <strong>OpenStreetMap</strong> require an internet connection — the incident list works fully
+            offline. Marker positions respect each incident's location privacy: approximate reports are fuzzed to ~1 km and
+            sensitive reports never show a precise point.
+          </span>
+        </div>
       )}
       {offline && (
         <div className="notice" style={{ marginBottom: "var(--space-3)" }} role="status">
@@ -119,21 +141,21 @@ export function NetworkMap({
           <div>
             <strong>
               {state === "offline"
-                ? "Internet unavailable — showing an offline position view instead."
-                : "Map tiles could not be loaded — the internet works, but the tile provider (OpenStreetMap) is unreachable, blocked, or rate-limited."}
+                ? t("mapOfflineState", { defaultValue: "Internet unavailable — showing an offline position view instead." })
+                : t("mapFailedState", { defaultValue: "Map temporarily unavailable — the tile provider is unreachable, blocked, or rate-limited." })}
             </strong>
             <div style={{ marginTop: 8 }}>
               <button className="btn btn-secondary btn-sm" onClick={() => setRetryToken((n) => n + 1)}>Retry map</button>
             </div>
             <p style={{ margin: "8px 0 0", fontSize: "0.85rem" }}>
-              Coordinates below are shown as stored (subject to each incident's location privacy).
+              {t("mapFallbackCoordsNote", { defaultValue: "Coordinates below are shown as stored (subject to each incident's location privacy)." })}
             </p>
           </div>
         </div>
       )}
       {state === "no-coordinates" && (
         <div className="notice" style={{ marginBottom: "var(--space-3)" }} role="status">
-          <span>Map is available, but no incident on this device has a mappable location yet.</span>
+          <span>{t("noCoordinatesState", { defaultValue: "Map is available, but no incident on this device has a mappable location yet." })}</span>
         </div>
       )}
       {(state === "offline" || state === "provider-failed") ? (
@@ -180,16 +202,59 @@ export function NetworkMap({
           </ul>
         </div>
       ) : (
-        <div
-          ref={containerRef}
-          style={{ height: compact ? "100%" : 460, minHeight: compact ? 280 : undefined, borderRadius: "var(--radius-md)", border: "1px solid var(--c-border)", overflow: "hidden", position: "relative" }}
-        />
+        <div style={{ position: "relative" }}>
+          <div
+            ref={containerRef}
+            style={{
+              height: heightFor(full ? "full" : compact ? "compact" : "standard"),
+              borderRadius: "var(--radius-md)",
+              border: "1px solid var(--c-border)",
+              overflow: "hidden",
+              position: "relative",
+            }}
+          />
+          {/* P19 — lightweight map inspector (not a modal). */}
+          {inspectedIncident && (
+            <aside
+              className="card map-inspector"
+              aria-label={t("inspectorLabel", { defaultValue: "Incident details" })}
+              style={{
+                position: "absolute", top: 12, right: 12, width: 264, maxWidth: "calc(100% - 24px)",
+                zIndex: 30, padding: "var(--space-3)", boxShadow: "var(--shadow-lg)", display: "grid", gap: 6,
+              }}
+            >
+              <div className="row between" style={{ gap: 8 }}>
+                <strong style={{ fontSize: "0.95rem" }}>{animalLabel(inspectedIncident)}</strong>
+                <button className="btn btn-quiet btn-sm" aria-label={t("inspectorClose", { defaultValue: "Close" })} onClick={() => setInspected(null)}>
+                  <Icons.x size={14} />
+                </button>
+              </div>
+              <StatusBadge status={inspectedIncident.status} />
+              <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--c-ink-soft)" }}>
+                {inspectedIncident.humanReference} · {t("reportedAgo", { defaultValue: "Reported" })} {relativeTime(inspectedIncident.occurredAt ?? inspectedIncident.createdAt)}
+              </p>
+              <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--c-ink-soft)" }}>
+                {inspectedIncident.location.precision === "sensitive"
+                  ? t("privacySensitive", { defaultValue: "Sensitive — area only" })
+                  : t("privacyApprox", { defaultValue: "Approximate location" })}
+              </p>
+              <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--c-ink-soft)" }}>
+                {inspectedIncident.custody.some((c) => !c.endedAt) && inspectedIncident.status !== "reported" && inspectedIncident.status !== "response_requested"
+                  ? inspectedIncident.custody.find((c) => !c.endedAt)?.holder
+                  : t("colUnassigned", { defaultValue: "Unassigned" })}
+              </p>
+              <Link className="btn btn-primary btn-sm" to={`/incidents/${inspectedIncident.id}`} onClick={() => onSelect?.(inspectedIncident)}>
+                {t("openIncident", { defaultValue: "Open incident" })}
+              </Link>
+            </aside>
+          )}
+        </div>
       )}
-      <div className="row" style={{ marginTop: "var(--space-2)", gap: 12, fontSize: "0.82rem", color: "var(--c-ink-soft)" }}>
+      <div className="row" style={{ marginTop: "var(--space-2)", gap: 12, fontSize: "0.82rem", color: "var(--c-ink-soft)", flexWrap: "wrap" }}>
         {Object.entries(STATUS_MARKER_COLORS).map(([state, color]) => (
           <span key={state} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
             <span className={`map-marker-legend`} data-state={state} style={{ background: color }} />
-            {state === "new" ? "New / reported" : state === "active" ? "Assigned / responding" : state === "transfer" ? "Transfer / in care" : "Closed"}
+            {state === "new" ? t("legendNew", { defaultValue: "New / reported" }) : state === "active" ? t("legendActive", { defaultValue: "Assigned / responding" }) : state === "transfer" ? t("legendTransfer", { defaultValue: "Transfer / in care" }) : t("legendClosed", { defaultValue: "Closed" })}
           </span>
         ))}
       </div>

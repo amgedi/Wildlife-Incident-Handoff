@@ -1,7 +1,8 @@
 /**
- * TrendChart (0.2.0-dev.7): accessible SVG grouped bar chart with y-axis
- * gridlines, hover/focus values, legend and a screen-reader data table.
- * Scales to actual data — never leaves a huge empty region.
+ * TrendChart (0.2.0-dev.10): accessible SVG area/line chart — gradient area
+ * for reported, line for resolved — with y gridlines, crosshair hover/focus
+ * with dot markers, padded x-axis (no clipped labels), legend and a
+ * screen-reader data table. Scales to actual data — never a huge empty region.
  */
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -12,37 +13,58 @@ export interface SeriesPoint {
   resolved: number;
 }
 
+const PAD_L = 34;
+const PAD_R = 14;
+const PAD_T = 8;
+
 export function TrendChart({ points }: { points: SeriesPoint[] }) {
   const { t } = useTranslation("professional");
   const [hover, setHover] = useState<number | null>(null);
   const max = Math.max(1, ...points.map((p) => Math.max(p.reported, p.resolved)));
-  const barW = points.length > 40 ? 3 : points.length > 14 ? 8 : 24;
-  const gap = 6;
-  const width = points.length * (barW * 2 + gap) + gap;
-  const height = 168;
-  const chartH = 118;
+  const width = 920;
+  const height = 190;
+  const chartH = 128;
+  const plotW = width - PAD_L - PAD_R;
+  const n = Math.max(1, points.length);
+  const xAt = (i: number) => PAD_L + (n === 1 ? plotW / 2 : (i / (n - 1)) * plotW);
+  const yAt = (v: number) => chartH - (v / max) * (chartH - PAD_T) + 0;
   const labelEvery = points.length > 40 ? Math.ceil(points.length / 6) : points.length > 14 ? Math.ceil(points.length / 7) : 1;
   const yTicks = max > 4 ? [0, Math.round(max / 2), max] : [0, max];
   const hoverPoint = hover != null ? points[hover] : null;
 
+  const linePath = (key: "reported" | "resolved") =>
+    points.map((p, i) => `${i === 0 ? "M" : "L"}${xAt(i).toFixed(1)},${yAt(p[key]).toFixed(1)}`).join(" ");
+  const areaPath =
+    points.length > 0
+      ? `M${xAt(0).toFixed(1)},${chartH} L` +
+        points.map((p, i) => `${xAt(i).toFixed(1)},${yAt(p.reported).toFixed(1)}`).join(" L") +
+        ` L${xAt(points.length - 1).toFixed(1)},${chartH} Z`
+      : "";
+
   return (
     <div>
-      <div role="img" aria-label={t("trendAria", { defaultValue: "Reports over time bar chart. Details follow in the data table." })}>
+      <div role="img" aria-label={t("trendAria", { defaultValue: "Reports over time chart. Details follow in the data table." })}>
         <svg width="100%" viewBox={`0 0 ${width} ${height}`} style={{ maxWidth: "100%", display: "block" }}>
-          {/* y gridlines + axis labels */}
+          <defs>
+            <linearGradient id="trend-area" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="var(--c-primary)" stopOpacity="0.34" />
+              <stop offset="100%" stopColor="var(--c-primary)" stopOpacity="0.03" />
+            </linearGradient>
+          </defs>
           {yTicks.map((tick) => {
-            const y = chartH - (tick / max) * (chartH - 12);
+            const y = yAt(tick) + 12;
             return (
               <g key={tick}>
-                <line x1={30} y1={y} x2={width - gap} y2={y} stroke="var(--c-border)" strokeWidth="1" strokeDasharray={tick === 0 ? undefined : "3 4"} />
-                <text x={24} y={y + 3} fontSize="9" textAnchor="end" fill="var(--c-ink-faint)">{tick}</text>
+                <line x1={PAD_L} y1={y} x2={width - PAD_R} y2={y} stroke="var(--c-border)" strokeWidth="1" strokeDasharray={tick === 0 ? undefined : "3 4"} />
+                <text x={PAD_L - 8} y={y + 3} fontSize="10" textAnchor="end" fill="var(--c-ink-faint)">{tick}</text>
               </g>
             );
           })}
+          {points.length > 0 && <path d={areaPath} fill="url(#trend-area)" />}
+          {points.length > 1 && (
+            <path d={linePath("resolved")} fill="none" stroke="var(--c-ink-soft)" strokeWidth="1.6" strokeDasharray="1 0" opacity="0.85" />
+          )}
           {points.map((p, i) => {
-            const x = 30 + i * (barW * 2 + gap);
-            const rh = (p.reported / max) * (chartH - 12);
-            const sh = (p.resolved / max) * (chartH - 12);
             const isHover = hover === i;
             return (
               <g
@@ -53,14 +75,14 @@ export function TrendChart({ points }: { points: SeriesPoint[] }) {
                 onBlur={() => setHover(null)}
                 onMouseEnter={() => setHover(i)}
                 onMouseLeave={() => setHover(null)}
-                style={{ cursor: "pointer", outline: isHover ? "none" : undefined }}
+                style={{ cursor: "pointer", outline: "none" }}
               >
-                {/* invisible hover area */}
-                <rect x={x - gap / 2} y={0} width={barW * 2 + gap} height={chartH} fill="transparent" />
-                <rect x={x} y={chartH - rh} width={barW} height={Math.max(rh, p.reported > 0 ? 2 : 0)} fill="var(--c-primary)" opacity={hover == null || isHover ? 1 : 0.45} rx="2" />
-                <rect x={x + barW} y={chartH - sh} width={barW} height={Math.max(sh, p.resolved > 0 ? 2 : 0)} fill="var(--c-ink-faint)" opacity={hover == null || isHover ? 1 : 0.45} rx="2" />
+                <rect x={xAt(i) - plotW / (2 * n)} y={0} width={Math.max(6, plotW / n)} height={chartH + 12} fill="transparent" />
+                {isHover && <line x1={xAt(i)} y1={2} x2={xAt(i)} y2={chartH + 12} stroke="var(--c-ink-soft)" strokeWidth="1" opacity="0.6" />}
+                <circle cx={xAt(i)} cy={yAt(p.reported) + 12} r={isHover ? 4 : 2.4} fill="var(--c-primary)" opacity={hover == null || isHover ? 1 : 0.5} />
+                <circle cx={xAt(i)} cy={yAt(p.resolved) + 12} r={isHover ? 3.4 : 2} fill="var(--c-ink-soft)" opacity={hover == null || isHover ? 0.9 : 0.4} />
                 {(i % labelEvery === 0 || i === points.length - 1) && (
-                  <text x={x + barW} y={chartH + 14} fontSize="9" textAnchor="middle" fill="var(--c-ink-faint)">
+                  <text x={xAt(i)} y={chartH + 30} fontSize="10" textAnchor="middle" fill="var(--c-ink-faint)">
                     {p.day}
                   </text>
                 )}
@@ -80,7 +102,7 @@ export function TrendChart({ points }: { points: SeriesPoint[] }) {
           <span style={{ width: 10, height: 10, background: "var(--c-primary)", borderRadius: 2, display: "inline-block" }} /> {t("seriesReported", { defaultValue: "Reported" })}
         </span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-          <span style={{ width: 10, height: 10, background: "var(--c-ink-faint)", borderRadius: 2, display: "inline-block" }} /> {t("seriesResolved", { defaultValue: "Resolved" })}
+          <span style={{ width: 10, height: 10, background: "var(--c-ink-soft)", borderRadius: 2, display: "inline-block" }} /> {t("seriesResolved", { defaultValue: "Resolved" })}
         </span>
       </div>
       {/* accessible table fallback */}

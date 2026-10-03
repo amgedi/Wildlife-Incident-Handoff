@@ -208,7 +208,7 @@ export function IncidentListPage() {
   return (
     <main className="content" id="main-content">
       <div className="row between" style={{ marginBottom: "var(--space-4)" }}>
-        <h1 style={{ margin: 0 }}>{isReporter ? "My reports" : "Incidents"}</h1>
+        <h1 style={{ margin: 0 }}>{isReporter ? t("navigation:myReports") : t("navigation:incidents")}</h1>
         <Link to="/incidents/new" className="btn btn-primary">
           <Icons.plus size={16} />
           {isReporter ? t("navigation:reportWildlife") : t("navigation:createIncident")}
@@ -559,7 +559,7 @@ function ReportCard({
         {incident.humanReference} · {formatDateTime(incident.occurredAt ?? incident.createdAt)}
         {incident.location.description ? ` · ${incident.location.description}` : ""}
       </p>
-      {last && <p className="ic-updates">Last update: {last.summary} · {relativeTime(last.timestamp)}</p>}
+      {last && <p className="ic-updates">{t("reports:lastUpdatePrefix")} {last.summary} · {relativeTime(last.timestamp)}</p>}
       <div className="rc-footer">
         <span style={{ color: "var(--c-ink-faint)", fontSize: "0.85rem" }}>
           {incident.custody.some((c) => !c.endedAt) ? "" : t("professional:noResponder")}

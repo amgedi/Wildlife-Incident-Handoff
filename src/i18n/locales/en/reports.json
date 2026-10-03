@@ -75,5 +75,6 @@
   "viewSaved": "View saved",
   "viewRemoved": "View removed",
   "loadMore": "Load more",
-  "showingOf": "Showing {{shown}} of {{total}} reports"
+  "showingOf": "Showing {{shown}} of {{total}} reports",
+  "lastUpdatePrefix": "Last update:"
 }

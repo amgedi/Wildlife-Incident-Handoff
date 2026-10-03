@@ -204,7 +204,8 @@
     "viewSaved": "Vue enregistrée",
     "viewRemoved": "Vue supprimée",
     "loadMore": "Charger plus",
-    "showingOf": "{{shown}} signalements affichés sur {{total}}"
+    "showingOf": "{{shown}} signalements affichés sur {{total}}",
+    "lastUpdatePrefix": "Dernière mise à jour :"
   },
   "wizard": {
     "stepOf": "étape {{current}} sur {{total}}. Tout ce qui n'est pas obligatoire peut être laissé vide ou Inconnu.",
@@ -720,7 +721,13 @@
     "attentionHideConfirm": "Masquer",
     "offlineBasemapNote": "Fond de carte hors ligne — la carte est dessinée entièrement sur cet appareil, sans aucune requête de tuiles. Les marqueurs respectent la confidentialité du lieu de chaque signalement.",
     "done": "Terminé",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "legendNew": "Nouveau / signalé",
+    "legendActive": "Assigné / en intervention",
+    "legendTransfer": "Transfert / en soins",
+    "legendClosed": "Fermé",
+    "range24h": "24 heures",
+    "rangeDays": "{{d}} jours"
   },
   "guide": {
     "whatHappened": {
@@ -890,7 +897,13 @@
     "ghDiscussions": "Discussions GitHub",
     "honesty": "Il n'y a pas encore de serveur d'assistance — rien n'a été envoyé. Copiez ou téléchargez la demande ci-dessous, puis collez-la dans un ticket ou une discussion GitHub.",
     "copy": "Copier la demande d'assistance",
-    "download": "Télécharger le dossier d'assistance"
+    "download": "Télécharger le dossier d'assistance",
+    "wasHelpful": "Cela vous a-t-il aidé ?",
+    "helpfulYes": "Oui",
+    "helpfulNo": "Non",
+    "feedbackThanks": "Merci — votre avis est conservé uniquement sur cet appareil.",
+    "related": "Articles liés",
+    "reference": "Référence"
   },
   "onboarding": {
     "tagline": "Des informations claires. Des transferts plus sûrs.",

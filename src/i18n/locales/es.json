@@ -204,7 +204,8 @@
     "viewSaved": "Vista guardada",
     "viewRemoved": "Vista eliminada",
     "loadMore": "Cargar más",
-    "showingOf": "Mostrando {{shown}} de {{total}} informes"
+    "showingOf": "Mostrando {{shown}} de {{total}} informes",
+    "lastUpdatePrefix": "Última actualización:"
   },
   "wizard": {
     "stepOf": "paso {{current}} de {{total}}. Todo lo que no sea obligatorio puede dejarse vacío o como Desconocido.",
@@ -720,7 +721,13 @@
     "attentionHideConfirm": "Ocultar",
     "offlineBasemapNote": "Mapa base sin conexión: el mapa se dibuja íntegramente en este dispositivo y no se hacen peticiones de teselas. Los marcadores respetan la privacidad de la ubicación de cada incidente.",
     "done": "Listo",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "legendNew": "Nuevo / reportado",
+    "legendActive": "Asignado / en respuesta",
+    "legendTransfer": "Traslado / en cuidado",
+    "legendClosed": "Cerrado",
+    "range24h": "24 horas",
+    "rangeDays": "{{d}} días"
   },
   "guide": {
     "whatHappened": {
@@ -890,7 +897,13 @@
     "ghDiscussions": "Discusiones de GitHub",
     "honesty": "Todavía no hay un servidor de soporte — no se ha enviado nada. Copia o descarga la solicitud siguiente y pégala en un issue o una discusión de GitHub.",
     "copy": "Copiar solicitud de soporte",
-    "download": "Descargar paquete de soporte"
+    "download": "Descargar paquete de soporte",
+    "wasHelpful": "¿Te resultó útil?",
+    "helpfulYes": "Sí",
+    "helpfulNo": "No",
+    "feedbackThanks": "Gracias: tu opinión se guarda solo en este dispositivo.",
+    "related": "Artículos relacionados",
+    "reference": "Referencia"
   },
   "onboarding": {
     "tagline": "Información claras. Traspasos más seguros.",

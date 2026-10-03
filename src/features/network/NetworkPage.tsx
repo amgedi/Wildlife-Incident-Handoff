@@ -200,10 +200,10 @@ export function NetworkPage() {
   // P80 — effective widget order: saved layout wins; otherwise role-recommended.
   const recommendedOrder: WidgetId[] =
     rolePriority === "attention-first"
-      ? ["attention", "map", "activity", "kpis", "pipeline", "performance", "aging", "trend", "statusDist", "animalDist", "typeDist", "workload"]
+      ? ["attention", "map", "kpis", "activity", "pipeline", "performance", "aging", "trend", "statusDist", "animalDist", "typeDist", "workload"]
       : rolePriority === "transfer-first"
-        ? ["map", "attention", "activity", "kpis", "pipeline", "aging", "performance", "trend", "statusDist", "animalDist", "typeDist", "workload"]
-        : ["map", "attention", "activity", "kpis", "pipeline", "performance", "aging", "trend", "statusDist", "animalDist", "typeDist", "workload"];
+        ? ["map", "attention", "kpis", "activity", "pipeline", "aging", "performance", "trend", "statusDist", "animalDist", "typeDist", "workload"]
+        : ["map", "attention", "kpis", "activity", "pipeline", "performance", "aging", "trend", "statusDist", "animalDist", "typeDist", "workload"];
   const widgetOrder: WidgetId[] = layout?.order ?? recommendedOrder;
   const hiddenWidgets = useMemo(() => new Set<WidgetId>(layout?.hidden ?? []), [layout]);
 
@@ -281,14 +281,14 @@ export function NetworkPage() {
   const filtersActive = JSON.stringify(filters) !== JSON.stringify(EMPTY_FILTERS);
 
   const mapPanel = (
-    <div className="card ops-panel ops-span-8" style={{ minHeight: 340, display: "flex", flexDirection: "column" }}>
+    <div className="card ops-panel ops-span-8">
       <div className="row between">
         <h3 style={{ margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
           <Icons.map size={16} /> {t("mapTitle", { defaultValue: "Service area operations" })}
         </h3>
         <Link to="/network" className="btn btn-ghost btn-sm" onClick={() => setTab("map")}>{t("openFullMap", { defaultValue: "Open full map" })}</Link>
       </div>
-      <div style={{ marginTop: "var(--space-3)", flex: 1 }}>
+      <div style={{ marginTop: "var(--space-3)" }}>
         {settings.mapTilesEnabled === false ? (
           <Suspense fallback={<p style={{ color: "var(--c-ink-faint)" }}>…</p>}>
             <NetworkMap
@@ -441,7 +441,7 @@ export function NetworkPage() {
         </h3>
         <div className="segmented" role="group" aria-label="Time range">
           {([1, 7, 30, 90] as const).map((d) => (
-            <button key={d} aria-pressed={range === d} onClick={() => setRange(d)}>{d === 1 ? "24 hours" : `${d} days`}</button>
+            <button key={d} aria-pressed={range === d} onClick={() => setRange(d)}>{d === 1 ? t("range24h", { defaultValue: "24 hours" }) : t("rangeDays", { defaultValue: "{{d}} days", d })}</button>
           ))}
         </div>
       </div>
@@ -665,12 +665,25 @@ export function NetworkPage() {
       )}
 
       {tab === "map" ? (
-        <div className="card" style={{ marginTop: "var(--space-4)" }}>
-          <h3 style={{ marginTop: 0 }}>{t("mapTitle")}</h3>
+        <div style={{ marginTop: "var(--space-4)", display: "grid", gap: "var(--space-3)" }}>
+          <div className="row between" style={{ flexWrap: "wrap", gap: 8 }}>
+            <div>
+              <h2 style={{ margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                <Icons.map size={18} /> {t("mapTitle", { defaultValue: "Service area operations" })}
+              </h2>
+              <p className="hint" style={{ margin: 0 }}>
+                {area.label ?? t("serviceAreaFallbackLabel", { defaultValue: "Service area" })} · {area.radiusKm} km {t("serviceAreaRadiusSuffix", { defaultValue: "radius" })}
+                {area.centerLat != null && area.centerLon != null && <> · {area.centerLat.toFixed(3)}, {area.centerLon.toFixed(3)}</>}
+                {" · "}{inArea.length} {t("serviceAreaIncidentsIn", { defaultValue: "incidents inside" })}
+              </p>
+            </div>
+            <Link className="btn btn-secondary btn-sm" to="/network" onClick={() => setTab("list")}>{t("backToOps", { defaultValue: "Back to operations" })}</Link>
+          </div>
           <Suspense fallback={<p style={{ color: "var(--c-ink-faint)" }}>Loading map…</p>}>
             <NetworkMap
               incidents={inArea}
               privacy="approximate"
+              full
               serviceArea={area}
               fitMode="service-area"
               onSelect={(incident) => navigate(`/incidents/${incident.id}`)}
@@ -683,8 +696,8 @@ export function NetworkPage() {
             <div className="notice warning" style={{ marginTop: "var(--space-4)" }}>
               <Icons.warning size={18} />
               <div>
-                <strong>Possible duplicate report{duplicates.length === 1 ? "" : "s"}</strong> — these incidents look
-                similar by location, time and description. Nothing is merged automatically; review them:
+                <strong>{t("possibleDuplicates", { defaultValue: "Possible duplicate reports" })}</strong> —{" "}
+                {t("duplicateNote", { defaultValue: "these incidents look similar by location, time and description. Nothing is merged automatically; review them:" })}
                 <ul style={{ margin: "6px 0 0", paddingLeft: 20 }}>
                   {duplicates.map((d, idx) => (
                     <li key={idx}>

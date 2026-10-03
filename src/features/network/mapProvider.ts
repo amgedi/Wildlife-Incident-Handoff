@@ -195,16 +195,37 @@ export interface MapPoint {
   lon: number;
   state: string;
   label: string;
+  /** Stable index into the caller's incident array, so click handlers survive marker re-creation. */
+  refId?: number;
 }
 
 const CLUSTER_MAX_ZOOM = 7; // wider than this → cluster
 
-/** Grid-cluster points for the current zoom (P35). Pure function → testable. */
+/** Approximate geodesic circle polygon for the service area (P16: make the area visible). */
+export function serviceAreaPolygon(centerLat: number, centerLon: number, radiusKm: number, segments = 72): [number, number][] {
+  const latDeg = radiusKm / 110.574;
+  const lonDeg = radiusKm / (111.32 * Math.max(0.2, Math.cos((centerLat * Math.PI) / 180)));
+  const ring: [number, number][] = [];
+  for (let i = 0; i <= segments; i++) {
+    const a = (i / segments) * Math.PI * 2;
+    ring.push([centerLon + Math.cos(a) * lonDeg, centerLat + Math.sin(a) * latDeg]);
+  }
+  return ring;
+}
+
+/** Grid-cluster points for the current zoom (P35). Pure function → testable.
+ *  Above 120 points clustering also applies close up, keeping the marker DOM
+ *  bounded for very large local datasets (perf pass, 1000-incident test). */
+const DENSE_POINT_COUNT = 120;
+
 export function clusterPoints(points: MapPoint[], zoom: number, bounds: { north: number; south: number; east: number; west: number }): Array<{ lat: number; lon: number; count: number; states: Record<string, number> }> {
-  if (zoom > CLUSTER_MAX_ZOOM || points.length === 0) return [];
+  if (points.length === 0) return [];
+  const dense = points.length > DENSE_POINT_COUNT;
+  if (zoom > CLUSTER_MAX_ZOOM && !dense) return [];
+  const subdivisions = dense ? Math.min(24, Math.ceil(Math.sqrt(points.length))) : 8;
   const cells = new Map<string, { lat: number; lon: number; count: number; states: Record<string, number> }>();
-  const latStep = Math.max(0.05, (bounds.north - bounds.south) / 8);
-  const lonStep = Math.max(0.05, (bounds.east - bounds.west) / 8);
+  const latStep = Math.max(0.001, (bounds.north - bounds.south) / subdivisions);
+  const lonStep = Math.max(0.001, (bounds.east - bounds.west) / subdivisions);
   for (const p of points) {
     const key = `${Math.floor(p.lat / latStep)}:${Math.floor(p.lon / lonStep)}`;
     const cell = cells.get(key);
@@ -217,8 +238,10 @@ export function clusterPoints(points: MapPoint[], zoom: number, bounds: { north:
       cells.set(key, { lat: p.lat, lon: p.lon, count: 1, states: { [p.state]: 1 } });
     }
   }
-  // Only cluster when it actually reduces marker count meaningfully.
+  // Only cluster when it actually reduces marker count meaningfully —
+  // except for dense datasets, where bounding the marker DOM is the goal.
   const list = [...cells.values()];
+  if (dense) return list;
   return list.length < points.length / 2 ? list : [];
 }
 
@@ -230,12 +253,15 @@ export function createMapLibreProvider(options?: {
   destroy(): void;
   setErrorHandler(fn: (offline: boolean) => void): void;
   setLoadHandler(fn: () => void): void;
+  setSelectHandler(fn: (point: MapPoint) => void): void;
 } {
   let map: maplibregl.Map | null = null;
   let markers: maplibregl.Marker[] = [];
   let errorFn: ((offline: boolean) => void) | null = null;
   let loadFn: (() => void) | null = null;
+  let selectFn: ((point: MapPoint) => void) | null = null;
   let currentPoints: MapPoint[] = [];
+  let areaLayersAdded = false;
   const serviceArea = options?.serviceArea ?? null;
   const providerDescriptor = getMapProviderDescriptor(options?.providerId);
   return {
@@ -246,6 +272,9 @@ export function createMapLibreProvider(options?: {
     },
     setLoadHandler(fn) {
       loadFn = fn;
+    },
+    setSelectHandler(fn) {
+      selectFn = fn;
     },
     renderMarkers(container, points) {
       currentPoints = points;
@@ -287,9 +316,16 @@ export function createMapLibreProvider(options?: {
         if (e.dataType === "source" && errorFn) errorFn(false);
       });
       map.on("load", () => {
+        addServiceAreaLayers();
         updatePoints();
         loadFn?.();
       });
+      // Overlay must track size changes too — a resize without a camera move
+      // used to leave stale/empty markers (documented failure mode #2/#3).
+      map.on("resize", () => updatePoints());
+      // Belt-and-braces: schedule a first render so a missed load event can
+      // never leave the overlay empty.
+      requestAnimationFrame(() => updatePoints());
       // Re-cluster as the user zooms.
       map.on("moveend", () => updatePoints());
     },
@@ -300,6 +336,25 @@ export function createMapLibreProvider(options?: {
       map = null;
     },
   };
+
+  function addServiceAreaLayers() {
+    if (!map || !serviceArea || serviceArea.centerLat == null || serviceArea.centerLon == null || areaLayersAdded) return;
+    areaLayersAdded = true;
+    const ring = serviceAreaPolygon(serviceArea.centerLat, serviceArea.centerLon, serviceArea.radiusKm);
+    map.addSource("service-area", { type: "geojson", data: { type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [ring] } } });
+    map.addLayer({
+      id: "service-area-fill",
+      type: "fill",
+      source: "service-area",
+      paint: { "fill-color": "#2e7d5b", "fill-opacity": 0.08 },
+    });
+    map.addLayer({
+      id: "service-area-line",
+      type: "line",
+      source: "service-area",
+      paint: { "line-color": "#2e7d5b", "line-width": 1.5, "line-opacity": 0.55, "line-dasharray": [2, 2] },
+    });
+  }
 
   function updatePoints() {
     if (!map) return;
@@ -313,6 +368,19 @@ export function createMapLibreProvider(options?: {
     if (clusters.length > 0) {
       for (const c of clusters) {
         if (!c) continue;
+        if (c.count === 1) {
+          const p = currentPoints.find((pt) => Math.abs(pt.lat - c.lat) < 1e-9 && Math.abs(pt.lon - c.lon) < 1e-9);
+          if (p) {
+            const el = document.createElement("div");
+            el.className = "map-marker";
+            el.dataset.state = p.state;
+            el.title = p.label;
+            el.innerHTML = `<span class="map-marker-shape">${STATUS_MARKER_SHAPES[p.state] ?? "●"}</span>`;
+            if (selectFn) el.addEventListener("click", (ev) => { ev.stopPropagation(); selectFn?.(p); });
+            markers.push(new maplibregl.Marker({ element: el }).setLngLat([p.lon, p.lat]).addTo(map));
+          }
+          continue;
+        }
         const el = document.createElement("div");
         el.className = "map-cluster";
         const dominant = Object.entries(c.states).sort((a, b2) => b2[1] - a[1])[0]?.[0] ?? "new";
@@ -332,6 +400,12 @@ export function createMapLibreProvider(options?: {
       el.dataset.state = p.state;
       el.title = p.label;
       el.innerHTML = `<span class="map-marker-shape">${STATUS_MARKER_SHAPES[p.state] ?? "●"}</span>`;
+      if (selectFn) {
+        el.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          selectFn?.(p);
+        });
+      }
       markers.push(new maplibregl.Marker({ element: el }).setLngLat([p.lon, p.lat]).addTo(map));
     }
   }
