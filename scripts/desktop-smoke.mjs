@@ -133,7 +133,9 @@ async function main() {
   const about = await evalJs(cdp, `document.querySelector('main')?.textContent || ''`);
   const expectedVersion = JSON.parse(readFileSync("package.json", "utf-8")).version;
   record("About: version " + expectedVersion, about.includes(expectedVersion));
-  record("About: build id", /wih-/.test(about));
+  // 0.3.0-dev.4: build identity — frontend build id is a 12-hex hash; the
+  // legacy "wih-" build id was replaced by Commit/Built/Frontend build rows.
+  record("About: build id", /wih-/.test(about) || new RegExp("[a-f0-9]{12}").test(about));
   record("About: schema v1", about.includes("v1 (schemaVersion)"));
 
   console.log("phase: guide-me");

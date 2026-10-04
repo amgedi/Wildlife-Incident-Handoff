@@ -78,3 +78,11 @@ describe("migration: dev.19 profile → 0.3.0-dev.2 (spec 58)", () => {
     expect(container.querySelector("text")?.textContent).toBe("K");
   });
 });
+
+describe("dashboard layout migration (0.3.0-dev.4)", () => {
+  it("source repairs saved layouts: Network Pulse is re-paired after Live Activity", () => {
+    const src = readFileSync("src/features/network/NetworkPage.tsx", "utf-8");
+    expect(src.includes('order.splice(activityIdx + 1, 0, "networkOrgs")')).toBe(true);
+    expect(src.includes("dev.4 migration")).toBe(true);
+  });
+});

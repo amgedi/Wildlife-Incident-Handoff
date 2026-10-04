@@ -122,13 +122,24 @@ export function NetworkPage() {
     });
     getSetting<DashboardLayout>(DASHBOARD_LAYOUT_KEY).then((saved) => {
       // dev.4 migration: layouts saved before Network Pulse existed render
-      // Live Activity alone beside an empty region. A saved layout is only
-      // honored when it contains every current widget id.
+      // Live Activity alone beside an empty region. Repair them: ensure every
+      // current widget id is present AND Network Pulse sits directly after
+      // Live Activity (its span-6 partner), then persist the repaired order.
       if (saved && Array.isArray(saved.order) && Array.isArray(saved.hidden)) {
         const known: WidgetId[] = ["map", "attention", "activity", "kpis", "pipeline", "performance", "aging", "trend", "statusDist", "animalDist", "typeDist", "workload", "integrity", "networkOrgs"];
-        const complete = known.every((id) => saved.order.includes(id));
-        if (complete) setLayout(saved);
-        else void setSetting(DASHBOARD_LAYOUT_KEY, null);
+        const order = saved.order.filter((id): id is WidgetId => known.includes(id as WidgetId));
+        for (const id of known) if (!order.includes(id)) order.push(id);
+        const activityIdx = order.indexOf("activity");
+        const pulseIdx = order.indexOf("networkOrgs");
+        if (activityIdx >= 0 && pulseIdx !== activityIdx + 1) {
+          order.splice(pulseIdx, 1);
+          order.splice(activityIdx + 1, 0, "networkOrgs");
+          const repaired = { order, hidden: saved.hidden.filter((h): h is WidgetId => known.includes(h as WidgetId)) };
+          setLayout(repaired);
+          void setSetting(DASHBOARD_LAYOUT_KEY, repaired);
+        } else {
+          setLayout({ order, hidden: saved.hidden });
+        }
       }
     });
     getSetting<boolean>("network-test-view").then((v) => {
