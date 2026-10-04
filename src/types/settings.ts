@@ -24,6 +24,10 @@ export type MotionPreference = "full" | "reduced" | "off";
 export type AmbientPreference = "on" | "reduced" | "off";
 export type MaterialPreference = "solid" | "frosted" | "glass";
 export type DeviceTypeSetting = "desktop" | "laptop" | "tablet" | "phone" | "browser" | "other";
+export interface RecognitionPrivacySetting {
+  enabled: boolean;
+  privacy: "private" | "organization" | "display";
+}
 
 export type Workspace = "reporter" | "professional";
 
@@ -67,6 +71,8 @@ export interface AppSettings {
   deviceFriendlyName: string;
   /** Device type for the Device Center; null = auto-detect. */
   deviceType: DeviceTypeSetting | null;
+  /** Community recognition (0.3): opt-in, private by default. */
+  recognition: RecognitionPrivacySetting;
   /** Display name used as the default "actor" on new events. */
   displayName: string;
   defaultLocationPrecision: "exact" | "approximate" | "sensitive";
@@ -151,6 +157,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   motion: "full",
   ambient: "on",
   material: "frosted",
+  deviceFriendlyName: "",
+  deviceType: null,
+  recognition: { enabled: false, privacy: "private" },
   displayName: "",
   defaultLocationPrecision: "approximate",
   includeContactsInShareable: false,

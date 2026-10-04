@@ -23,6 +23,7 @@ import { RoleCard } from "./RoleCard";
 import { CountryComboBox } from "../../components/CountryComboBox";
 import { getCountryProfile } from "../country/countryProfile";
 import { DeviceCenter } from "../devices/DeviceCenter";
+import { RECOGNITION_RULES } from "../recognition/recognitionService";
 import { ProfilePhoto } from "../../components/ProfilePhoto";
 import { channelStatuses, requestWebNotificationPermission, webNotificationPermission, sendSystemNotification } from "../../notifications/delivery";
 import {
@@ -995,6 +996,30 @@ function ProfileSection() {
         <div className="notice" style={{ margin: "var(--space-3) 0" }}>
           <Icons.shield size={16} />
           <span>{t("profileLocal", { defaultValue: "Stored locally on this device. Pre-fills reports only — final report privacy controls decide what is shared." })}</span>
+        </div>
+        <div className="card" style={{ marginBottom: "var(--space-3)" }} data-testid="recognition-card">
+          <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
+            <Icons.heart size={16} /> {t("recognitionTitle", { defaultValue: "Community recognition" })}
+          </h3>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: "0.9rem" }}>
+            <input
+              type="checkbox"
+              checked={settings.recognition?.enabled ?? false}
+              onChange={(e) => updateSettings({ recognition: { ...(settings.recognition ?? { enabled: false, privacy: "private" as const }), enabled: e.target.checked } })}
+            />
+            {t("recognitionOptIn", { defaultValue: "Recognize my contributions (opt-in)" })}
+          </label>
+          <p className="hint" style={{ margin: "6px 0 10px" }}>
+            {t("recognitionPrivacy", { defaultValue: "Recognition is private on this device. There is no public leaderboard, and nothing is ranked by speed or volume — only the quality-based milestones below." })}
+          </p>
+          <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+            {RECOGNITION_RULES.map((rule) => (
+              <li key={rule.badge} className="row" style={{ borderTop: "1px solid var(--c-border)", padding: "6px 0", gap: 8, fontSize: "0.86rem" }}>
+                <strong style={{ minWidth: 140 }}>{t(`recognitionBadge_${rule.badge}`, { defaultValue: rule.badge.replaceAll("_", " ") })}</strong>
+                <span style={{ color: "var(--c-ink-soft)" }}>{rule.description}</span>
+              </li>
+            ))}
+          </ul>
         </div>
         <div className="row" style={{ gap: "var(--space-4)", flexWrap: "wrap", alignItems: "center", margin: "var(--space-3) 0" }} data-testid="profile-photo">
           <ProfilePhoto src={settings.profilePhoto} size={72} name={draft.name || settings.professionalProfile?.name || settings.displayName} title={t("profileTitle", { defaultValue: "Your profile" })} />
