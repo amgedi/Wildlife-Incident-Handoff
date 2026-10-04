@@ -29,11 +29,23 @@ export type ProfessionalRole =
 
 export type RoleState = "preview" | "verification_pending" | "verified";
 
+export interface RoleVerificationRequest {
+  /** ISO timestamp of submission. */
+  submittedAt: string;
+  /** Free-text context the user provided (supervisor, org, certificate id…). */
+  note: string;
+  /** File name of local proof — stays on this device. */
+  proofName: string | null;
+}
+
 export interface ProfessionalRoleEntry {
   role: ProfessionalRole;
   state: RoleState;
   /** ISO timestamp when the role was added / requested. */
   addedAt: string;
+  /** User-submitted verification evidence (dev.17). STILL preview locally —
+   *  a real organization reviews it server-side before permissions change. */
+  verificationRequest?: RoleVerificationRequest | null;
 }
 
 /** What each role conceptually may do in CONNECTED mode. Local preview NEVER

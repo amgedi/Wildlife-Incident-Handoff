@@ -20,6 +20,7 @@ import { displayPhone, normalizePhoneForStorage, isValidPhone, parsePhone } from
 import { resetAllGuidance } from "../../features/tutorial/guidance";
 import { getMapProviderDescriptor } from "../network/mapProvider";
 import { ProfilePhoto, PHOTO_BORDER_STYLES } from "../../components/ProfilePhoto";
+import { RoleCard } from "./RoleCard";
 import {
   DEFAULT_LAN_SYNC_CONFIG, acceptPeerWithUnion, ensureDeviceIdentity, lanLocalAddress, lanPairPeer,
   lanSetPairingCode, lanSetTrusted, lanStart, lanStop, lanTakePairRequests, runSyncRound,
@@ -798,23 +799,7 @@ function ProfessionalRolesCard() {
       {roles.length > 0 && (
         <div className="stack" style={{ gap: 8 }}>
           {roles.map((r) => (
-            <div key={r.role} className="card" style={{ boxShadow: "none", padding: "var(--space-3) var(--space-4)", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <span style={{ fontWeight: 600 }}>{t(`navigation:role_${r.role}`, { ns: "navigation", defaultValue: r.role.replaceAll("_", " ") })}</span>
-              <span className="badge warn">{t("settings:roleStatePreview", { defaultValue: "Professional Preview" })}</span>
-              {active === r.role && <span className="badge open">{t("settings:roleActive", { defaultValue: "Active" })}</span>}
-              <span style={{ flex: 1 }} />
-              {active !== r.role && roles.length > 1 && (
-                <button
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => updateSettings({ activeProfessionalRole: r.role })}
-                >
-                  {t("settings:roleSetActive", { defaultValue: "Use as active role" })}
-                </button>
-              )}
-              <button className="btn btn-quiet btn-sm" onClick={() => setConfirmRemove(r.role)}>
-                {t("settings:roleRemove", { defaultValue: "Remove" })}
-              </button>
-            </div>
+            <RoleCard key={r.role} entry={r} isActive={active === r.role} canDeactivate={active !== r.role && roles.length > 1} />
           ))}
         </div>
       )}

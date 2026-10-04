@@ -76,20 +76,6 @@ export async function buildInterfaceTourSteps(workspace: "reporter" | "professio
       waitMs: 800,
     },
     {
-      id: "interface-search",
-      tourId: "incident-search",
-      titleKey: "tourSearchTitle",
-      textKeyR: "tourSearchTextR",
-      textKeyP: "tourSearchTextP",
-      waitMs: 900,
-    },
-    {
-      id: "interface-filters",
-      tourId: "incident-filters",
-      titleKey: "tourFiltersTitle",
-      textKey: "tourFiltersText",
-    },
-    {
       id: "interface-report-header",
       tourId: "incident-header",
       titleKey: "tourIncidentTitle",

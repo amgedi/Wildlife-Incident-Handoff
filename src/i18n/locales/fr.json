@@ -509,7 +509,16 @@
     "photoBorder_leaves": "Feuilles",
     "photoBorder_wood": "Bois",
     "photoBorder_rope": "Corde",
-    "photoBorder_stars": "Étoiles"
+    "photoBorder_stars": "Étoiles",
+    "verifPending": "Vérification soumise — en attente d'examen",
+    "verifPendingHint": "Soumis {{when}}{{proof}}. Votre organisation l'examine — jusqu'à approbation serveur, cette rôle reste Aperçu et n'accorde aucun droit supplémentaire.",
+    "verifSubmit": "Soumettre une vérification",
+    "verifSubmittedToast": "Vérification soumise — en attente de l'organisation",
+    "verifBlurb": "Joignez vos preuves (photo de certificat, badge, e-mail du superviseur…) et ajoutez du contexte. Cela reste sur cet appareil jusqu'à examen par une organisation connectée — cela ne débloque AUCUNE permission par soi-même.",
+    "verifNotePlaceholder": "ex. Certificat de sauvetage faunique #1234, superviseur : J. Smith à Calgary Wildlife Response",
+    "verifNote": "Contexte de vérification",
+    "verifAttachProof": "Joindre une preuve (optionnel)",
+    "verifSubmitBtn": "Soumettre pour examen"
   },
   "tabs": {
     "tabsOverview": "Aperçu",
@@ -777,7 +786,14 @@
     "sortLatest": "Plus récent",
     "stageEmpty": "Rien à cette étape pour le moment.",
     "trendInfoTitle": "Détails de la période",
-    "trendNet": "Encore ouvert de cette période"
+    "trendNet": "Encore ouvert de cette période",
+    "intelTitle": "Infos de localisation",
+    "intelNoCoordinates": "Aucune coordonnée enregistrée — demandez un point de localisation au signaleur.",
+    "intelLookup": "Trouver la route/lieu le plus proche",
+    "intelLoading": "Recherche…",
+    "intelFailed": "Échec de la recherche (hors ligne ?) — les coordonnées ci-dessus restent valables.",
+    "waitingBadge": "⏱ en attente {{h}} h",
+    "waitingBadgeTitle": "En attente depuis plus de 2 heures"
   },
   "guide": {
     "whatHappened": {

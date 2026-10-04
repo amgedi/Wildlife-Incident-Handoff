@@ -2,6 +2,20 @@
 
 All notable changes to Wildlife Incident Handoff are documented here. Format based on [Keep a Changelog](https://keepachangelog.com/); versioning follows [SemVer](https://semver.org/).
 
+## 0.2.0-dev.17 — operations visibility pass (map, inspector, list, roles)
+
+### Changed
+- **Map markers redesigned**: every incident status now has its own large, white-ringed, high-contrast marker (color + glyph — blue ● reported, purple ◆ assigned, amber ▲ pickup, orange ➜ transport, teal ⇄ transfer, green ♥/✓ care/released, gray ■ closed…) so each incident is individually readable on satellite imagery. Full per-status legend under the map.
+- **Location intel in the map inspector**: clicking a marker now shows the stored description/landmark/address, precise coordinates with GPS accuracy, distance + compass bearing from the service-area center, and an on-demand reverse-geocoded nearest road/place (Nominatim, single cached request per position, attributed). This is the "what do I tell the responder" panel.
+- **List mode upgraded**: queue rows carry a status color strip on the left edge and a bold "waiting X h" badge once a case exceeds 2 hours — the list reads as a live console, not a static table.
+- **Professional roles: verification submission flow** — each role now offers "Submit verification": attach evidence (certificate photo/badge, file name kept locally) plus context notes. The role shows "Verification submitted — pending review" with an honest notice: nothing unlocks until a real organization approves it server-side.
+
+### Fixed
+- **Tutorial dead-end (user-reported, recurring)**: the Search and Filters steps have been REMOVED from the interface tour entirely — they depended on the user clicking a specific action button instead of Next, and failed whenever the list page rendered differently. Additionally, the tour now **auto-skips** any step whose target cannot be found instead of showing "We couldn't find this part of the interface." The tour can no longer dead-end.
+
+### Tests
+- 297 passing; legend sweep updated for the per-status registry.
+
 ## 0.2.0-dev.16 — tutorial content fix
 
 ### Fixed

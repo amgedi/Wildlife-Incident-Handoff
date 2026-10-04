@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import type { Incident } from "../../types/incident";
-import { createMapLibreProvider, markerPositionFor, markerStateFor, STATUS_MARKER_COLORS, getMapDiagnostics, type MapPrivacy, type MapServiceArea } from "./mapProvider";
+import { createMapLibreProvider, markerPositionFor, markerStateFor, STATUS_MARKER_STYLES, getMapDiagnostics, type MapPrivacy, type MapServiceArea } from "./mapProvider";
+import { fetchLocationIntel } from "./locationIntel";
 import { animalLabel } from "../export/exportService";
 import { Icons } from "../../components/Icons";
 import { StatusBadge } from "../../components/ui";
@@ -182,8 +183,13 @@ export function NetworkMap({
               return (
                 <li key={i.id} style={{ padding: "10px var(--space-4)", borderTop: "1px solid var(--c-border)" }}>
                   <div className="row" style={{ gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
-                    <span className={`map-marker offline`} data-state={markerStateFor(i)} aria-hidden="true">
-                      <span className="map-marker-shape">●</span>
+                    <span
+                      className="map-marker offline"
+                      data-state={markerStateFor(i)}
+                      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 20, height: 20, borderRadius: "50%", border: "2px solid #fff", boxShadow: "0 1px 4px rgb(0 0 0 / 0.4)", color: "#fff", fontSize: 11, fontWeight: 700, background: STATUS_MARKER_STYLES[markerStateFor(i)]?.color ?? "#2563eb" }}
+                      aria-hidden="true"
+                    >
+                      {STATUS_MARKER_STYLES[markerStateFor(i)]?.glyph ?? "●"}
                     </span>
                     <Link to={`/incidents/${i.id}`} style={{ fontWeight: 600 }}>{animalLabel(i)}</Link>
                     <span style={{ fontSize: "0.8rem", color: "var(--c-ink-faint)" }}>{i.humanReference}</span>
@@ -242,7 +248,8 @@ export function NetworkMap({
               <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--c-ink-soft)" }}>
                 {inspectedIncident.humanReference} · {t("reportedAgo", { defaultValue: "Reported" })} {relativeTime(inspectedIncident.occurredAt ?? inspectedIncident.createdAt)}
               </p>
-              <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--c-ink-soft)" }}>
+              <LocationIntel incident={inspectedIncident} serviceArea={serviceArea} />
+              <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--c-ink-soft)" }}>
                 {inspectedIncident.location.precision === "sensitive"
                   ? t("privacySensitive", { defaultValue: "Sensitive — area only" })
                   : t("privacyApprox", { defaultValue: "Approximate location" })}
@@ -259,14 +266,99 @@ export function NetworkMap({
           )}
         </div>
       )}
-      <div className="row" style={{ marginTop: "var(--space-2)", gap: 12, fontSize: "0.82rem", color: "var(--c-ink-soft)", flexWrap: "wrap" }}>
-        {Object.entries(STATUS_MARKER_COLORS).map(([state, color]) => (
-          <span key={state} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <span className={`map-marker-legend`} data-state={state} style={{ background: color }} />
-            {state === "new" ? t("legendNew", { defaultValue: "New / reported" }) : state === "active" ? t("legendActive", { defaultValue: "Assigned / responding" }) : state === "transfer" ? t("legendTransfer", { defaultValue: "Transfer / in care" }) : t("legendClosed", { defaultValue: "Closed" })}
+      <div className="row" style={{ marginTop: "var(--space-2)", gap: 10, fontSize: "0.78rem", color: "var(--c-ink-soft)", flexWrap: "wrap" }}>
+        {Object.entries(STATUS_MARKER_STYLES).map(([status, st]) => (
+          <span key={status} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <span
+              aria-hidden="true"
+              style={{ width: 14, height: 14, borderRadius: "50%", background: st.color, border: "1.6px solid #fff", boxShadow: "0 0 3px rgb(0 0 0 / 0.4)", display: "inline-flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 8.5, fontWeight: 700 }}
+            >
+              {st.glyph}
+            </span>
+            {st.label}
           </span>
         ))}
       </div>
+    </div>
+  );
+}
+
+
+/** Convert degrees bearing to a compass direction. */
+function bearingToCompass(deg: number): string {
+  const dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+  return dirs[Math.round(((deg % 360) / 45)) % 8] ?? "N";
+}
+
+/**
+ * Location intelligence for the map inspector (dev.17): exact/available
+ * stored location fields, distance + bearing from the service-area center,
+ * and an on-demand reverse-geocoded nearest-road/place via Nominatim
+ * (single request per position, cached, attributed).
+ */
+function LocationIntel({ incident, serviceArea }: { incident: Incident; serviceArea: MapServiceArea | null }) {
+  const { t } = useTranslation("professional");
+  const { latitude, longitude } = incident.location;
+  const [intel, setIntel] = useState<{ road?: string; city?: string } | null>(null);
+  const [state, setState] = useState<"idle" | "loading" | "ok" | "failed">("idle");
+
+  useEffect(() => {
+    setIntel(null);
+    setState("idle");
+  }, [latitude, longitude]);
+
+  if (latitude == null || longitude == null) {
+    return (
+      <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--c-warn)" }}>
+        {t("intelNoCoordinates", { defaultValue: "No coordinates recorded — ask the reporter for a location pin." })}
+      </p>
+    );
+  }
+
+  const load = async () => {
+    setState("loading");
+    try {
+      setIntel(await fetchLocationIntel(latitude, longitude));
+      setState("ok");
+    } catch {
+      setState("failed");
+    }
+  };
+
+  let distanceBearing: string | null = null;
+  if (serviceArea?.centerLat != null && serviceArea.centerLon != null) {
+    const dLat = (latitude - serviceArea.centerLat) * 110.574;
+    const dLon = (longitude - serviceArea.centerLon) * 111.32 * Math.cos((serviceArea.centerLat * Math.PI) / 180);
+    const dist = Math.round(Math.sqrt(dLat * dLat + dLon * dLon) * 10) / 10;
+    const bearing = (Math.atan2(longitude - serviceArea.centerLon, latitude - serviceArea.centerLat) * 180) / Math.PI;
+    distanceBearing = `${dist} km ${bearingToCompass(bearing)} of ${serviceArea.label ?? "center"}`;
+  }
+
+  return (
+    <div style={{ borderTop: "1px solid var(--c-border)", paddingTop: 6, display: "grid", gap: 4, fontSize: "0.8rem" }}>
+      <strong style={{ fontSize: "0.72rem", letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--c-ink-faint)" }}>
+        {t("intelTitle", { defaultValue: "Location intel" })}
+      </strong>
+      {incident.location.description && <span>📍 {incident.location.description}</span>}
+      {incident.location.landmark && <span>🧭 {incident.location.landmark}</span>}
+      {incident.location.address && <span>🏠 {incident.location.address}</span>}
+      <span><code>{latitude.toFixed(5)}, {longitude.toFixed(5)}</code>{incident.location.accuracyMeters != null ? ` · ±${incident.location.accuracyMeters} m` : ""}</span>
+      {distanceBearing && <span>🛰 {distanceBearing}</span>}
+      {state === "idle" && (
+        <button className="btn btn-secondary btn-sm" style={{ alignSelf: "start" }} onClick={() => void load()}>
+          {t("intelLookup", { defaultValue: "Look up nearest road/place" })}
+        </button>
+      )}
+      {state === "loading" && <span className="hint" style={{ margin: 0 }}>{t("intelLoading", { defaultValue: "Looking up…" })}</span>}
+      {state === "ok" && intel && (
+        <span>
+          {intel.road && <>🛣 {intel.road}</>}
+          {intel.road && intel.city ? " · " : ""}
+          {intel.city}
+          <span className="hint" style={{ display: "block", margin: 0, fontSize: "0.68rem" }}>© OpenStreetMap contributors</span>
+        </span>
+      )}
+      {state === "failed" && <span className="hint" style={{ margin: 0, color: "var(--c-warn)" }}>{t("intelFailed", { defaultValue: "Lookup failed (offline?) — coordinates above still work." })}</span>}
     </div>
   );
 }

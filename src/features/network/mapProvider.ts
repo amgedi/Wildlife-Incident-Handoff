@@ -20,7 +20,6 @@
 import * as maplibregl from "maplibre-gl";
 import type { Incident } from "../../types/incident";
 import type { MapProvider } from "./networkService";
-import { feedGroupFor } from "./networkService";
 
 export type MapPrivacy = "exact" | "approximate" | "sensitive";
 
@@ -53,11 +52,33 @@ export function markerPositionFor(incident: Incident, privacy: MapPrivacy): { la
   return { lat: latitude, lon: longitude };
 }
 
+/**
+ * Per-status marker styles (dev.17): every incident status has its own
+ * high-contrast color + glyph so markers stay readable on satellite imagery
+ * and status is never conveyed by color alone (shape/letter is in the marker).
+ */
+export const STATUS_MARKER_STYLES: Record<string, { color: string; glyph: string; label: string }> = {
+  reported: { color: "#2563eb", glyph: "●", label: "Reported" },
+  response_requested: { color: "#0891b2", glyph: "●", label: "Response requested" },
+  responder_assigned: { color: "#7c3aed", glyph: "◆", label: "Responder assigned" },
+  awaiting_pickup: { color: "#d97706", glyph: "▲", label: "Awaiting pickup" },
+  in_transport: { color: "#ea580c", glyph: "➜", label: "In transport" },
+  transferred: { color: "#0d9488", glyph: "⇄", label: "Transferred" },
+  in_care: { color: "#16a34a", glyph: "♥", label: "In care" },
+  veterinary_care: { color: "#15803d", glyph: "+", label: "Veterinary care" },
+  monitoring: { color: "#65a30d", glyph: "◐", label: "Monitoring" },
+  released: { color: "#22c55e", glyph: "✓", label: "Released" },
+  deceased: { color: "#374151", glyph: "✕", label: "Deceased" },
+  closed: { color: "#6b7280", glyph: "■", label: "Closed" },
+  cancelled: { color: "#9ca3af", glyph: "×", label: "Cancelled" },
+};
+
+/** Backwards-compatible group colors (legend fallbacks). */
 export const STATUS_MARKER_COLORS: Record<string, string> = {
-  new: "#2b6cb0",
-  active: "#553c9a",
-  transfer: "#0e7f8c",
-  closed: "#595f6d",
+  new: "#2563eb",
+  active: "#7c3aed",
+  transfer: "#0d9488",
+  closed: "#6b7280",
 };
 
 /** Shapes are paired with colors so status is not color alone. */
@@ -68,8 +89,23 @@ export const STATUS_MARKER_SHAPES: Record<string, string> = {
   closed: "■", // square
 };
 
-export function markerStateFor(incident: Incident): keyof typeof STATUS_MARKER_COLORS {
-  return feedGroupFor(incident) as keyof typeof STATUS_MARKER_COLORS;
+/** Inline style for a map marker element: large, white-ringed, per-status. */
+export function markerElementStyle(state: string): string {
+  const style = STATUS_MARKER_STYLES[state] ?? { color: "#2563eb" };
+  return [
+    "width:28px", "height:28px", "border-radius:50%",
+    `background:${style.color}`,
+    "border:2.5px solid #ffffff",
+    "box-shadow:0 1px 6px rgb(0 0 0 / 0.5)",
+    "display:flex", "align-items:center", "justify-content:center",
+    "color:#ffffff", "font-size:14px", "font-weight:700", "line-height:1",
+    "cursor:pointer",
+  ].join(";");
+}
+
+/** Marker state = the incident's real status (per-status colors, dev.17). */
+export function markerStateFor(incident: Incident): string {
+  return incident.status;
 }
 
 // ---- Non-sensitive diagnostics (P37) --------------------------------------
@@ -387,7 +423,8 @@ export function createMapLibreProvider(options?: {
             el.className = "map-marker";
             el.dataset.state = p.state;
             el.title = p.label;
-            el.innerHTML = `<span class="map-marker-shape">${STATUS_MARKER_SHAPES[p.state] ?? "●"}</span>`;
+            el.style.cssText = markerElementStyle(p.state);
+            el.textContent = STATUS_MARKER_STYLES[p.state]?.glyph ?? "●";
             if (selectFn) el.addEventListener("click", (ev) => { ev.stopPropagation(); selectFn?.(p); });
             markers.push(new maplibregl.Marker({ element: el }).setLngLat([p.lon, p.lat]).addTo(map));
           }
@@ -395,6 +432,7 @@ export function createMapLibreProvider(options?: {
         }
         const el = document.createElement("div");
         el.className = "map-cluster";
+        el.style.cssText = "width:34px;height:34px;border-radius:50%;background:rgba(20,60,40,0.92);border:2.5px solid #ffffff;box-shadow:0 1px 6px rgb(0 0 0 / 0.5);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;cursor:pointer";
         const dominant = Object.entries(c.states).sort((a, b2) => b2[1] - a[1])[0]?.[0] ?? "new";
         el.dataset.state = dominant;
         el.title = `${c.count} incidents — zoom in to see them`;
@@ -411,7 +449,8 @@ export function createMapLibreProvider(options?: {
       el.className = "map-marker";
       el.dataset.state = p.state;
       el.title = p.label;
-      el.innerHTML = `<span class="map-marker-shape">${STATUS_MARKER_SHAPES[p.state] ?? "●"}</span>`;
+      el.style.cssText = markerElementStyle(p.state);
+      el.textContent = STATUS_MARKER_STYLES[p.state]?.glyph ?? STATUS_MARKER_SHAPES[p.state] ?? "●";
       if (selectFn) {
         el.addEventListener("click", (ev) => {
           ev.stopPropagation();

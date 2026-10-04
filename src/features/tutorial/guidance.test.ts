@@ -32,7 +32,7 @@ describe("guidance systems are architecturally separate", () => {
   it("interface tour steps each declare id, target and (where needed) an explicit route", async () => {
     for (const workspace of ["reporter", "professional"] as const) {
       const steps: TourStepV2[] = await buildInterfaceTourSteps(workspace);
-      expect(steps.length).toBeGreaterThanOrEqual(10);
+      expect(steps.length).toBeGreaterThanOrEqual(9); // search/filters steps removed deliberately (dev.17)
       const ids = steps.map((s) => s.id);
       expect(new Set(ids).size).toBe(ids.length); // unique ids
       for (const s of steps) {

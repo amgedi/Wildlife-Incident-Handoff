@@ -185,5 +185,14 @@
   "photoBorder_leaves": "Leaves",
   "photoBorder_wood": "Wood",
   "photoBorder_rope": "Rope",
-  "photoBorder_stars": "Stars"
+  "photoBorder_stars": "Stars",
+  "verifPending": "Verification submitted — pending review",
+  "verifPendingHint": "Submitted {{when}}{{proof}}. Your organization reviews this — until it approves you server-side, this role stays Preview and grants no extra permissions.",
+  "verifSubmit": "Submit verification",
+  "verifSubmittedToast": "Verification submitted — pending organization review",
+  "verifBlurb": "Attach your evidence (certificate photo, badge, supervisor email…) and add context. It stays on this device until a connected organization reviews it — this does NOT unlock permissions by itself.",
+  "verifNotePlaceholder": "e.g. Wildlife rescue certificate #1234, supervisor: J. Smith at Calgary Wildlife Response",
+  "verifNote": "Verification context",
+  "verifAttachProof": "Attach proof (optional)",
+  "verifSubmitBtn": "Submit for review"
 }

@@ -126,9 +126,9 @@ describe("localization sweeps found by the pseudo-locale", () => {
     expect(src).not.toContain('t("support:');
   });
 
-  it("map legend and dashboard notices are translated keys, not literals", () => {
+  it("map legend uses per-status labels from the registry (dev.17)", () => {
     const map = readFileSync(join(root, "src/features/network/NetworkMap.tsx"), "utf-8");
-    expect(map).toContain("legendNew");
+    expect(map).toContain("STATUS_MARKER_STYLES");
     const page = readFileSync(join(root, "src/features/network/NetworkPage.tsx"), "utf-8");
     expect(page).toContain("range24h");
     expect(page).toContain('t("possibleDuplicates"');

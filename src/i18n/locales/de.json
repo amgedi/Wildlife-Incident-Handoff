@@ -807,7 +807,16 @@
     "photoBorder_leaves": "Blätter",
     "photoBorder_wood": "Holz",
     "photoBorder_rope": "Seil",
-    "photoBorder_stars": "Sterne"
+    "photoBorder_stars": "Sterne",
+    "verifPending": "Verifizierung eingereicht — Prüfung ausstehend",
+    "verifPendingHint": "Eingereicht {{when}}{{proof}}. Ihre Organisation prüft dies — bis zur serverseitigen Freigabe bleibt die Rolle Vorschau und gewährt keine Zusatzrechte.",
+    "verifSubmit": "Verifizierung einreichen",
+    "verifSubmittedToast": "Verifizierung eingereicht — wartet auf die Organisation",
+    "verifBlurb": "Hängen Sie Ihre Nachweise an (Zertifikatsfoto, Ausweis, Vorgesetzten-E-Mail…) und ergänzen Sie Angaben. Bleibt auf diesem Gerät, bis eine verbundene Organisation sie prüft — schaltet KEINE Berechtigungen frei.",
+    "verifNotePlaceholder": "z. B. Wildrettungszertifikat #1234, Vorgesetzte: J. Smith bei Calgary Wildlife Response",
+    "verifNote": "Verifizierungskontext",
+    "verifAttachProof": "Nachweis anhängen (optional)",
+    "verifSubmitBtn": "Zur Prüfung einreichen"
   },
   "professional": {
     "title": "Respons-Netzwerk",
@@ -986,7 +995,14 @@
     "sortLatest": "Neueste zuerst",
     "stageEmpty": "Im Moment nichts in dieser Phase.",
     "trendInfoTitle": "Periodendetails",
-    "trendNet": "Aus dieser Zeit noch offen"
+    "trendNet": "Aus dieser Zeit noch offen",
+    "intelTitle": "Standort-Infos",
+    "intelNoCoordinates": "Keine Koordinaten erfasst — bitten Sie die Melderin um einen Standort-Pin.",
+    "intelLookup": "Nächste Straße/Ort nachschlagen",
+    "intelLoading": "Suche…",
+    "intelFailed": "Suche fehlgeschlagen (offline?) — die Koordinaten oben funktionieren weiterhin.",
+    "waitingBadge": "⏱ wartet {{h}} h",
+    "waitingBadgeTitle": "Wartet seit mehr als 2 Stunden"
   },
   "social": {
     "leaderboard": "Melder-Bestenliste",

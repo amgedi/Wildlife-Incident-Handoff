@@ -85,15 +85,16 @@ export function SpotlightTour({ steps, startIndex = 0, onFinish }: SpotlightProp
         }
         if (generationRef.current !== gen) return;
         if (!el) {
-          setPhase({
-            kind: "failed",
-            diagnostics: {
-              tourStep: current.id,
-              target: current.tourId,
-              route: current.route ?? window.location.pathname,
-              viewport: `${window.innerWidth}x${window.innerHeight}`,
-            },
-          });
+          // dev.17: never dead-end the tour. If a target is missing (workspace
+          // state, empty list, anything), skip to the next step instead of
+          // showing the failure screen (user decision — the Search/Filters
+          // steps were removed for exactly this reason).
+          if (stepIndex + 1 < steps.length) {
+            setPhase({ kind: "navigating" });
+            setIndex(stepIndex + 1);
+            return;
+          }
+          onFinish();
           return;
         }
 
@@ -103,7 +104,11 @@ export function SpotlightTour({ steps, startIndex = 0, onFinish }: SpotlightProp
         if (generationRef.current !== gen) return;
         const r = el.getBoundingClientRect();
         if (r.width === 0 && r.height === 0) {
-          setPhase({ kind: "failed", diagnostics: { tourStep: current.id, target: current.tourId, reason: "zero-size" } });
+          if (stepIndex + 1 < steps.length) {
+            setIndex(stepIndex + 1);
+            return;
+          }
+          onFinish();
           return;
         }
         if (generationRef.current !== gen) return;

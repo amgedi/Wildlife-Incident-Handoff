@@ -175,5 +175,12 @@
   "sortLatest": "Latest",
   "stageEmpty": "Nothing at this stage right now.",
   "trendInfoTitle": "Period details",
-  "trendNet": "Still open from this period"
+  "trendNet": "Still open from this period",
+  "intelTitle": "Location intel",
+  "intelNoCoordinates": "No coordinates recorded — ask the reporter for a location pin.",
+  "intelLookup": "Look up nearest road/place",
+  "intelLoading": "Looking up…",
+  "intelFailed": "Lookup failed (offline?) — coordinates above still work.",
+  "waitingBadge": "⏱ waiting {{h}} h",
+  "waitingBadgeTitle": "Waiting more than 2 hours"
 }

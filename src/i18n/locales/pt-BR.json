@@ -807,7 +807,16 @@
     "photoBorder_leaves": "Folhas",
     "photoBorder_wood": "Madeira",
     "photoBorder_rope": "Corda",
-    "photoBorder_stars": "Estrelas"
+    "photoBorder_stars": "Estrelas",
+    "verifPending": "Verificação enviada — aguardando análise",
+    "verifPendingHint": "Enviado {{when}}{{proof}}. Sua organização analisa — até a aprovação no servidor, esta função segue em Prévia e não concede permissões extras.",
+    "verifSubmit": "Enviar verificação",
+    "verifSubmittedToast": "Verificação enviada — aguardando a organização",
+    "verifBlurb": "Anexe suas evidências (foto do certificado, crachá, e-mail do supervisor…) e adicione contexto. Fica neste aparelho até uma organização conectada analisar — isso NÃO libera permissões por si só.",
+    "verifNotePlaceholder": "ex. Certificado de resgate de fauna #1234, supervisor: J. Smith na Calgary Wildlife Response",
+    "verifNote": "Contexto de verificação",
+    "verifAttachProof": "Anexar prova (opcional)",
+    "verifSubmitBtn": "Enviar para análise"
   },
   "professional": {
     "title": "Rede de resposta",
@@ -986,7 +995,14 @@
     "sortLatest": "Mais recentes",
     "stageEmpty": "Nada nesta fase no momento.",
     "trendInfoTitle": "Detalhes do período",
-    "trendNet": "Ainda abertos deste período"
+    "trendNet": "Ainda abertos deste período",
+    "intelTitle": "Informações de local",
+    "intelNoCoordinates": "Sem coordenadas registradas — peça um ponto de localização ao reportador.",
+    "intelLookup": "Buscar via/lugar mais próximo",
+    "intelLoading": "Buscando…",
+    "intelFailed": "A busca falhou (sem internet?) — as coordenadas acima continuam válidas.",
+    "waitingBadge": "⏱ esperando {{h}} h",
+    "waitingBadgeTitle": "Esperando há mais de 2 horas"
   },
   "social": {
     "leaderboard": "Classificação de reportadores",
