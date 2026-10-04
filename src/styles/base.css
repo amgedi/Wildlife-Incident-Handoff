@@ -1588,3 +1588,37 @@ button.ax-dist-row:hover { border-color: var(--c-border); background: var(--c-su
 @media (prefers-reduced-motion: reduce) {
   .activity-v5-new { transition: none; }
 }
+
+/* ---------- 0.3.0-dev.5 Analytics V5 (Part XI) ---------- */
+.ax5 { position: relative; }
+.ax5-svg { width: 100%; height: auto; display: block; }
+.ax5-tip {
+  position: absolute; top: 4%; transform: translateX(-50%);
+  background: var(--c-surface); border: 1px solid var(--c-border);
+  border-radius: var(--radius-md); box-shadow: var(--shadow-md);
+  padding: 8px 12px; pointer-events: none; min-width: 170px; z-index: 5;
+}
+.ax5-tip-window { font-size: 0.78rem; color: var(--c-ink-soft); margin-bottom: 4px; font-weight: 600; }
+.ax5-tip-row { display: flex; justify-content: space-between; gap: 14px; font-size: 0.82rem; padding: 1px 0; }
+.ax5-tip-hint { font-size: 0.7rem; color: var(--c-ink-faint); margin-top: 4px; }
+.ax5-swatch { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; }
+.ax5-legend { display: flex; gap: 16px; margin-top: 6px; font-size: 0.8rem; color: var(--c-ink-soft); flex-wrap: wrap; }
+.ax5-legend-item { display: inline-flex; align-items: center; }
+.ax5-defs { position: relative; }
+.ax5-defs summary { list-style: none; cursor: pointer; }
+.ax5-defs summary::-webkit-details-marker { display: none; }
+.ax5-defs-body {
+  position: absolute; z-index: 20; top: calc(100% + 6px); left: 0;
+  background: var(--c-surface); border: 1px solid var(--c-border);
+  border-radius: var(--radius-md); box-shadow: var(--shadow-md);
+  padding: 10px 14px; width: min(420px, 80vw); font-size: 0.82rem; color: var(--c-ink-soft);
+}
+.ax5-defs-body p { margin: 4px 0; }
+.ax5-drawer-scrim { position: fixed; inset: 0; background: rgb(0 0 0 / 0.35); z-index: 90; }
+.ax5-drawer {
+  position: absolute; top: 0; right: 0; height: 100%; width: min(380px, 92vw);
+  background: var(--c-surface); border-left: 1px solid var(--c-border);
+  padding: var(--space-4); overflow-y: auto; box-shadow: var(--shadow-lg);
+}
+.ax5-drawer-window { font-weight: 650; margin: 0 0 var(--space-2); }
+.ax5-drawer-metric { display: flex; justify-content: space-between; border-bottom: 1px solid var(--c-border); padding: 6px 0; }

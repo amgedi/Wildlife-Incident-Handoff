@@ -29,7 +29,9 @@ import { getSetting, setSetting } from "../../storage/repositories";
 import { changeStatus } from "../../storage/incidentService";
 import { putIncident, deleteIncidentRecord } from "../../storage/repositories";
 import * as analytics from "./incidentAnalytics";
-import { TrendChart } from "./TrendChart";
+import { AnalyticsChart } from "./analytics/AnalyticsChart";
+import { AnalyticsDetailDrawer } from "./analytics/AnalyticsDetailDrawer";
+import { computeBuckets, METRIC_REGISTRY, type MetricId } from "./analytics/metricRegistry";
 import { AnimatedNumber } from "./dashboard/AnimatedNumber";
 import { AgingStrip, BarDistribution } from "./dashboard/opsCharts";
 import { IncidentQueueRow } from "./dashboard/IncidentQueueRow";
@@ -98,6 +100,8 @@ export function NetworkPage() {
   const [area, setArea] = useState<ServiceArea>({ centerLat: null, centerLon: null, radiusKm: 25, label: "My service area" });
   const [loaded, setLoaded] = useState(false);
   const [range, setRange] = useState<1 | 7 | 30 | 90>(7);
+  const [chartMetrics, setChartMetrics] = useState<MetricId[]>(["reported", "closed"]);
+  const [bucketSelected, setBucketSelected] = useState<number | null>(null);
   const [now, setNow] = useState(() => new Date());
   const [layout, setLayout] = useState<DashboardLayout | null>(null);
   const [testView, setTestView] = useState(false);
@@ -228,7 +232,11 @@ export function NetworkPage() {
   const transfer = useMemo(() => analytics.getTransferMetrics(filtered), [filtered]);
   const workload = useMemo(() => analytics.getResponderWorkload(filtered), [filtered]);
   const feed = useMemo(() => analytics.getActivityFeed(filtered), [filtered]);
-  const series = useMemo(() => analytics.getTimeSeries(filtered, range), [filtered, range]);
+  // Analytics V5 canonical buckets (Test View incidents included when present).
+  const analyticsBuckets = useMemo(
+    () => computeBuckets(filtered, { range, now, includeDemo: filtered.some((i) => i.isDemo) }),
+    [filtered, range, now]
+  );
   const attention = useMemo(() => analytics.getNeedsAttention(filtered, now), [filtered, now]);
   const rangeDays = filters.time === "today" ? 1 : filters.time === "7d" ? 7 : filters.time === "30d" ? 30 : 30;
   const newWithDelta = useMemo(() => analytics.getCountWithDelta(filtered, rangeDays as 1 | 7 | 30, now), [filtered, rangeDays, now]);
@@ -476,13 +484,56 @@ export function NetworkPage() {
         </h3>
         <div className="segmented" role="group" aria-label="Time range">
           {([1, 7, 30, 90] as const).map((d) => (
-            <button key={d} aria-pressed={range === d} onClick={() => setRange(d)}>{d === 1 ? t("range24h", { defaultValue: "24 hours" }) : t("rangeDays", { defaultValue: "{{d}} days", d })}</button>
+            <button key={d} aria-pressed={range === d} onClick={() => { setRange(d); setBucketSelected(null); }}>{d === 1 ? t("range24h", { defaultValue: "24 hours" }) : t("rangeDays", { defaultValue: "{{d}} days", d })}</button>
           ))}
         </div>
       </div>
-      <div style={{ marginTop: "var(--space-3)" }}>
-        <TrendChart points={series} />
+      {/* 0.3.0-dev.5 Analytics V5: counts as bars from the canonical metric
+          registry (no spline fabrication), click/keyboard opens the detail
+          drawer for the nearest bucket. */}
+      <div className="row" style={{ gap: 6, margin: "var(--space-3) 0 var(--space-2)", flexWrap: "wrap" }} role="group" aria-label={t("ax5Series", { defaultValue: "Metrics shown" })}>
+        {(["reported", "assigned", "closed"] as const).map((m) => (
+          <button
+            key={m}
+            className={`chip-btn${chartMetrics.includes(m) ? " active" : ""}`}
+            aria-pressed={chartMetrics.includes(m)}
+            title={t("ax5WhatMeans", { defaultValue: "What does this mean?" }) + " — " + METRIC_REGISTRY[m].definition}
+            onClick={() =>
+              setChartMetrics((prev) => (prev.includes(m) ? (prev.length === 1 ? prev : prev.filter((x) => x !== m)) : [...prev, m]))
+            }
+          >
+            {METRIC_REGISTRY[m].label}
+          </button>
+        ))}
+        <details className="ax5-defs">
+          <summary className="chip-btn">{t("ax5WhatMeans", { defaultValue: "What does this mean?" })}</summary>
+          <div className="ax5-defs-body">
+            {chartMetrics.map((m) => (
+              <p key={m}><strong>{METRIC_REGISTRY[m].label}:</strong> {METRIC_REGISTRY[m].definition} {METRIC_REGISTRY[m].includes} {METRIC_REGISTRY[m].excludes}</p>
+            ))}
+          </div>
+        </details>
       </div>
+      <div style={{ marginTop: "var(--space-2)" }}>
+        <AnalyticsChart
+          buckets={analyticsBuckets}
+          metrics={chartMetrics}
+          selected={bucketSelected}
+          onSelect={(i) => setBucketSelected(i)}
+        />
+      </div>
+      <AnalyticsDetailDrawer
+        bucket={bucketSelected != null ? analyticsBuckets[bucketSelected] ?? null : null}
+        metrics={chartMetrics}
+        onClose={() => setBucketSelected(null)}
+        onOpenIncidents={(b) => {
+          const from = new Date(b.startISO);
+          const to = new Date(b.endISO);
+          const d = (x: Date) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
+          navigate(`/incidents?from=${d(from)}&to=${d(to)}`);
+          setBucketSelected(null);
+        }}
+      />
     </div>
   );
 

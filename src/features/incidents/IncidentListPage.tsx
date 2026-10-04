@@ -130,8 +130,9 @@ export function IncidentListPage() {
   const [statusFilter, setStatusFilter] = useState<string>(() => (searchParams.get("status") as string) ?? "all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [groupFilter, setGroupFilter] = useState<string>("all");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  // 0.3.0-dev.5: from/to deep links let analytics drilldown open pre-filtered.
+  const [dateFrom, setDateFrom] = useState(() => searchParams.get("from") ?? "");
+  const [dateTo, setDateTo] = useState(() => searchParams.get("to") ?? "");
   const [savedViews, setSavedViews] = useState<SavedView[]>([]);
   const [newViewName, setNewViewName] = useState("");
   const [renderLimit, setRenderLimit] = useState(RENDER_STEP);
