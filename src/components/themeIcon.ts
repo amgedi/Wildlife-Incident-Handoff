@@ -22,6 +22,7 @@ export const THEME_ICON_PALETTES: Record<string, { bg: string; fg: string }> = {
   storm: { bg: "#090b0f", fg: "#7c8cf8" },
   aurora: { bg: "#04080a", fg: "#2fbf9b" },
   "warm-field": { bg: "#4a3b28", fg: "#f2e7d4" },
+  moss: { bg: "#3f5233", fg: "#eceee4" },
   sand: { bg: "#6b4f2a", fg: "#f9f3e6" },
   ocean: { bg: "#123a5c", fg: "#e2f1f6" },
   arctic: { bg: "#1c4a5e", fg: "#eaf4f8" },
