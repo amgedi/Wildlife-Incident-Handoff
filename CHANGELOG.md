@@ -2,6 +2,66 @@
 
 All notable changes to Wildlife Incident Handoff are documented here. Format based on [Keep a Changelog](https://keepachangelog.com/); versioning follows [SemVer](https://semver.org/).
 
+## [0.2.0-dev.19] — 2026-10-04
+
+Final hardening pass before the release-candidate decision.
+
+### LAN sync: protocol v3 (was the release blocker)
+- **Cryptographic device identity**: every installation now generates a
+  persistent P-256 keypair (Rust-side, app data dir). The spoofable plaintext
+  `X-WIH-Device` UUID header is gone.
+- **Encrypted transport**: every sync request is an AES-256-GCM sealed
+  envelope; channel keys are static-static ECDH + HKDF-SHA256 bound to both
+  device fingerprints. Plaintext incident data never touches the network.
+- **Pairing**: 6-digit OS-RNG code + explicit user approval + fingerprint
+  comparison on both screens; a correct code never grants trust by itself.
+- **Replay protection**: persisted per-peer monotonic counters bound into the
+  AEAD AAD.
+- **Trust store**: persists across restarts; "Remove trust" immediately stops
+  all sync until re-pairing.
+- **Merge**: acks are exchanged in both directions and compare content
+  VERSIONS (hashes), not timestamps — immune to the Windows ~15 ms clock
+  granularity that could let two different same-timestamp edits masquerade
+  as "no change". The common ancestor is never rewritten on skip.
+- Sync now runs app-wide (not only while Settings → Sync is open); disabling
+  sync rejects every endpoint server-side.
+- Live two-instance QA (real desktop profiles "Dispatch Laptop" / "Field
+  Laptop"): 9/9 checks, twice — pairing, encrypted exchange both ways, ack
+  updates, same-field conflict with no silent overwrite, revoke stops sync,
+  re-pair resumes. Unpaired/spoofed/forged clients verified to receive 403
+  and no data.
+- Docs: docs/LAN_SYNC_SECURITY.md rewritten for v3.
+
+### Fixed (user-reported)
+- Settings saving: persistence moved out of the React state updater (could be
+  double-invoked/dropped) into a proper effect.
+- Motion animations and ambient theme now STAY ON by default; the OS
+  reduced-motion override no longer silently turns the ambient background off
+  (users can still choose Reduced/Off).
+- Settings sidebar showed raw lowercase "sync" — missing i18n key added and
+  localized in all 5 languages, with a regression test.
+
+### Backup
+- Manifest now covers attachments (SHA-256 per media file): a corrupted
+  photo/video is detected and refused instead of silently imported.
+- Restore stages decode + hash verification BEFORE writing anything.
+- Export assembles the file in parts (one attachment in memory at a time) —
+  multi-GB libraries no longer need one giant JSON string.
+
+### Version management
+- `npm run set-version X.Y.Z` updates all 4 version surfaces; parity is
+  asserted by a test and a CI step (root cause of the dev.18 mismatch).
+
+### Other
+- Multi-profile support: launch with `WIH_PROFILE=<name>` for separate app
+  data (used by the two-instance QA; useful for parallel real profiles).
+- Localization completeness gate (regression-protected, honest English
+  fallback documented); sync copy translated in fr/es/de/pt-BR.
+- CI: version parity + Rust crypto unit tests added.
+- SBOM updated for the RustCrypto crates (p256, aes-gcm, hkdf, rand —
+  MIT OR Apache-2.0).
+- 379 JS tests + 7 Rust tests passing; desktop smoke 7/7; 10k-incident perf
+  budgets all pass (worst 12.2 ms vs 300 ms budget).
 # Changelog
 
 All notable changes to Wildlife Incident Handoff are documented here. Format based on [Keep a Changelog](https://keepachangelog.com/); versioning follows [SemVer](https://semver.org/).

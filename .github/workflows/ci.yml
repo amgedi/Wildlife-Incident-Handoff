@@ -19,6 +19,8 @@ jobs:
       - run: npx tsc --noEmit
       - run: npm test
       - run: npm run build
+      - name: Version parity (all version surfaces agree)
+        run: node scripts/set-version.mjs
       - name: License inventory
         run: node scripts/license-inventory.mjs
       - uses: actions/upload-artifact@v4
@@ -37,6 +39,8 @@ jobs:
           cache: npm
       - uses: dtolnay/rust-toolchain@stable
       - run: npm ci
+      - name: Rust unit tests (LAN sync crypto)
+        run: cargo test --manifest-path src-tauri/Cargo.toml
       - run: npx tauri build
       - uses: actions/upload-artifact@v4
         with:

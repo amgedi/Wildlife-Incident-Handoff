@@ -1,6 +1,6 @@
 # Third-party licenses / dependency inventory
 
-Generated 2026-10-04T05:12:26.178Z — application version 0.2.0-dev.17.
+Generated 2026-10-04T16:33:48.666Z — application version 0.2.0-dev.18.
 Application license: AGPL-3.0-only. Runtime dependencies:
 
 | Package | Version | License |
