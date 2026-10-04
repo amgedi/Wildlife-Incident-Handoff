@@ -3,9 +3,10 @@ import { IDBFactory } from "fake-indexeddb";
 import { resetDbForTests } from "../storage/db";
 import "fake-indexeddb/auto";
 
-// jsdom lacks matchMedia.
+// jsdom lacks matchMedia. Plain function (not vi.fn) — vi.restoreAllMocks()
+// in afterEach would strip a mock's implementation and break later tests.
 if (!window.matchMedia) {
-  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+  window.matchMedia = ((query: string) => ({
     matches: false,
     media: query,
     onchange: null,

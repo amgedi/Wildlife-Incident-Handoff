@@ -73,7 +73,16 @@ export function NetworkPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { t } = useTranslation("professional");
   // Map is a first-class destination: /network?view=map (sidebar "Map").
-  const [tab, setTab] = useState<"list" | "map">(searchParams.get("view") === "map" ? "map" : "list");
+  // The URL is the single source of truth — no mirrored state, so sidebar
+  // navigation to ?view=map always wins (regression: clicking Map from
+  // Response Network did nothing because a sync effect wrote the old tab
+  // state back over the new URL).
+  const tab: "list" | "map" = searchParams.get("view") === "map" ? "map" : "list";
+  const setTab = (next: "list" | "map") => {
+    const nextParams = new URLSearchParams(searchParams);
+    if (next === "map") nextParams.set("view", "map"); else nextParams.delete("view");
+    setSearchParams(nextParams, { replace: true });
+  };
   const [opsView, setOpsView] = useState(false);
   const [filters, setFilters] = useState<DashboardFilters>(EMPTY_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -104,17 +113,6 @@ export function NetworkPage() {
       if (v === true) setTestView(true);
     });
   }, []);
-
-  // Keep URL in sync with the map/list tab (deep-linkable Map destination).
-  useEffect(() => {
-    const current = searchParams.get("view");
-    const want = tab === "map" ? "map" : null;
-    if (current !== want) {
-      const next = new URLSearchParams(searchParams);
-      if (want) next.set("view", want); else next.delete("view");
-      setSearchParams(next, { replace: true });
-    }
-  }, [tab, searchParams, setSearchParams]);
 
   // "Updated X ago" honesty: re-stamp the clock on a slow tick.
   useEffect(() => {
@@ -297,7 +295,7 @@ export function NetworkPage() {
         <h3 style={{ margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
           <Icons.map size={16} /> {t("mapTitle", { defaultValue: "Service area operations" })}
         </h3>
-        <Link to="/network" className="btn btn-ghost btn-sm" onClick={() => setTab("map")}>{t("openFullMap", { defaultValue: "Open full map" })}</Link>
+        <Link to="/network?view=map" className="btn btn-ghost btn-sm">{t("openFullMap", { defaultValue: "Open full map" })}</Link>
       </div>
       <div style={{ marginTop: "var(--space-3)" }}>
         {settings.mapTilesEnabled === false ? (
@@ -730,7 +728,7 @@ export function NetworkPage() {
                 {" · "}{inArea.length} {t("serviceAreaIncidentsIn", { defaultValue: "incidents inside" })}
               </p>
             </div>
-            <Link className="btn btn-secondary btn-sm" to="/network" onClick={() => setTab("list")}>{t("backToOps", { defaultValue: "Back to operations" })}</Link>
+            <Link className="btn btn-secondary btn-sm" to="/network">{t("backToOps", { defaultValue: "Back to operations" })}</Link>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 300px", gap: "var(--space-3)", alignItems: "start" }} className="fullmap-grid">
             <Suspense fallback={<p style={{ color: "var(--c-ink-faint)" }}>Loading map…</p>}>

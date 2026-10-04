@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useApp } from "../../../app/AppContext";
 
 function prefersReducedMotion(): boolean {
-  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  return typeof window !== "undefined" && typeof window.matchMedia === "function" && (window.matchMedia("(prefers-reduced-motion: reduce)")?.matches ?? false);
 }
 
 export function AnimatedNumber({ value, duration = 500 }: { value: number; duration?: number }) {
