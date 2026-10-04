@@ -20,20 +20,8 @@ import { Icons } from "../../components/Icons";
 import { TextField } from "../../components/ui";
 import { Select } from "../../components/Select";
 import { endOnboardingPreview } from "./onboardingState";
+import { THEME_CATALOG } from "../settings/themeCatalog";
 import type { ThemeName } from "../../types/settings";
-
-const THEMES: { value: ThemeName; label: string; swatch: string[] }[] = [
-  { value: "forest-dark", label: "Forest Dark", swatch: ["#1f3d2b", "#2f5d3f", "#f0f3ec"] },
-  { value: "forest-light", label: "Forest Light", swatch: ["#e3ead9", "#2f5d3f", "#eef2e9"] },
-  { value: "midnight", label: "Midnight", swatch: ["#10151d", "#4f9d6e", "#e2e8ee"] },
-  { value: "warm-field", label: "Warm Field", swatch: ["#4a3b28", "#7a5a2e", "#f7f2e8"] },
-  { value: "moss", label: "Moss", swatch: ["#3f5233", "#55702f", "#eceee4"] },
-  { value: "ocean", label: "Ocean", swatch: ["#123a5c", "#1c6e8c", "#e9eff4"] },
-  { value: "slate", label: "Slate", swatch: ["#2d3748", "#4a6285", "#eef0f2"] },
-  { value: "high-contrast-dark", label: "High Contrast", swatch: ["#000000", "#7fb7ff", "#ffffff"] },
-  { value: "mono-dark", label: "Monochrome Dark", swatch: ["#050505", "#e8e8e8", "#f2f2f2"] },
-  { value: "mono-light", label: "Monochrome Light", swatch: ["#111111", "#171717", "#fafafa"] },
-];
 import { normalizePhoneForStorage } from "../../utils/phone";
 
 const COUNTRIES = [
@@ -220,7 +208,7 @@ export function OnboardingPage({ preview = false }: { preview?: boolean }) {
             {t("onboarding:themeHint", { defaultValue: "You can change this any time in Settings → Appearance." })}
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 10, margin: "var(--space-4) 0" }}>
-            {THEMES.map((th) => (
+            {THEME_CATALOG.map((th) => (
               <button
                 key={th.value}
                 className={`language-option${chosenTheme === th.value ? " selected" : ""}`}
@@ -275,7 +263,7 @@ export function OnboardingPage({ preview = false }: { preview?: boolean }) {
           </div>
           <div className="row between" style={{ marginTop: "var(--space-6)" }}>
             <button className="btn btn-ghost" onClick={() => setStage(3)}>{t("common:back", { defaultValue: "Back" })}</button>
-            <button className="btn btn-primary" onClick={() => setStage(4)}>{t("common:next", { defaultValue: "Next" })}</button>
+            <button className="btn btn-primary" onClick={() => setStage(5)}>{t("common:next", { defaultValue: "Next" })}</button>
           </div>
         </div>
       )}

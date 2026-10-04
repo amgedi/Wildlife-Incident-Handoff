@@ -222,7 +222,7 @@ export function HomePage() {
       <section className="hero fade-in" data-tour-id="hero">
         <h1 style={{ marginTop: "var(--space-4)" }}>
           {firstNamePro
-            ? t("home:welcomeShort", { name: firstName, defaultValue: "Welcome, {{name}}", interpolation: { escapeValue: false } })
+            ? t("home:welcomeShort", { name: firstNamePro, defaultValue: "Welcome, {{name}}", interpolation: { escapeValue: false } })
             : t("home:welcome", { defaultValue: "Welcome" })}
         </h1>
         {settings.professionalProfile?.organization && (

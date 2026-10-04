@@ -1246,7 +1246,22 @@
     "simFictionalNote": "Tudo gerado aqui é fictício e fica somente neste dispositivo — as exportações mantêm os rótulos fictícios.",
     "mv4TerrainLoading": "Relevo — carregando elevação…",
     "mv4TerrainActive": "Relevo ativo — dados de elevação: AWS Terrain Tiles (Terrarium). Relevo: {{relief}}.",
-    "mv4TerrainRetry": "Tentar novamente"
+    "mv4TerrainRetry": "Tentar novamente",
+    "activityAll": "Tudo",
+    "activityCatReports": "Relatos",
+    "activityCatAssignments": "Atribuições",
+    "activityCatHandoffs": "Transferências",
+    "activityCatStatus": "Status",
+    "activityCatObservations": "Observações",
+    "activityCatSystem": "Sistema",
+    "activityToday": "Hoje",
+    "activityYesterday": "Ontem",
+    "activityEarlier": "Anterior",
+    "activityNew": "Nova atividade",
+    "activityFilters": "Filtros de atividade",
+    "networkSendingOrgs": "Organizações de origem",
+    "networkRecentEvent": "Evento de rede recente",
+    "networkEmptyCompact": "Ainda não há atividade de transferência nesta visualização. Transferências entre organizações aparecerão aqui."
   },
   "social": {
     "leaderboard": "Classificação de reportadores",

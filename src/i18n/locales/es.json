@@ -1036,7 +1036,22 @@
     "simFictionalNote": "Todo lo generado aquí son datos ficticios de demostración solo en este dispositivo — las exportaciones conservan sus etiquetas ficticias.",
     "mv4TerrainLoading": "Relieve — cargando elevación…",
     "mv4TerrainActive": "Relieve activo — datos de elevación: AWS Terrain Tiles (Terrarium). Relieve: {{relief}}.",
-    "mv4TerrainRetry": "Reintentar"
+    "mv4TerrainRetry": "Reintentar",
+    "activityAll": "Todo",
+    "activityCatReports": "Informes",
+    "activityCatAssignments": "Asignaciones",
+    "activityCatHandoffs": "Traslados",
+    "activityCatStatus": "Estado",
+    "activityCatObservations": "Observaciones",
+    "activityCatSystem": "Sistema",
+    "activityToday": "Hoy",
+    "activityYesterday": "Ayer",
+    "activityEarlier": "Anterior",
+    "activityNew": "Actividad nueva",
+    "activityFilters": "Filtros de actividad",
+    "networkSendingOrgs": "Organizaciones emisoras",
+    "networkRecentEvent": "Evento de red reciente",
+    "networkEmptyCompact": "Aún no hay actividad de traslados en esta vista. Las transferencias entre organizaciones aparecerán aquí."
   },
   "guide": {
     "whatHappened": {

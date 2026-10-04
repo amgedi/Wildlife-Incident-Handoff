@@ -34,6 +34,7 @@ import { AnimatedNumber } from "./dashboard/AnimatedNumber";
 import { AgingStrip, BarDistribution } from "./dashboard/opsCharts";
 import { IncidentQueueRow } from "./dashboard/IncidentQueueRow";
 import { ResponseFlow } from "./dashboard/ResponseFlow";
+import { LiveActivityFeed } from "./dashboard/LiveActivityFeed";
 import { DuplicateReview } from "./dashboard/DuplicateReview";
 import { SimulationCard } from "../simulation/SimulationCard";
 import { type SimulationRole, type SimulationIntensity } from "../simulation/scenario";
@@ -401,23 +402,8 @@ export function NetworkPage() {
       <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
         <Icons.activity size={16} /> {t("liveActivity", { defaultValue: "Live activity" })}
       </h3>
-      {feed.length === 0 ? (
-        <p className="hint" style={{ flex: 1 }}>{t("feedEmpty", { defaultValue: "Timeline events from your records will appear here." })}</p>
-      ) : (
-        <ol className="ops-feed" aria-label={t("liveActivity", { defaultValue: "Live activity" })} style={{ flex: 1 }}>
-          {feed.slice(0, 9).map((e, idx) => (
-            <li key={`${e.incidentId}-${idx}`}>
-              <button onClick={() => navigate(`/incidents/${e.incidentId}`)} className="ops-feed-item">
-                <span className="ops-feed-time">{new Date(e.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-                <span className="ops-feed-body">
-                  <span className="ops-feed-event" data-evt={e.eventType}>{e.summary}</span>
-                  <span className="ops-feed-ref">{e.incidentRef}{e.animalLabel ? ` · ${e.animalLabel}` : ""}{e.organization ? ` · ${e.organization}` : ""}</span>
-                </span>
-              </button>
-            </li>
-          ))}
-        </ol>
-      )}
+      {/* 0.3.0-dev.5 Live Activity V5: rich categorized event feed. */}
+      <LiveActivityFeed feed={feed} onOpenIncident={(id) => navigate(`/incidents/${id}`)} />
     </div>
   );
 
@@ -623,11 +609,34 @@ export function NetworkPage() {
   const lackingDestination = filtered.filter(
     (i) => i.status === "transferred" && !i.handoffs?.some((h) => h.toOrganization)
   ).length;
+  const sendingOrganizations = new Set<string>();
+  for (const i of filtered) {
+    for (const h of i.handoffs ?? []) {
+      if (h.fromOrganization) sendingOrganizations.add(h.fromOrganization);
+    }
+  }
+  const recentNetworkEvent = feed.find((e) => {
+    const cat = e.eventType;
+    return cat === "handoff_started" || cat === "handoff_completed" || cat === "custody_changed";
+  }) ?? null;
+  const networkHasData =
+    attention.handoffWaiting.length > 0 ||
+    transfer.transferredToday > 0 ||
+    lackingDestination > 0 ||
+    transfer.receivingOrganizations.length > 0 ||
+    sendingOrganizations.size > 0 ||
+    recentNetworkEvent != null;
   const networkWidget = (
     <div className="card ops-panel ops-span-6" data-testid="response-network">
       <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
         <Icons.handoff size={16} /> {t("networkOrgsTitle", { defaultValue: "Network pulse" })}
       </h3>
+      {!networkHasData ? (
+        /* 0.3.0-dev.5 spec 26: compact empty state — no tall card of zeroes. */
+        <p className="hint" style={{ margin: 0 }}>
+          {t("networkEmptyCompact", { defaultValue: "No handoff or transfer activity in the current view yet. Transfers between organizations will appear here." })}
+        </p>
+      ) : (
       <dl className="kv">
         <dt>{t("networkAwaiting", { defaultValue: "Active handoffs" })}</dt>
         <dd>{attention.handoffWaiting.length}</dd>
@@ -639,6 +648,12 @@ export function NetworkPage() {
         )}
         <dt>{t("networkOrgsCount", { defaultValue: "Organizations in your records" })}</dt>
         <dd>{transfer.receivingOrganizations.length}</dd>
+        {sendingOrganizations.size > 0 && (
+          <>
+            <dt>{t("networkSendingOrgs", { defaultValue: "Sending organizations" })}</dt>
+            <dd>{sendingOrganizations.size}</dd>
+          </>
+        )}
         <dt>{t("networkTransferredToday", { defaultValue: "Transferred today" })}</dt>
         <dd>{transfer.transferredToday}</dd>
         {lackingDestination > 0 && (
@@ -647,9 +662,16 @@ export function NetworkPage() {
             <dd>{lackingDestination}</dd>
           </>
         )}
+        {recentNetworkEvent && (
+          <>
+            <dt>{t("networkRecentEvent", { defaultValue: "Recent network event" })}</dt>
+            <dd>{recentNetworkEvent.incidentRef} · {recentNetworkEvent.summary}</dd>
+          </>
+        )}
         <dt>{t("networkCoverage", { defaultValue: "Service-area coverage" })}</dt>
         <dd>{inArea.length} / {filtered.length} {t("networkCoverageUnit", { defaultValue: "incidents in area" })}</dd>
       </dl>
+      )}
       {transfer.receivingOrganizations.length > 0 && (
         <>
           <h4 style={{ margin: "10px 0 4px", fontSize: "0.8rem", letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-ink-faint)" }}>
@@ -939,10 +961,9 @@ export function NetworkPage() {
             .map((id) => (
               <Fragment key={id}>{widgetNodes[id]}</Fragment>
             ))}
-
-          <p className="hint ops-span-12" style={{ margin: 0 }}>
-            {t("updatedLine", { defaultValue: "Live from this device's local data store" })} ({now.toLocaleTimeString()})
-          </p>
+          {/* 0.3.0-dev.5: the "Live from this device's local data store" sentence was
+              removed from the workspace (owner review). Data-source state now lives in
+              the sidebar status row (● Local) and Settings → About. */}
         </div>
       ) : null}
 

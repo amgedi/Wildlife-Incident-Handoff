@@ -87,7 +87,10 @@ code { font-family: var(--font-mono); font-size: 0.85em; background: var(--c-sur
 .sidebar .brand-name strong { font-weight: 650; font-size: 0.95rem; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sidebar .brand-sub { font-size: 0.78rem; color: var(--c-sidebar-ink); opacity: 0.75; }
 .sidebar .brand-name .badge { align-self: flex-start; font-size: 0.62rem; padding: 1px 7px; }
-.sidebar nav.nav-work { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+/* dev.5: nav-work must NOT flex-grow — it pushed Pinned/Recent toward the
+   bottom on tall windows. The footer's margin-top:auto absorbs leftover
+   space instead, so Pinned sits directly under the primary nav. */
+.sidebar nav.nav-work { display: flex; flex-direction: column; gap: 2px; }
 .sidebar nav.nav-footer {
   display: flex; flex-direction: column; gap: 2px;
   margin-top: auto; padding-top: var(--space-2);
@@ -933,7 +936,9 @@ html.ops-view .content { max-width: none !important; }
 }
 
 /* P41 — 12-column responsive operations grid. */
-.ops-12 { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--space-4); }
+/* dev.5: content-aware heights — cards size to their content instead of
+   stretching to the tallest sibling (spec: no enormous equal-height containers). */
+.ops-12 { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: var(--space-4); align-items: start; }
 .ops-span-12 { grid-column: span 12; }
 .ops-span-8 { grid-column: span 8; }
 .ops-span-7 { grid-column: span 7; }
@@ -1450,7 +1455,7 @@ button.ax-dist-row:hover { border-color: var(--c-border); background: var(--c-su
 .sidebar-context-item:focus-visible { outline: 2px solid var(--c-focus); outline-offset: -2px; }
 .sidebar-context-ref { font-weight: 600; font-variant-numeric: tabular-nums; }
 .sidebar-context-sub { font-size: 0.74rem; opacity: 0.75; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sidebar-status { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; margin-top: auto; border-top: 1px solid rgb(255 255 255 / 0.08); }
+.sidebar-status { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; border-top: 1px solid rgb(255 255 255 / 0.08); }
 .sidebar-status-item { display: inline-flex; align-items: center; gap: 6px; font-size: 0.74rem; color: var(--c-sidebar-ink, var(--c-ink-faint)); }
 .sidebar-status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c-ink-faint); }
 .sidebar-status-dot.ok { background: var(--c-ok, #4f9d6e); }
@@ -1540,3 +1545,46 @@ button.ax-dist-row:hover { border-color: var(--c-border); background: var(--c-su
 }
 .sim-meta { font-size: 0.8rem; color: var(--c-ink-soft); font-variant-numeric: tabular-nums; }
 .sim-sheet { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--c-border); }
+
+/* ---------- 0.3.0-dev.5 Live Activity V5 (Part V) ----------
+   Rich event feed: per-category chip (icon + label — never color alone),
+   compact filters, day grouping, scroll-safe new-activity badge. */
+.activity-v5 { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.activity-v5-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: var(--space-2); }
+.chip-btn {
+  border: 1px solid var(--c-border); background: transparent; color: var(--c-ink-soft);
+  font: inherit; font-size: 0.76rem; padding: 2px 9px; border-radius: 999px; cursor: pointer;
+}
+[data-motion="full"] .chip-btn:hover { border-color: var(--c-primary); color: var(--c-ink); }
+.chip-btn.active { background: color-mix(in srgb, var(--c-primary) 14%, transparent); border-color: var(--c-primary); color: var(--c-ink); font-weight: 600; }
+.chip-btn:focus-visible { outline: 2px solid var(--c-focus); outline-offset: 1px; }
+.activity-v5-list { max-height: 420px; overflow-y: auto; min-height: 0; overscroll-behavior: contain; }
+.activity-v5-group-label { display: block; }
+.activity-v5-group-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.activity-v5-group-list li + li { border-top: 1px solid var(--c-border); }
+.ops-feed-item { align-items: flex-start; }
+.activity-v5-rail { width: 3px; align-self: stretch; border-radius: 2px; background: var(--c-border); flex-shrink: 0; }
+.activity-v5-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.64rem; font-weight: 750; letter-spacing: 0.07em; text-transform: uppercase;
+  padding: 1px 7px; border-radius: 4px; border: 1px solid var(--c-border);
+  color: var(--c-ink-soft); white-space: nowrap;
+}
+.activity-v5-chip[data-cat="reports"] { color: var(--c-primary); border-color: color-mix(in srgb, var(--c-primary) 45%, transparent); background: color-mix(in srgb, var(--c-primary) 9%, transparent); }
+.activity-v5-chip[data-cat="assignments"] { color: var(--c-info, #4a8fd4); border-color: color-mix(in srgb, var(--c-info, #4a8fd4) 45%, transparent); background: color-mix(in srgb, var(--c-info, #4a8fd4) 9%, transparent); }
+.activity-v5-chip[data-cat="handoffs"] { color: var(--c-warn); border-color: color-mix(in srgb, var(--c-warn) 45%, transparent); background: color-mix(in srgb, var(--c-warn) 9%, transparent); }
+.activity-v5-chip[data-cat="status"] { color: var(--c-ok, #4f9d6e); border-color: color-mix(in srgb, var(--c-ok, #4f9d6e) 45%, transparent); background: color-mix(in srgb, var(--c-ok, #4f9d6e) 9%, transparent); }
+.activity-v5-chip[data-cat="observations"] { color: var(--c-accent, #9a6b2f); border-color: color-mix(in srgb, var(--c-accent, #9a6b2f) 45%, transparent); background: color-mix(in srgb, var(--c-accent, #9a6b2f) 9%, transparent); }
+.activity-v5-chip[data-cat="system"] { color: var(--c-ink-faint); }
+.activity-v5-rail[data-cat="reports"] { background: color-mix(in srgb, var(--c-primary) 60%, transparent); }
+.activity-v5-rail[data-cat="assignments"] { background: color-mix(in srgb, var(--c-info, #4a8fd4) 60%, transparent); }
+.activity-v5-rail[data-cat="handoffs"] { background: color-mix(in srgb, var(--c-warn) 60%, transparent); }
+.activity-v5-rail[data-cat="status"] { background: color-mix(in srgb, var(--c-ok, #4f9d6e) 60%, transparent); }
+.activity-v5-rail[data-cat="observations"] { background: color-mix(in srgb, var(--c-accent, #9a6b2f) 60%, transparent); }
+.ops-feed-item .activity-v5-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ops-feed-meta { font-size: 0.8rem; color: var(--c-ink-soft); }
+.ops-feed-loc { font-size: 0.74rem; color: var(--c-ink-faint); }
+.activity-v5-new { margin-bottom: 6px; align-self: flex-start; cursor: pointer; }
+@media (prefers-reduced-motion: reduce) {
+  .activity-v5-new { transition: none; }
+}

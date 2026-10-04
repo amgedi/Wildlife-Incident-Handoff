@@ -1246,7 +1246,22 @@
     "simFictionalNote": "Alles hier Erzeugte ist fiktive Demo-Daten nur auf diesem Gerät — Exporte behalten ihre fiktiven Beschriftungen.",
     "mv4TerrainLoading": "Gelände — Höhendaten werden geladen…",
     "mv4TerrainActive": "Gelände aktiv — Höhendaten: AWS Terrain Tiles (Terrarium). Relief: {{relief}}.",
-    "mv4TerrainRetry": "Erneut versuchen"
+    "mv4TerrainRetry": "Erneut versuchen",
+    "activityAll": "Alle",
+    "activityCatReports": "Meldungen",
+    "activityCatAssignments": "Zuweisungen",
+    "activityCatHandoffs": "Übergaben",
+    "activityCatStatus": "Status",
+    "activityCatObservations": "Beobachtungen",
+    "activityCatSystem": "System",
+    "activityToday": "Heute",
+    "activityYesterday": "Gestern",
+    "activityEarlier": "Früher",
+    "activityNew": "Neue Aktivität",
+    "activityFilters": "Aktivitätsfilter",
+    "networkSendingOrgs": "Sendende Organisationen",
+    "networkRecentEvent": "Letztes Netzwerkereignis",
+    "networkEmptyCompact": "Noch keine Übergangsaktivität in dieser Ansicht. Transfer zwischen Organisationen erscheinen hier."
   },
   "social": {
     "leaderboard": "Melder-Bestenliste",

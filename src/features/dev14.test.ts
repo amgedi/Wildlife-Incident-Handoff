@@ -62,6 +62,8 @@ describe("newcomer tour prompt + onboarding", () => {
   it("onboarding includes a theme step", () => {
     const src = readFileSync("src/features/onboarding/OnboardingPage.tsx", "utf-8");
     expect(src).toContain("themeTitle");
-    expect(src).toContain("THEMES");
+    // 0.3.0-dev.5: onboarding renders the shared THEME_CATALOG (all 16 themes),
+    // no longer a private stale 10-entry list.
+    expect(src).toContain("THEME_CATALOG");
   });
 });

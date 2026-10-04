@@ -155,7 +155,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   workspace: "reporter",
   experienceMode: "general",
   detailLevel: "standard",
-  theme: "forest-dark",
+  theme: "forest-night",
   density: "comfortable",
   motion: "full",
   ambient: "on",

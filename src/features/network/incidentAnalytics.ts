@@ -268,6 +268,45 @@ export interface ActivityFeedEntry {
   actor: string | null;
   /** Organization for handoff events, when recorded (never fabricated). */
   organization: string | null;
+  /** 0.3.0-dev.5 Live Activity V5: status transition when the event carries one
+   *  (status_changed metadata, with legacy fallback). */
+  statusFrom: string | null;
+  statusTo: string | null;
+  /** Generalized location hint — incident location description only when the
+   *  incident is NOT sensitive-precision (never coordinates). */
+  locationHint: string | null;
+}
+
+/** Coarse operational category for an event, used for the Live Activity V5
+ *  filters and per-category icon/accent. Assignment/en-route/pickup/transfer
+ *  transitions arrive as status_changed metadata and are classified here. */
+export function activityCategory(eventType: string, statusTo?: string | null): string {
+  switch (eventType) {
+    case "incident_created":
+    case "field_corrected":
+    case "note_added":
+    case "contact_added":
+      return "reports";
+    case "handoff_started":
+    case "handoff_completed":
+    case "custody_changed":
+      return "handoffs";
+    case "observation_added":
+    case "photo_added":
+      return "observations";
+    case "status_changed":
+      if (statusTo === "responder_assigned") return "assignments";
+      if (statusTo === "transferred") return "handoffs";
+      return "status";
+    case "incident_closed":
+    case "incident_reopened":
+    case "incident_archived":
+    case "incident_restored":
+    case "attachment_removed":
+      return "system";
+    default:
+      return "system";
+  }
 }
 
 /** Live activity feed, derived ONLY from real timeline events of live,
@@ -301,6 +340,12 @@ export function getActivityFeed(incidents: Incident[], limit = 12): ActivityFeed
         animalLabel: inc.animal.species || inc.animal.description || inc.animal.group || "",
         actor: e.actor ?? null,
         organization,
+        statusFrom: typeof e.metadata?.from === "string" ? e.metadata.from : null,
+        statusTo: typeof e.metadata?.to === "string" ? e.metadata.to : null,
+        locationHint:
+          inc.location.precision !== "sensitive" && inc.location.description?.trim()
+            ? inc.location.description.trim()
+            : null,
       });
     }
   }

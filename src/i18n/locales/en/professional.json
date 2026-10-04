@@ -317,5 +317,20 @@
   "simFictionalNote": "Everything generated here is fictional demo data on this device only — exports keep their fictional labels.",
   "mv4TerrainLoading": "Terrain — loading elevation…",
   "mv4TerrainActive": "Terrain active — elevation data: AWS Terrain Tiles (Terrarium). Relief: {{relief}}.",
-  "mv4TerrainRetry": "Retry"
+  "mv4TerrainRetry": "Retry",
+  "activityAll": "All",
+  "activityCatReports": "Reports",
+  "activityCatAssignments": "Assignments",
+  "activityCatHandoffs": "Handoffs",
+  "activityCatStatus": "Status",
+  "activityCatObservations": "Observations",
+  "activityCatSystem": "System",
+  "activityToday": "Today",
+  "activityYesterday": "Yesterday",
+  "activityEarlier": "Earlier",
+  "activityNew": "New activity",
+  "activityFilters": "Activity filters",
+  "networkSendingOrgs": "Sending organizations",
+  "networkRecentEvent": "Recent network event",
+  "networkEmptyCompact": "No handoff or transfer activity in the current view yet. Transfers between organizations will appear here."
 }

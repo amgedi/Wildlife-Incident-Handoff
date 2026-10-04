@@ -1036,7 +1036,22 @@
     "simFictionalNote": "Tout ce qui est généré ici est fictif et reste sur cet appareil — les exports conservent leurs mentions fictives.",
     "mv4TerrainLoading": "Relief — chargement de l'élévation…",
     "mv4TerrainActive": "Relief actif — données d'élévation : AWS Terrain Tiles (Terrarium). Relief : {{relief}}.",
-    "mv4TerrainRetry": "Réessayer"
+    "mv4TerrainRetry": "Réessayer",
+    "activityAll": "Tout",
+    "activityCatReports": "Signalements",
+    "activityCatAssignments": "Affectations",
+    "activityCatHandoffs": "Transferts",
+    "activityCatStatus": "Statut",
+    "activityCatObservations": "Observations",
+    "activityCatSystem": "Système",
+    "activityToday": "Aujourd'hui",
+    "activityYesterday": "Hier",
+    "activityEarlier": "Plus tôt",
+    "activityNew": "Nouvelle activité",
+    "activityFilters": "Filtres d'activité",
+    "networkSendingOrgs": "Organisations expéditrices",
+    "networkRecentEvent": "Événement réseau récent",
+    "networkEmptyCompact": "Aucune activité de transfert dans cette vue pour l'instant. Les transferts entre organisations apparaîtront ici."
   },
   "guide": {
     "whatHappened": {
