@@ -67,7 +67,8 @@
     "role_read_only_reviewer": "Revisor somente leitura",
     "openMenu": "Abrir menu",
     "closeMenu": "Fechar menu",
-    "footerNav": "Ajuda e configurações"
+    "footerNav": "Ajuda e configurações",
+    "devices": "Dispositivos"
   },
   "home": {
     "foundWildlife": "Encontrou um animal silvestre que pode precisar de ajuda?",

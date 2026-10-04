@@ -67,7 +67,8 @@
     "role_read_only_reviewer": "Lesezugriff-Prüfer",
     "openMenu": "Menü öffnen",
     "closeMenu": "Menü schließen",
-    "footerNav": "Hilfe und Einstellungen"
+    "footerNav": "Hilfe und Einstellungen",
+    "devices": "Geräte"
   },
   "home": {
     "foundWildlife": "Wildtier gefunden, das vielleicht Hilfe braucht?",

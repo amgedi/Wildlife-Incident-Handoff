@@ -67,7 +67,8 @@
     "role_read_only_reviewer": "Réviseur en lecture seule",
     "openMenu": "Ouvrir le menu",
     "closeMenu": "Fermer le menu",
-    "footerNav": "Aide et paramètres"
+    "footerNav": "Aide et paramètres",
+    "devices": "Appareils"
   },
   "home": {
     "foundWildlife": "Vous avez trouvé un animal qui a peut-être besoin d'aide ?",
