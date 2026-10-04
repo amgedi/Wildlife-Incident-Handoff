@@ -8,6 +8,10 @@ import { SCHEMA_VERSION } from "../../types/incident";
 
 let demoCounter = 0;
 
+function minutesAgo(m: number): string {
+  return new Date(Date.now() - m * 60_000).toISOString();
+}
+
 function hoursAgo(h: number, m = 0): string {
   const d = new Date();
   d.setHours(d.getHours() - h, d.getMinutes() - m);
@@ -193,5 +197,31 @@ export function buildDemoIncidents(): Incident[] {
     deletedAt: null,
   });
 
-  return [raptor, duck, songbird, juvenile];
+  // 0.3: a rapid-repeat pair with identical text — exercises the integrity
+  // review queue with clearly fictional data (provenance marked "demo").
+  const spamBase = makeDemo({
+    humanReference: "WIH-2026-000105",
+    createdAt: minutesAgo(14),
+    updatedAt: minutesAgo(14),
+    status: "reported",
+    incidentType: "other",
+    occurredAt: minutesAgo(14),
+    urgency: null,
+    animal: { group: "mammal", species: null, description: "Completely normal squirrel doing squirrel activities", count: 1, speciesConfirmed: false, lifeStage: null, sex: null },
+    location: { description: "Plaza fountain (fictional demo street)", latitude: null, longitude: null, landmark: "Fountain" },
+    timeline: [ev("demo-spam-1", "incident_created", "Fictional demo report created", minutesAgo(14))],
+    custody: [],
+    handoffs: [],
+    attachments: [],
+    archivedAt: null,
+    deletedAt: null,
+    shareProfile: "private",
+    createdVia: "form",
+    provenance: "demo",
+    summary: null,
+    nextStep: null,
+  });
+  const spamCopy = { ...spamBase, id: "demo-spam-2", humanReference: "WIH-2026-000106", createdAt: minutesAgo(11), occurredAt: minutesAgo(11), updatedAt: minutesAgo(11), provenance: "demo" as const };
+
+  return [raptor, duck, songbird, juvenile, spamBase, spamCopy];
 }
