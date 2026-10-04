@@ -27,13 +27,15 @@ import { formatDistance } from "../../utils/units";
 const NetworkMap = lazy(() => import("./NetworkMap").then((m) => ({ default: m.NetworkMap })));
 import { getSetting, setSetting } from "../../storage/repositories";
 import { changeStatus } from "../../storage/incidentService";
-import { putIncident } from "../../storage/repositories";
+import { putIncident, deleteIncidentRecord } from "../../storage/repositories";
 import * as analytics from "./incidentAnalytics";
 import { TrendChart } from "./TrendChart";
 import { AnimatedNumber } from "./dashboard/AnimatedNumber";
 import { AgingStrip, BarDistribution } from "./dashboard/opsCharts";
 import { IncidentQueueRow } from "./dashboard/IncidentQueueRow";
 import { ResponseFlow } from "./dashboard/ResponseFlow";
+import { SimulationCard } from "../simulation/SimulationCard";
+import { type SimulationRole, type SimulationIntensity } from "../simulation/scenario";
 import { computeIntegrityReview } from "../integrity/integrityService";
 import { getAuthorizationState } from "./authorization";
 import { countryDateLocale, countryMapViewport } from "../country/countryProfile";
@@ -97,6 +99,9 @@ export function NetworkPage() {
   const [now, setNow] = useState(() => new Date());
   const [layout, setLayout] = useState<DashboardLayout | null>(null);
   const [testView, setTestView] = useState(false);
+  // 0.3.0-dev.3 Test View V4: seeded simulated work environment (role x
+  // intensity x seed). Persisted so a scenario is reproducible.
+  const [simConfig, setSimConfig] = useState<{ role: SimulationRole; intensity: SimulationIntensity; seed: number; now: string } | null>(null);
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [confirmHideAttention, setConfirmHideAttention] = useState(false);
   const org = LOCAL_ORG_REGISTRY[0];
@@ -119,6 +124,9 @@ export function NetworkPage() {
     });
     getSetting<boolean>("network-test-view").then((v) => {
       if (v === true) setTestView(true);
+    });
+    getSetting<{ role: SimulationRole; intensity: SimulationIntensity; seed: number; now: string }>("simulation-config").then((cfg) => {
+      if (cfg && cfg.role && cfg.intensity && typeof cfg.seed === "number") setSimConfig(cfg);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -758,9 +766,13 @@ export function NetworkPage() {
               setTestView(next);
               await setSetting("network-test-view", next);
               if (next) {
-                const { buildDemoIncidents } = await import("../tutorial/demoData");
+                const cfg = simConfig ?? { role: "general" as SimulationRole, intensity: "normal" as SimulationIntensity, seed: 78324, now: new Date().toISOString() };
+                setSimConfig(cfg);
+                await setSetting("simulation-config", cfg);
+                const { generateScenario } = await import("../simulation/scenario");
+                const scenario = generateScenario({ role: cfg.role, intensity: cfg.intensity, seed: cfg.seed, now: cfg.now });
                 const existing = new Set((incidents ?? []).map((i) => i.id));
-                for (const d of buildDemoIncidents()) {
+                for (const d of scenario.incidents) {
                   if (!existing.has(d.id)) await putIncident(d);
                 }
                 await refresh();
@@ -772,11 +784,65 @@ export function NetworkPage() {
         </div>
       </div>
 
-      {testView && (
-        <div className="notice warning" role="status" style={{ marginTop: "var(--space-3)" }}>
-          <Icons.eye size={16} />
-          <span>{t("testViewBanner", { defaultValue: "Test view — fictional demo incidents are mixed into this dashboard for training. Nothing here touches real records, and exports keep their fictional-demo labels." })}</span>
-        </div>
+      {testView && simConfig && (
+        <>
+          <div className="notice warning" role="status" style={{ marginTop: "var(--space-3)" }}>
+            <Icons.eye size={16} />
+            <span>{t("testViewBanner", { defaultValue: "Test view — fictional demo incidents are mixed into this dashboard for training. Nothing here touches real records, and exports keep their fictional-demo labels." })}</span>
+          </div>
+          <SimulationCard
+            role={simConfig.role}
+            intensity={simConfig.intensity}
+            seed={simConfig.seed}
+            now={simConfig.now}
+            onAdvanceTime={async (minutes) => {
+              const cfg = { ...simConfig, now: new Date(new Date(simConfig.now).getTime() + minutes * 60_000).toISOString() };
+              setSimConfig(cfg);
+              await setSetting("simulation-config", cfg);
+              const { generateScenario } = await import("../simulation/scenario");
+              const scenario = generateScenario({ role: cfg.role, intensity: cfg.intensity, seed: cfg.seed, now: cfg.now });
+              const existing = new Set((incidents ?? []).map((i) => i.id));
+              for (const d of scenario.incidents) {
+                if (!existing.has(d.id)) await putIncident(d);
+              }
+              await refresh();
+            }}
+            onRegenerate={async () => {
+              await setSetting("simulation-config", simConfig);
+              const { generateScenario } = await import("../simulation/scenario");
+              const scenario = generateScenario({ role: simConfig.role, intensity: simConfig.intensity, seed: simConfig.seed, now: simConfig.now });
+              const existing = new Set((incidents ?? []).map((i) => i.id));
+              for (const d of scenario.incidents) {
+                if (!existing.has(d.id)) await putIncident(d);
+              }
+              await refresh();
+            }}
+            onNewSeed={async () => {
+              const cfg = { ...simConfig, seed: Math.floor(Math.random() * 2 ** 31) };
+              setSimConfig(cfg);
+              await setSetting("simulation-config", cfg);
+              const { generateScenario } = await import("../simulation/scenario");
+              const scenario = generateScenario({ role: cfg.role, intensity: cfg.intensity, seed: cfg.seed, now: cfg.now });
+              const existing = new Set((incidents ?? []).map((i) => i.id));
+              for (const d of scenario.incidents) {
+                if (!existing.has(d.id)) await putIncident(d);
+              }
+              await refresh();
+            }}
+            onReset={async () => {
+              // Reset simulation: remove the fictional records only, never real ones.
+              const { generateScenario } = await import("../simulation/scenario");
+              const scenario = generateScenario({ role: simConfig.role, intensity: simConfig.intensity, seed: simConfig.seed, now: simConfig.now });
+              for (const d of scenario.incidents) {
+                await deleteIncidentRecord(d.id);
+              }
+              const cfg = { role: "general" as SimulationRole, intensity: "normal" as SimulationIntensity, seed: 78324, now: new Date().toISOString() };
+              setSimConfig(cfg);
+              await setSetting("simulation-config", cfg);
+              await refresh();
+            }}
+          />
+        </>
       )}
 
       {filtersOpen && (
