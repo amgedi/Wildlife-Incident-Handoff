@@ -4,6 +4,7 @@
  * Not provided. Unknown is always valid; nothing is required except the
  * review confirmation.
  */
+import type { ReportProvenance } from "../../types/incident";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useApp, useSaveStatus } from "../../app/AppContext";
@@ -314,6 +315,8 @@ export function CreateIncidentPage() {
       isDemo: false,
       shareProfile: s.shareProfile,
       createdVia: (guide ? "guide" : "form") as "guide" | "form",
+      // 0.3 report provenance: honest "where this came from" context only.
+      provenance: (settings.displayName?.trim() ? "known_local_profile" : "anonymous_local") as ReportProvenance,
       actor: settings.displayName || null,
     };
 
