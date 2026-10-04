@@ -4,7 +4,7 @@ import { readFileSync } from "fs";
 
 /** Mirror of NetworkPage's greeting derivation — the test pins the CONTRACT
  *  and the source so neither can silently regress. */
-export function greetingFor(name: string | null | undefined, raw?: string): string {
+export function greetingFor(name: string | null | undefined): string {
   const firstName = (name ?? "").trim().split(/\s+/)[0] ?? "";
   return firstName ? `Welcome, ${firstName}` : "Welcome back";
 }
