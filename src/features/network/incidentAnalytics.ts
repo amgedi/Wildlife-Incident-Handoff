@@ -398,24 +398,49 @@ export interface PipelineStage {
   to: string;
 }
 
+/**
+ * Canonical response-flow stage definitions. Stage counts (getPipelineCounts)
+ * and stage case lists (getPipelineStageCases) MUST both derive from these —
+ * they are two views of the SAME caller-provided incident scope, so
+ * count(stage) === cases(stage).length is an invariant (tested).
+ */
+export interface ResponseFlowStageDef {
+  key: string;
+  label: string;
+  statuses: string[];
+  /** Filter category deep-link for the incidents list. */
+  to: string;
+}
+
+export const RESPONSE_FLOW_STAGES: ResponseFlowStageDef[] = [
+  { key: "reported", label: "Reported", statuses: ["reported", "response_requested"], to: "/incidents?category=awaiting" },
+  { key: "assigned", label: "Assigned", statuses: ["responder_assigned"], to: "/incidents?category=active" },
+  { key: "enroute", label: "En route", statuses: ["in_transport"], to: "/incidents?category=active" },
+  { key: "pickup", label: "Pickup", statuses: ["awaiting_pickup"], to: "/incidents?category=active" },
+  { key: "transfer", label: "Transfer", statuses: ["transferred"], to: "/incidents?category=active" },
+  { key: "care", label: "Care", statuses: ["in_care", "veterinary_care", "monitoring"], to: "/incidents?category=active" },
+  { key: "closed", label: "Closed", statuses: ["released", "deceased", "closed", "cancelled"], to: "/incidents?category=resolved" },
+];
+
+/** Cases sitting at a response-flow stage, within the caller-provided scope.
+ *  Applies ONLY the stage status mapping — demo/archive/trash/workspace
+ *  scoping is the caller's responsibility and must match what was passed to
+ *  getPipelineCounts. Sorted oldest-first by occurrence. */
+export function getPipelineStageCases(incidents: Incident[], stageKey: string): Incident[] {
+  const def = RESPONSE_FLOW_STAGES.find((s) => s.key === stageKey);
+  if (!def) return [];
+  return incidents
+    .filter((i) => def.statuses.includes(i.status))
+    .sort((a, b) => (a.occurredAt ?? a.createdAt).localeCompare(b.occurredAt ?? b.createdAt));
+}
+
 /** Response-flow pipeline (P46): case counts per operational stage, derived
  *  ONLY from current statuses. Click-through filters the incident list. */
 export function getPipelineCounts(incidents: Incident[]): PipelineStage[] {
-  const open = (i: Incident) => !i.deletedAt && !i.archivedAt && !i.isDemo;
-  const live = incidents.filter(open);
-  const stageDefs: Array<{ key: string; label: string; statuses: string[]; to: string }> = [
-    { key: "reported", label: "Reported", statuses: ["reported", "response_requested"], to: "/incidents?category=awaiting" },
-    { key: "assigned", label: "Assigned", statuses: ["responder_assigned"], to: "/incidents?category=active" },
-    { key: "enroute", label: "En route", statuses: ["in_transport"], to: "/incidents?category=active" },
-    { key: "pickup", label: "Pickup", statuses: ["awaiting_pickup"], to: "/incidents?category=active" },
-    { key: "transfer", label: "Transfer", statuses: ["transferred"], to: "/incidents?category=active" },
-    { key: "care", label: "Care", statuses: ["in_care", "veterinary_care", "monitoring"], to: "/incidents?category=active" },
-    { key: "closed", label: "Closed", statuses: ["released", "deceased", "closed", "cancelled"], to: "/incidents?category=resolved" },
-  ];
-  return stageDefs.map((d) => ({
+  return RESPONSE_FLOW_STAGES.map((d) => ({
     key: d.key,
     label: d.label,
-    count: live.filter((i) => d.statuses.includes(i.status)).length,
+    count: incidents.filter((i) => d.statuses.includes(i.status)).length,
     to: d.to,
   }));
 }

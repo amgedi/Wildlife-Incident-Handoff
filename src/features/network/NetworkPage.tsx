@@ -415,7 +415,7 @@ export function NetworkPage() {
         <p className="hint" style={{ margin: "10px 0 0" }}>
           {t("pipelineHint", { defaultValue: "Cases currently sitting at each stage. Select a stage to see them here." })}
         </p>
-        {stageFocus && <StageCaseList stage={stageFocus} />}
+        {stageFocus && <StageCaseList stage={stageFocus} scope={filtered} />}
       </div>
     </div>
   );
@@ -991,30 +991,19 @@ export function NetworkPage() {
   );
 }
 
-const STAGE_STATUSES: Record<string, string[]> = {
-  reported: ["reported", "response_requested"],
-  assigned: ["responder_assigned"],
-  enroute: ["in_transport"],
-  pickup: ["awaiting_pickup"],
-  transfer: ["transferred"],
-  care: ["in_care", "veterinary_care", "monitoring"],
-  closed: ["released", "deceased", "closed", "cancelled"],
-};
-
-/** Inline, sorted case list for a selected response-flow stage (stays on the dashboard). */
-function StageCaseList({ stage }: { stage: string }) {
+/**
+ * Case drawer for a selected response-flow stage. Receives the SAME scope the
+ * stage counts were computed from (`scope` = the dashboard's filtered list) —
+ * never re-queries raw records, so count(stage) === list(stage).length always.
+ */
+function StageCaseList({ stage, scope }: { stage: string; scope: Incident[] }) {
   const { t } = useTranslation("professional");
   const [sort, setSort] = useState<"earliest" | "latest">("earliest");
   const navigate = useNavigate();
-  const { incidents } = useIncidents();
-  const statuses = STAGE_STATUSES[stage] ?? [];
-  const cases = (incidents ?? [])
-    .filter((i) => !i.deletedAt && !i.archivedAt && !i.isDemo && statuses.includes(i.status))
-    .sort((a, b) => {
-      const ka = a.occurredAt ?? a.createdAt;
-      const kb = b.occurredAt ?? b.createdAt;
-      return sort === "earliest" ? ka.localeCompare(kb) : kb.localeCompare(ka);
-    });
+  const cases = useMemo(() => {
+    const list = analytics.getPipelineStageCases(scope, stage);
+    return sort === "earliest" ? list : [...list].reverse();
+  }, [scope, stage, sort]);
   return (
     <div className="stage-case-list" role="region" aria-label={stage} style={{ marginTop: 10, border: "1px solid var(--c-border)", borderRadius: "var(--radius-sm)", padding: 10, background: "var(--c-surface-alt)" }}>
       <div className="row between" style={{ gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
