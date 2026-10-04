@@ -283,7 +283,7 @@ export function App() {
         <SpotlightTour
           key={guidance.systemId}
           steps={guidance.steps}
-          onFinish={() => endGuidance(true)}
+          onFinish={(result) => endGuidance(result)}
         />
       )}
     </div>

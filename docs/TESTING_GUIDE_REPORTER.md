@@ -25,7 +25,9 @@ enter real personal information.
 9. **Leaderboard**: back on Home, find the Reporter leaderboard card —
    confirm your count increased and your level/milestone is shown.
 
-## Feedback questions
-- Was any step confusing or scary?
-- Did any wording make you unsure what happens to your data?
-- Was "Unknown" always an acceptable answer where you needed it?
+## Feedback questions (short — answer in any words you like)
+- What confused you?
+- What did you expect to happen that did not?
+- What did you NOT trust?
+- What took too long?
+- What would you actually use this for?

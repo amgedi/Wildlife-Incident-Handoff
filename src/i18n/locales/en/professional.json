@@ -182,5 +182,17 @@
   "intelLoading": "Looking up…",
   "intelFailed": "Lookup failed (offline?) — coordinates above still work.",
   "waitingBadge": "⏱ waiting {{h}} h",
-  "waitingBadgeTitle": "Waiting more than 2 hours"
+  "waitingBadgeTitle": "Waiting more than 2 hours",
+  "intelAccuracy": "GPS accuracy",
+  "intelBlockedSensitive": "Nearest-place lookup is disabled for sensitive locations — nothing is sent to third parties.",
+  "intelConsentTitle": "Send this location?",
+  "intelConsentBody": "Looking up a nearby road/place will send this location to {{provider}}.",
+  "intelConsentRemember": "Remember this preference",
+  "intelConsentContinue": "Continue",
+  "intelConsentCancel": "Cancel",
+  "intelNoResult": "Nearest named place unavailable. Stored incident location remains unchanged.",
+  "intelRateLimited": "Lookup service is busy (rate limit). Try again in a minute.",
+  "intelTechDetails": "Technical details",
+  "intelCoordsHidden": "Exact coordinates hidden for this privacy level.",
+  "intelGeneralizedNote": "Generalized ~1 km — the stored exact coordinate is never shown or sent."
 }

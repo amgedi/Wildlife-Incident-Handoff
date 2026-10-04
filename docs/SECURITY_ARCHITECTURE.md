@@ -93,3 +93,39 @@ workspace and security authorization:
 - [x] No secrets or API keys embedded in the client.
 - [x] Error boundaries catch render failures without exposing user data.
 - [x] Factory reset requires warn + deliberate confirmation.
+
+
+## dev.18 threat-model update (2026-10-03)
+
+New/changed surfaces since this document was last current, and their
+posture:
+
+- **Reverse geocoding** (`src/features/network/geocoding.ts`): the only
+  outbound coordinate traffic besides tiles. Sensitive incidents are blocked
+  outright; approximate incidents send only the ~1 km generalized
+  coordinate; exact incidents require explicit consent (rememberable).
+  Provider (Nominatim) sees a single coordinate per approved lookup, never
+  incident descriptions, references or identity. Results cached locally.
+- **Verification/role evidence**: only free-text notes + a document NAME are
+  stored (local settings). The document itself is never stored, exported,
+  synced or backed up. See
+  `docs/PROFESSIONAL_VERIFICATION_ARCHITECTURE.md` for the connected-design
+  constraints (OS-protected storage, opaque ids, explicit backup opt-in).
+- **LAN sync**: EXPERIMENTAL, off by default; trust gate rejects untrusted
+  device ids before serving data; transport still plaintext (documented in
+  `docs/LAN_SYNC_SECURITY.md`). Sync payloads include exact coordinates of
+  trusted-shared incidents by design.
+- **Photos/videos**: IndexedDB blob store, leave the device only via
+  explicit backups (hash-verified) or user-chosen exports (attachments
+  exported as an index, never embedded).
+- **Backup packages**: single JSON with manifest + per-record SHA-256;
+  import validates structure AND integrity before writing anything
+  (staged restore; records missing from the manifest are rejected, not
+  trusted). Legacy manifest-less backups import structurally.
+- **Offline map packs**: not implemented; when they are, packs must be
+  hash-verified before activation (see `docs/OFFLINE_MAPS_EVALUATION.md`).
+- **Desktop notifications**: OS-delivered toasts carry title/body of locally
+  generated notifications only; no remote content path exists.
+- **Support diagnostics**: unchanged — counts and environment only; verified
+  in dev.15 and re-audited in dev.18 (no coordinates, contacts, evidence,
+  media or descriptions).

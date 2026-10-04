@@ -21,6 +21,7 @@ import { resetAllGuidance } from "../../features/tutorial/guidance";
 import { getMapProviderDescriptor } from "../network/mapProvider";
 import { ProfilePhoto, PHOTO_BORDER_STYLES } from "../../components/ProfilePhoto";
 import { RoleCard } from "./RoleCard";
+import { channelStatuses, requestWebNotificationPermission, webNotificationPermission, sendSystemNotification } from "../../notifications/delivery";
 import {
   DEFAULT_LAN_SYNC_CONFIG, acceptPeerWithUnion, ensureDeviceIdentity, lanLocalAddress, lanPairPeer,
   lanSetPairingCode, lanSetTrusted, lanStart, lanStop, lanTakePairRequests, runSyncRound,
@@ -463,6 +464,14 @@ function NotificationsSection() {
   const setPrefs = (patch: Partial<NotificationPreferences>) => updateSettings({ notifications: { ...prefs, ...patch } });
   const setCategory = (id: string, on: boolean) =>
     setPrefs({ categories: { ...prefs.categories, [id]: on } });
+  // dev.18: honest delivery channels — unsupported channels show why they are
+  // unavailable instead of offering a placebo toggle (spec §37–§39).
+  const channelList = channelStatuses();
+  const channels = {
+    system: channelList.find((c) => c.channel === "system")!,
+    web: channelList.find((c) => c.channel === "web")!,
+  };
+  const testSystemDelivery = async (title: string, body: string): Promise<boolean> => sendSystemNotification(title, body);
 
   const reporterCategories = DEFAULT_NOTIFICATION_CATEGORIES.slice(0, 7);
   const professionalCategories = DEFAULT_NOTIFICATION_CATEGORIES.slice(7);
@@ -475,11 +484,70 @@ function NotificationsSection() {
           <input type="checkbox" checked={prefs.inApp} onChange={(e) => setPrefs({ inApp: e.target.checked })} />
           {t("notifInApp", { defaultValue: "In-app notifications" })}
         </label>
+        {channels.system.available && (
+          <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: "0.92rem", cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={prefs.systemDelivery === true}
+              onChange={(e) => {
+                setPrefs({ systemDelivery: e.target.checked });
+                if (e.target.checked) void testSystemDelivery(t("notifTestTitle", { defaultValue: "Wildlife Incident Handoff" }), t("notifTestBody", { defaultValue: "System notifications are on." }));
+              }}
+            />
+            {t("notifSystem", { defaultValue: "Windows system notifications" })}
+          </label>
+        )}
+        {channels.web.available && (
+          <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: "0.92rem", cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={prefs.browser === true && webNotificationPermission() === "granted"}
+              onChange={async (e) => {
+                if (e.target.checked) {
+                  // Permission is requested ONLY here, on explicit user action.
+                  const perm = await requestWebNotificationPermission();
+                  if (perm === "granted") {
+                    setPrefs({ browser: true });
+                    void sendSystemNotification(t("notifTestTitle", { defaultValue: "Wildlife Incident Handoff" }), t("notifTestBody", { defaultValue: "Browser notifications are on." }));
+                  } else {
+                    showToast(t("notifWebDenied", { defaultValue: "The browser did not grant notification permission." }));
+                    setPrefs({ browser: false });
+                  }
+                } else {
+                  setPrefs({ browser: false });
+                }
+              }}
+            />
+            {t("notifWeb", { defaultValue: "Browser notifications (this browser)" })}
+          </label>
+        )}
         <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: "0.92rem", cursor: "pointer" }}>
           <input type="checkbox" checked={prefs.sound} onChange={(e) => setPrefs({ sound: e.target.checked })} />
           {t("notifSound", { defaultValue: "Sound" })}
         </label>
-        <p className="hint">{t("notifDeliveryHint", { defaultValue: "Notifications are generated locally from your own records. There is no push, email or server delivery yet." })}</p>
+        {!channels.system.available && (
+          <p className="hint">{channels.system.reason === "desktop_only" ? t("notifSystemDesktopOnly", { defaultValue: "System notifications are available in the desktop app." }) : t("notifSystemUnavailable", { defaultValue: "System notifications are not available on this device." })}</p>
+        )}
+        {!channels.web.available && (
+          <p className="hint">{t("notifWebUnavailable", { defaultValue: "Browser notifications are not available in this environment." })}</p>
+        )}
+        <p className="hint">{t("notifDeliveryHint", { defaultValue: "Notifications are generated locally from your own records. There is no push, email or server delivery." })}</p>
+        <div className="row">
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={async () => {
+              const ok = prefs.systemDelivery === true || webNotificationPermission() === "granted"
+                ? await testSystemDelivery(t("notifTestTitle", { defaultValue: "Wildlife Incident Handoff" }), t("notifTestBodySent", { defaultValue: "This is a real test notification." }))
+                : false;
+              showToast(ok ? t("notifTestSent", { defaultValue: "Test notification sent." }) : t("notifTestNotSent", { defaultValue: "Enable a system or browser notification channel first — the in-app preview is below." }));
+            }}
+          >
+            {t("notifSendTest", { defaultValue: "Send test notification" })}
+          </button>
+          <button className="btn btn-quiet btn-sm" onClick={() => showToast("This is what a notification looks like")}>
+            {t("previewNotification", { defaultValue: "Preview in-app" })}
+          </button>
+        </div>
       </div>
 
       <div className="card">
@@ -1301,10 +1369,18 @@ function LanSyncSection() {
 
   return (
     <div className="card">
-      <h3 style={{ marginTop: 0 }}>{t("syncTitle", { defaultValue: "LAN sync" })}</h3>
+      <h3 style={{ marginTop: 0 }}>
+        {t("syncTitle", { defaultValue: "LAN sync" })}{" "}
+        <span className="badge warn" style={{ verticalAlign: "middle" }}>{t("syncExperimental", { defaultValue: "EXPERIMENTAL" })}</span>
+      </h3>
       <p className="hint" style={{ marginTop: 0 }}>
         {t("syncBlurb", {
           defaultValue: "Sync incident records with other computers running this app on the same local network. No internet, no cloud — devices talk directly to each other.",
+        })}
+      </p>
+      <p className="hint" style={{ marginTop: 0 }}>
+        {t("syncExperimentalWarning", {
+          defaultValue: "Experimental: traffic between devices is not encrypted yet, and device identity is not cryptographically verified. Use only on networks you fully trust (for example your own home or office network), with people you trust. Off by default.",
         })}
       </p>
       <label style={{ display: "flex", gap: 8, alignItems: "center", margin: "var(--space-3) 0", cursor: "pointer" }}>

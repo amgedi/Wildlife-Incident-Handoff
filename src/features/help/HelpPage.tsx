@@ -167,6 +167,9 @@ export function HelpPage() {
             <button className="help-rail-item" onClick={() => void startGuidedTour("first-report")}>
               <Icons.compass size={14} /> {t("help:openTutorial", { defaultValue: "Guided first report" })}
             </button>
+            <button className="help-rail-item" onClick={() => void startGuidedTour("finding-reports")}>
+              <Icons.compass size={14} /> {t("help:startFindingTour", { defaultValue: "Finding reports" })}
+            </button>
             <button className="help-rail-item" onClick={() => navigate("/examples")}>
               <Icons.eye size={14} /> {t("help:openExamples", { defaultValue: "Fictional demo" })}
             </button>

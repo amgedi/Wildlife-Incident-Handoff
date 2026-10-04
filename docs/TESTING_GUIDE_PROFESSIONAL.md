@@ -36,7 +36,9 @@ same app version, on the same network, LAN sync disabled to start.
 12. **Trash** it on the same device → verify it disappears from Active on
     both; restore from Trash → verify it returns on both. No history lost.
 
-## Feedback questions
-- Did any screen feel unclear about what was synced?
-- Was the conflict explanation understandable?
-- Did anything ever appear to "lose" information?
+## Feedback questions (short — answer in any words you like)
+- What confused you?
+- What did you expect to happen that did not?
+- What did you NOT trust?
+- What took too long?
+- What would you actually use this for?

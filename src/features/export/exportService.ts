@@ -4,6 +4,7 @@
  * personal contact details and private notes unless explicitly included.
  */
 import type { Incident } from "../../types/incident";
+import { fuzzCoordinates } from "../network/mapProvider";
 import { formatDateTime } from "../../utils/time";
 import { escapeHtml } from "../../utils/text";
 import { saveFile } from "../../utils/platformFile";
@@ -100,8 +101,18 @@ export function buildExportSections(incident: Incident, options: ExportOptions):
   if (incident.location.precision) {
     locationLines.push(`Precision: ${labelFor(LOCATION_PRECISIONS, incident.location.precision)}`);
   }  if (incident.location.landmark) locationLines.push(`Nearby landmark: ${incident.location.landmark}`);
+  // dev.18: coordinates in exports honor the incident's OWN precision —
+  // sensitive/general exports never show exact points; approximate exports
+  // show the ~1 km generalized coordinate, never the stored exact one.
   if (options.includeCoordinates && incident.location.latitude != null && incident.location.longitude != null) {
-    locationLines.push(`Coordinates: ${incident.location.latitude.toFixed(5)}, ${incident.location.longitude.toFixed(5)}`);
+    if (incident.location.precision === "sensitive") {
+      locationLines.push("Coordinates: withheld (sensitive location)");
+    } else if (incident.location.precision === "approximate") {
+      const f = fuzzCoordinates(incident.location.latitude, incident.location.longitude);
+      locationLines.push(`Coordinates (generalized ~1 km): ${f.lat.toFixed(3)}, ${f.lon.toFixed(3)}`);
+    } else {
+      locationLines.push(`Coordinates: ${incident.location.latitude.toFixed(5)}, ${incident.location.longitude.toFixed(5)}`);
+    }
   } else if (incident.location.latitude != null) {
     locationLines.push("Coordinates: redacted in this export");
   }

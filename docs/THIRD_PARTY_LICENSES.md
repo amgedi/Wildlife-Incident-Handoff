@@ -1,12 +1,13 @@
 # Third-party licenses / dependency inventory
 
-Generated 2026-10-03T22:50:17.372Z — application version 0.2.0-dev.14.
+Generated 2026-10-04T05:12:26.178Z — application version 0.2.0-dev.17.
 Application license: AGPL-3.0-only. Runtime dependencies:
 
 | Package | Version | License |
 |---|---|---|
 | @floating-ui/dom | 1.8.0 | MIT |
 | @tauri-apps/api | 2.12.1 | Apache-2.0 OR MIT |
+| @tauri-apps/plugin-notification | 2.5.1 | MIT OR Apache-2.0 |
 | i18next | 26.4.2 | MIT |
 | idb | 8.0.3 | ISC |
 | libphonenumber-js | 1.13.14 | MIT |

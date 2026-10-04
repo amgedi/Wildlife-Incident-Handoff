@@ -294,26 +294,45 @@ export function getActivityFeed(incidents: Incident[], limit = 12): ActivityFeed
 export function getTimeSeries(incidents: Incident[], days: 1 | 7 | 30 | 90, now = new Date()): TrendPoint[] {
   const live = incidents.filter((i) => !i.deletedAt && !i.isDemo);
   const points: TrendPoint[] = [];
+  // dev.18: precompute numeric timestamps + resolved times ONCE (O(n)), then
+  // bucket with integer comparisons — the previous implementation re-parsed
+  // every record's dates for every bucket (O(days x n) Date parses, ~610 ms
+  // at 10k incidents x 90 days).
+  const resolvedCache = new Map<string, number>();
+  const reportedTimes: number[] = new Array(live.length);
+  const resolvedTimes: number[] = new Array(live.length);
+  for (let idx = 0; idx < live.length; idx++) {
+    const i = live[idx]!;
+    reportedTimes[idx] = Date.parse(i.createdAt);
+    const rid = i.id;
+    let rt = resolvedCache.get(rid);
+    if (rt === undefined) {
+      const at = resolvedAt(i);
+      rt = at ? Date.parse(at) : NaN;
+      resolvedCache.set(rid, rt);
+    }
+    resolvedTimes[idx] = rt;
+  }
+  const countIn = (times: number[], from: number, to: number): number => {
+    let c = 0;
+    for (let idx = 0; idx < times.length; idx++) {
+      const t = times[idx]!;
+      if (t >= from && t < to) c++;
+    }
+    return c;
+  };
   // 24 hours: hourly buckets ending now.
   if (days === 1) {
     for (let h = 23; h >= 0; h--) {
       const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() - h);
       const end = new Date(start);
       end.setHours(end.getHours() + 1);
-      const reported = live.filter((i) => {
-        const t = new Date(i.createdAt);
-        return t >= start && t < end;
-      }).length;
-      const resolved = live.filter((i) => {
-        const at = resolvedAt(i);
-        if (!at) return false;
-        const t = new Date(at);
-        return t >= start && t < end;
-      }).length;
+      const from = start.getTime();
+      const to = end.getTime();
       points.push({
         day: start.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }),
-        reported,
-        resolved,
+        reported: countIn(reportedTimes, from, to),
+        resolved: countIn(resolvedTimes, from, to),
       });
     }
     return points;
@@ -322,20 +341,12 @@ export function getTimeSeries(incidents: Incident[], days: 1 | 7 | 30 | 90, now 
     const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - d);
     const next = new Date(day);
     next.setDate(next.getDate() + 1);
-    const reported = live.filter((i) => {
-      const t = new Date(i.createdAt);
-      return t >= day && t < next;
-    }).length;
-    const resolved = live.filter((i) => {
-      const at = resolvedAt(i);
-      if (!at) return false;
-      const t = new Date(at);
-      return t >= day && t < next;
-    }).length;
+    const from = day.getTime();
+    const to = next.getTime();
     points.push({
       day: day.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
-      reported,
-      resolved,
+      reported: countIn(reportedTimes, from, to),
+      resolved: countIn(resolvedTimes, from, to),
     });
   }
   return points;

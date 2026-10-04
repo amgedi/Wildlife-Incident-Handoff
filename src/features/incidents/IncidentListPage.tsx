@@ -247,6 +247,7 @@ export function IncidentListPage() {
               aria-expanded={filtersOpen}
               onClick={() => setFiltersOpen((o) => !o)}
               style={{ gap: 6 }}
+              data-tour-id="filters-button"
             >
               <Icons.list size={15} />
               {activeFilters.length > 0 ? t("reports:filtersCount", { count: activeFilters.length }) : t("reports:filters")}
@@ -286,7 +287,7 @@ export function IncidentListPage() {
                 </div>
               </div>
               <div className="row between" style={{ marginTop: "var(--space-3)", flexWrap: "wrap", gap: 8 }}>
-                <div className="row" style={{ gap: 6 }}>
+                <div className="row" style={{ gap: 6 }} data-tour-id="saved-view-controls">
                   <input
                     className="input"
                     style={{ width: 180 }}

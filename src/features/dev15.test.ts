@@ -207,3 +207,35 @@ describe("migration fixtures — old and malformed records", () => {
     expect(loaded?.timeline.length).toBe(legacy.timeline.length);
   });
 });
+
+describe("dev.18 clock-skew safety", () => {
+  const ACK = { a: "2026-10-03T10:00:00Z" };
+
+  it("a peer with a wildly FUTURE clock cannot silently overwrite a local-only edit", () => {
+    const a = makeIncident({ id: "a", updatedAt: "2026-10-03T10:00:00Z", summary: "base" });
+    const local = withUpdate(a, "2026-10-03T11:00:00Z", { summary: "local edit" });
+    const futurePeer = withUpdate(a, "2027-01-01T00:00:00Z", { summary: "future peer edit" });
+    const r = mergeIncidentsV2([local], [futurePeer], ACK, PEER);
+    // both changed since the ack → explicit conflict; the future timestamp
+    // must NOT decide the winner
+    expect(r.conflicts).toHaveLength(1);
+    expect(r.merged[0]!.summary).toBe("local edit");
+  });
+
+  it("a peer with a badly BEHIND clock cannot erase a local edit via LWW", () => {
+    const a = makeIncident({ id: "a", updatedAt: "2026-10-03T10:00:00Z", summary: "base" });
+    const local = withUpdate(a, "2026-10-03T11:00:00Z", { summary: "local edit" });
+    const pastPeer = withUpdate(a, "1999-12-31T23:59:59Z", { summary: "stale peer edit" });
+    const r = mergeIncidentsV2([local], [pastPeer], ACK, PEER);
+    expect(r.conflicts).toHaveLength(1);
+    expect(r.merged[0]!.summary).toBe("local edit");
+  });
+
+  it("metadata needed for skew forensics is preserved (createdAt, provenance)", () => {
+    const a = makeIncident({ id: "a", createdAt: "2026-10-01T08:00:00Z", updatedAt: "2026-10-03T10:00:00Z" });
+    const r = mergeIncidentsV2([], [a], {}, PEER);
+    expect(r.merged[0]!.createdAt).toBe("2026-10-01T08:00:00Z");
+    expect(r.merged[0]!.syncSource?.deviceId).toBe("peer-1");
+    expect(r.merged[0]!.syncSource?.at).toBeTruthy();
+  });
+});

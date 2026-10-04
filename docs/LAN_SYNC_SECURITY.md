@@ -55,3 +55,24 @@ enabled in Settings.
   folder (`%LOCALAPPDATA%\org.wildlifeincidenthandoff.app` on desktop).
 - Media: IndexedDB blob store on the same profile.
 - No data is written outside the app profile; no telemetry exists.
+
+## dev.18 status update (2026-10-03)
+
+- The feature is now labeled **EXPERIMENTAL** in Settings and stays **off by
+  default** (`DEFAULT_LAN_SYNC_CONFIG.enabled = false`).
+- What sync sends: full incident records **including exact coordinates** for
+  every non-demo incident, to **trusted paired devices only** (trust gate
+  returns 403 for unknown device ids before any data is served). This is by
+  design — a shared operational workspace needs real coordinates — but it
+  means the trust model is exactly as strong as device-id identity, which is
+  a spoofable UUID header. Hence the EXPERIMENTAL label.
+- Verification/role evidence, settings, notes-kind data outside incidents,
+  and attachment blobs never travel over sync.
+- Tombstones (archive/trash) propagate and cannot be resurrected by a peer
+  that still holds an older live copy (covered by tests).
+- Clock-skew: wall-clock timestamps never decide conflicts by themselves —
+  competing edits since the shared ack always raise an explicit conflict
+  (tests include a peer with a future 2027 clock and a 1999 clock).
+- Planned hardening (unimplemented, do not assume): TLS or a standard
+  encrypted transport, and a cryptographic pairing credential instead of the
+  bare device-id header.

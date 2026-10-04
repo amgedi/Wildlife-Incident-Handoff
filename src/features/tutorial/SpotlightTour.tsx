@@ -20,7 +20,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import type { TourStepV2 } from "./tourStepsTypes";
+import type { TourStepV2, TourResult, TourResultStatus } from "./tourStepsTypes";
 import { findTourTarget, calloutPosition, type Rect } from "./tourTarget";
 
 interface RectState {
@@ -37,7 +37,8 @@ type Phase =
 interface SpotlightProps {
   steps: TourStepV2[];
   startIndex?: number;
-  onFinish: () => void;
+  /** Receives an honest result: completed runs have zero auto-skipped steps. */
+  onFinish: (result: TourResult) => void;
 }
 
 const PAD = 8;
@@ -46,10 +47,38 @@ export function SpotlightTour({ steps, startIndex = 0, onFinish }: SpotlightProp
   const [index, setIndex] = useState(startIndex);
   const [phase, setPhase] = useState<Phase>({ kind: "navigating" });
   const generationRef = useRef(0);
+  // dev.18: a tour run is only "completed" when every target resolved.
+  const autoSkippedRef = useRef<string[]>([]);
   const calloutHeadingRef = useRef<HTMLHeadingElement>(null);
   const nav = useNavigate();
   const { t } = useTranslation("guidance");
   const step = steps[index];
+
+  const finish = useCallback(
+    (status: TourResultStatus) => {
+      onFinish({
+        status: status === "completed" && autoSkippedRef.current.length > 0 ? "auto_skipped_target_missing" : status,
+        autoSkippedSteps: [...autoSkippedRef.current],
+        totalSteps: steps.length,
+        finishedAt: new Date().toISOString(),
+      });
+    },
+    [onFinish, steps.length]
+  );
+
+  /** Emergency recovery: advance past a step whose target never appeared.
+   *  Recorded — a run that uses it is never reported as a clean pass. */
+  const skipMissingTarget = useCallback(
+    (stepIndex: number, missingId: string) => {
+      if (!autoSkippedRef.current.includes(missingId)) autoSkippedRef.current.push(missingId);
+      if (stepIndex + 1 < steps.length) {
+        setIndex(stepIndex + 1);
+      } else {
+        finish("auto_skipped_target_missing");
+      }
+    },
+    [steps.length, finish]
+  );
 
   const runStep = useCallback(
     (stepIndex: number, gen: number) => {
@@ -73,6 +102,15 @@ export function SpotlightTour({ steps, startIndex = 0, onFinish }: SpotlightProp
           if (generationRef.current !== gen) return;
         }
 
+        // Declarative pre-measure action: open a popover/panel if asked.
+        if (current.openTarget) {
+          const open = Array.from(document.querySelectorAll(`[data-tour-id="${current.openTarget}"]`)).find((el) => {
+            const r = el.getBoundingClientRect();
+            return r.width > 0 || r.height > 0;
+          }) as HTMLElement | undefined;
+          open?.click();
+        }
+
         // Phase: waiting-for-target (bounded poll).
         setPhase({ kind: "waiting" });
         const targetDeadline = Date.now() + (current.waitMs ?? 0) + 2000;
@@ -85,16 +123,13 @@ export function SpotlightTour({ steps, startIndex = 0, onFinish }: SpotlightProp
         }
         if (generationRef.current !== gen) return;
         if (!el) {
-          // dev.17: never dead-end the tour. If a target is missing (workspace
-          // state, empty list, anything), skip to the next step instead of
-          // showing the failure screen (user decision — the Search/Filters
-          // steps were removed for exactly this reason).
-          if (stepIndex + 1 < steps.length) {
-            setPhase({ kind: "navigating" });
-            setIndex(stepIndex + 1);
-            return;
-          }
-          onFinish();
+          // dev.18: a missing official target is a FAILURE the user can see
+          // (Retry / Skip step / Exit) — never a silent success. Skipping is
+          // recorded and the run will not count as completed.
+          setPhase({
+            kind: "failed",
+            diagnostics: { step: current.id, target: current.tourId, route: current.route ?? window.location.pathname },
+          });
           return;
         }
 
@@ -104,11 +139,10 @@ export function SpotlightTour({ steps, startIndex = 0, onFinish }: SpotlightProp
         if (generationRef.current !== gen) return;
         const r = el.getBoundingClientRect();
         if (r.width === 0 && r.height === 0) {
-          if (stepIndex + 1 < steps.length) {
-            setIndex(stepIndex + 1);
-            return;
-          }
-          onFinish();
+          setPhase({
+            kind: "failed",
+            diagnostics: { step: current.id, target: current.tourId, reason: "zero-size" },
+          });
           return;
         }
         if (generationRef.current !== gen) return;
@@ -122,7 +156,7 @@ export function SpotlightTour({ steps, startIndex = 0, onFinish }: SpotlightProp
       };
       void begin();
     },
-    [nav, steps]
+    [nav, steps, skipMissingTarget]
   );
 
   // Start each step; the generation token invalidates everything prior.
@@ -180,11 +214,11 @@ export function SpotlightTour({ steps, startIndex = 0, onFinish }: SpotlightProp
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onFinish();
+      if (e.key === "Escape") finish("skipped_by_user");
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onFinish]);
+  }, [finish]);
 
   if (!step) return null;
 
@@ -233,12 +267,21 @@ export function SpotlightTour({ steps, startIndex = 0, onFinish }: SpotlightProp
           <>
             <h3 ref={calloutHeadingRef} tabIndex={-1} className="spotlight-heading">{t("failedTitle")}</h3>
             <p>{t("failedBody")}</p>
+            <p className="spotlight-opening" role="status">{t("failedDetail", { step: phase.diagnostics.step ?? "?", target: phase.diagnostics.target ?? "?" })}</p>
             <div className="spotlight-footer">
-              <button className="btn btn-quiet btn-sm" onClick={onFinish}>{t("guideExit")}</button>
+              <button className="btn btn-quiet btn-sm" onClick={() => finish("skipped_by_user")}>{t("guideExit")}</button>
               <span style={{ flex: 1 }} />
               <button className="btn btn-secondary btn-sm" onClick={() => runStep(index, ++generationRef.current)}>{t("retry", { ns: "common" })}</button>
               {index < steps.length - 1 && (
-                <button className="btn btn-primary btn-sm" onClick={() => setIndex((i) => Math.min(steps.length - 1, i + 1))}>{t("skipStep", { ns: "common" })}</button>
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={() => skipMissingTarget(index, step.id)}
+                >
+                  {t("skipStep", { ns: "common" })}
+                </button>
+              )}
+              {index >= steps.length - 1 && (
+                <button className="btn btn-primary btn-sm" onClick={() => finish("auto_skipped_target_missing")}>{t("guideExit")}</button>
               )}
             </div>
           </>
@@ -254,7 +297,7 @@ export function SpotlightTour({ steps, startIndex = 0, onFinish }: SpotlightProp
                   onClick={() => {
                     if (step.action!.to) nav(step.action!.to);
                     if (step.action!.advance) setIndex((i) => Math.min(steps.length - 1, i + 1));
-                    else onFinish();
+                    else finish("completed");
                   }}
                 >
                   {step.action.labelKey ? t(step.action.labelKey) : step.action.label}
@@ -262,7 +305,7 @@ export function SpotlightTour({ steps, startIndex = 0, onFinish }: SpotlightProp
               </div>
             )}
             <div className="spotlight-footer">
-              <button className="btn btn-quiet btn-sm" onClick={onFinish}>{t("guideExit")}</button>
+              <button className="btn btn-quiet btn-sm" onClick={() => finish("skipped_by_user")}>{t("guideExit")}</button>
               <span style={{ flex: 1 }} />
               {index > 0 && (
                 <button className="btn btn-secondary btn-sm" onClick={() => setIndex((i) => Math.max(0, i - 1))}>{t("back", { ns: "common" })}</button>
@@ -270,7 +313,7 @@ export function SpotlightTour({ steps, startIndex = 0, onFinish }: SpotlightProp
               {index < steps.length - 1 ? (
                 <button className="btn btn-primary btn-sm" onClick={() => setIndex((i) => i + 1)}>{t("next", { ns: "common" })}</button>
               ) : (
-                <button className="btn btn-primary btn-sm" onClick={onFinish}>{t("finish", { ns: "common" })}</button>
+                <button className="btn btn-primary btn-sm" onClick={() => finish("completed")}>{t("finish", { ns: "common" })}</button>
               )}
             </div>
           </>

@@ -91,6 +91,9 @@ export interface NotificationPreferences {
   inApp: boolean;
   /** Browser/PWA notifications — only offered where the API exists; no server push. */
   browser: boolean;
+  /** dev.18: native system (Windows toast) delivery — desktop app only.
+   *  Opt-in; never requested or enabled during first startup. */
+  systemDelivery?: boolean;
   sound: boolean;
   quietHoursEnabled: boolean;
   quietHoursStart: string; // "HH:MM"
@@ -158,11 +161,25 @@ export const DEFAULT_SETTINGS: AppSettings = {
 /** Decorative ring styles for the circular profile photo (dev.14). */
 export type PhotoBorderStyle = "none" | "leaves" | "wood" | "rope" | "stars";
 
-/** Versioned backup container. */
+/** Versioned backup container.
+ *  dev.18: optional `manifest` block adds integrity — per-record SHA-256
+ *  hashes so restore can detect corruption instead of silently ignoring it.
+ *  Legacy backups without a manifest remain importable (structural checks
+ *  only). Media stays base64-embedded; a packaged .wihbackup container is
+ *  documented as future work in docs/DEV18_BASELINE.md. */
+export interface BackupManifest {
+  generatedBy: string;
+  incidentCount: number;
+  attachmentCount: number;
+  /** SHA-256 (hex) of JSON.stringify(incident) per record id. */
+  incidentHashes: Record<string, string>;
+}
+
 export interface BackupFormat {
   schemaVersion: number;
   applicationVersion: string;
   exportedAt: string;
+  manifest?: BackupManifest;
   incidents: unknown[];
   attachments: Array<{
     id: string;
@@ -178,5 +195,8 @@ export interface ImportResult {
   imported: number;
   skipped: number;
   attachmentCount: number;
+  /** dev.18: records whose stored hash did not match (corrupted in transit
+   *  or tampered). They are NOT imported. */
+  corrupted: number;
   warnings: string[];
 }

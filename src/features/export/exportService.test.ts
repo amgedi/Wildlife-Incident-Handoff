@@ -63,11 +63,21 @@ describe("export privacy redaction", () => {
     expect(text).toContain("redacted in this export");
   });
 
-  it("internal export includes everything", () => {
+  it("internal export includes everything (coords per precision — dev.18)", () => {
     const text = buildPlainText(makeIncident(), INTERNAL_EXPORT);
-    expect(text).toContain("52.205");
+    // approximate incident: generalized coordinate only, never the stored exact one
+    expect(text).not.toContain("52.205");
+    expect(text).toContain("Coordinates (generalized ~1 km)");
     expect(text).toContain("900123");
     expect(text).toContain("Private working note");
+    // exact incident: full precision allowed in internal exports
+    const exact = makeIncident({ location: { description: "Roadside near wetland", precision: "exact", landmark: "Wetland car park", address: null, latitude: 52.205, longitude: 0.118, notes: null } });
+    expect(buildPlainText(exact, INTERNAL_EXPORT)).toContain("52.205");
+    // sensitive incident: coordinates withheld even in internal exports
+    const sensitive = makeIncident({ location: { description: "Roadside near wetland", precision: "sensitive", landmark: null, address: null, latitude: 52.205, longitude: 0.118, notes: null } });
+    const st = buildPlainText(sensitive, INTERNAL_EXPORT);
+    expect(st).not.toContain("52.205");
+    expect(st).toContain("withheld (sensitive location)");
   });
 
   it("marks species as unconfirmed", () => {

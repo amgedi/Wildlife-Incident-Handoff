@@ -6,7 +6,7 @@
 import type { BackupFormat, ImportResult } from "../types/settings";
 import type { Incident } from "../types/incident";
 import { SCHEMA_VERSION } from "../types/incident";
-import { validateBackup, validateIncidentRecord, emptyImportResult } from "../utils/validation";
+import { validateBackup, validateBackupManifest, validateIncidentRecord, emptyImportResult, sha256Hex } from "../utils/validation";
 import { cleanText, safeFileName } from "../utils/text";
 import { nowIso } from "../utils/time";
 import { saveFile } from "../utils/platformFile";
@@ -29,10 +29,22 @@ export async function createBackup(applicationVersion: string): Promise<BackupFo
       data: await blobToBase64(b.data),
     }))
   );
+  // dev.18: per-record integrity hashes so restore can detect corruption.
+  const incidentHashes: Record<string, string> = {};
+  for (const inc of incidents) {
+    const h = await sha256Hex(JSON.stringify(inc));
+    if (h) incidentHashes[inc.id] = h;
+  }
   return {
     schemaVersion: SCHEMA_VERSION,
     applicationVersion,
     exportedAt: nowIso(),
+    manifest: {
+      generatedBy: applicationVersion,
+      incidentCount: incidents.length,
+      attachmentCount: attachments.length,
+      incidentHashes,
+    },
     incidents,
     attachments,
   };
@@ -53,6 +65,16 @@ export async function importBackup(raw: unknown): Promise<ImportResult> {
     result.skipped = 1;
     return result;
   }
+  const { manifest } = validateBackupManifest(raw);
+  if (manifest && manifest.incidentCount !== backup.incidents.length) {
+    result.warnings.push(
+      `Manifest lists ${manifest.incidentCount} incidents but the file contains ${backup.incidents.length} — the backup may be incomplete or corrupted.`
+    );
+  }
+  // dev.18: staged restore — the ENTIRE batch is validated (structure +
+  // integrity hashes) before anything is written, so a corrupt backup can
+  // never leave a half-imported workspace. bulkPutIncidents itself is a
+  // single IndexedDB transaction (atomic).
   const existing = await getAllIncidents();
   const existingIds = new Set(existing.map((i) => i.id));
   const toImport: Incident[] = [];
@@ -70,6 +92,26 @@ export async function importBackup(raw: unknown): Promise<ImportResult> {
         `Incident ${incident.humanReference} already exists locally and was not overwritten.`
       );
       continue;
+    }
+    if (manifest) {
+      const expected = manifest.incidentHashes[incident.id];
+      if (expected) {
+        const actual = await sha256Hex(JSON.stringify(rawIncident));
+        if (actual && actual !== expected) {
+          result.corrupted += 1;
+          result.warnings.push(
+            `Incident ${incident.humanReference} failed its integrity check (corrupted or altered) and was NOT imported.`
+          );
+          continue;
+        }
+      } else if (manifest.incidentHashes && Object.keys(manifest.incidentHashes).length > 0) {
+        // record missing from the manifest — treat as incomplete backup signal
+        result.warnings.push(
+          `Incident ${incident.humanReference} is not listed in the backup manifest and was skipped.`
+        );
+        result.skipped += 1;
+        continue;
+      }
     }
     toImport.push(incident);
     result.imported += 1;

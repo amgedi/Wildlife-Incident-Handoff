@@ -2,6 +2,59 @@
 
 All notable changes to Wildlife Incident Handoff are documented here. Format based on [Keep a Changelog](https://keepachangelog.com/); versioning follows [SemVer](https://semver.org/).
 
+# Changelog
+
+All notable changes to Wildlife Incident Handoff are documented here. Format based on [Keep a Changelog](https://keepachangelog.com/); versioning follows [SemVer](https://semver.org/).
+
+## 0.2.0-dev.18 — trust hardening pass (tours, privacy, backups, notifications)
+
+Focus: "Would I trust this application with real wildlife incident data?" — fewer visible features, harder edges.
+
+### Tutorial / Guide Me
+- **Honest tour results**: every tour run is now recorded as `completed`, `skipped_by_user`, `auto_skipped_target_missing` or `failed`. A run that skips a missing target is NEVER counted as a clean pass, and exiting with Escape no longer marks the tour complete (only fully-completed runs do).
+- **Zero-auto-skip contract (tested)**: a new test walks every built-in official tour and fails if any target element does not exist in the product — silent step-skipping in official tours is now a build failure, not a hidden behavior.
+- **Auto-skip is now visible**: if an official step's target is missing, the tour shows its failure card (Retry / Skip step / Exit) instead of silently sliding forward.
+- **New standalone tour: "Finding reports"** — restores the search/filters teaching removed in dev.17 as its own declarative tour (list → search → filters → saved views), workspace-aware (My Reports / Incidents). Available from Help → Tutorials.
+- All tour steps are declarative (explicit route + target + text keys); the legacy dead-code step list (with the old broken Search/Filters steps) was deleted.
+- Steps can declare an `openTarget` the engine clicks before measuring (used to open the Filters panel for the saved-views step).
+
+### Professional verification — honesty fix
+- The dev.17 wording "Submit verification" / "Verification submitted — pending review" was misleading: **there is no reviewer and nothing is sent anywhere.** The flow now says "Prepare verification evidence", saves notes **locally only**, and the badge reads "Evidence prepared locally — not submitted". Every string states that connected verification is not available yet.
+- Only the note text and a document NAME are stored (a reminder) — the document itself is never copied, sent, exported, synced or backed up. Wording + storage contract is documented and tested.
+- New design doc: `docs/PROFESSIONAL_VERIFICATION_ARCHITECTURE.md` (invitation → evidence → admin approval → signed claims → revocation; "verified" remains impossible until a real server issues it).
+
+### Location privacy / geocoding
+- **New GeocodingProvider abstraction** — provider identity, endpoint, attribution, privacy disclosure, rate limit and health in one module; no provider logic in map components.
+- **Sensitive locations are never geocoded** — the inspector shows "lookup disabled", nothing is sent to any third party.
+- **Approximate locations** are reverse-geocoded at the ~1 km generalized coordinate only — the stored exact coordinate is never transmitted.
+- **Exact locations** now require explicit consent on first lookup ("Looking up a nearby road/place will send this location to …" with Continue/Cancel and a remember-preference checkbox).
+- Reverse-geocode results are cached persistently (same marker clicked twice = one network request) and rate-limited client-side; offline / provider-down / rate-limited / no-result each show an honest message and never break the inspector.
+- **Raw coordinates demoted** in the inspector to a collapsed "Technical details" section: exact coords only for exact incidents, generalized for approximate, hidden for sensitive. Operational info (description, landmark, distance/bearing, GPS accuracy) comes first.
+- **Per-incident privacy is now honored on maps**: a sensitive incident renders at ~10 km fuzzing even when the surrounding view defaults to approximate (previously the view default overrode it).
+- **Exports honor precision**: approximate incidents export only a generalized coordinate, sensitive incidents export "withheld (sensitive location)" — previously internal exports printed exact coordinates regardless of the incident's privacy setting (Help claimed otherwise; now true).
+
+### Backups
+- Backups now carry a **manifest with per-record SHA-256 hashes**; restore verifies structure AND integrity before writing anything, and refuses records that fail their hash ("corrupted or altered") or are missing from the manifest — corruption is reported, never silently imported.
+- Staged restore: the whole batch is validated before the single atomic IndexedDB write, so a failed import cannot leave a half-imported workspace.
+- Legacy manifest-less backups still import (compat tested); 100-incident round-trip tested with timings.
+
+### LAN sync
+- Now labeled **EXPERIMENTAL** in Settings with an explicit warning: traffic is not encrypted yet and device identity is not cryptographically verified; use only on fully trusted networks. Still off by default.
+- New clock-skew tests: a peer with a 2027 clock or a 1999 clock can never silently overwrite a local edit — competing changes always raise an explicit conflict. Threat-model docs updated with what sync does and does not protect.
+
+### Notifications
+- **Real Windows system notifications** (Tauri notification plugin), opt-in in Settings → Notifications with a working "Send test notification" button; browser/PWA notifications behind the Web Notifications API with permission requested **only on explicit user action**.
+- Delivery settings show only channels that actually function on the current platform — unavailable channels state why, instead of offering placebo toggles.
+
+### Performance (10,000 incidents)
+- New 10k-record performance suite with budgets: KPIs 2 ms, attention card 8 ms, distributions ~1 ms, search 6 ms, duplicate detection 9 ms, marker fuzzing 2 ms.
+- **Trend chart fixed**: the 90-day series recomputed with O(days × records) date parsing (~610 ms per render at 10k) — now precomputed once per render: **16 ms**, 39× faster, with a CI budget so it cannot regress.
+
+### Docs & release
+- New: `docs/SBOM.md` (regenerated inventory), `docs/OFFLINE_MAPS_EVALUATION.md` (PMTiles regional packs evaluated, deferral rationale, implementation contract), `docs/PROFESSIONAL_VERIFICATION_ARCHITECTURE.md`.
+- Updated: `docs/SECURITY_ARCHITECTURE.md` (dev.18 threat model: geocoding, evidence, sync, backups, notifications), `docs/LAN_SYNC_SECURITY.md`, tester guides with the short feedback form.
+- 351 tests passing (up from 297).
+
 ## 0.2.0-dev.17 — operations visibility pass (map, inspector, list, roles)
 
 ### Changed

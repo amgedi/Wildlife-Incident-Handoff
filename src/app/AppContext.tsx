@@ -26,8 +26,9 @@ import {
 } from "../storage/notificationService";
 import type { NotificationRecord } from "../storage/db";
 import { changeLanguage } from "../i18n";
-import { markGuidanceComplete, type GuidanceSystemId } from "../features/tutorial/guidance";
-import type { TourStepV2 } from "../features/tutorial/tourStepsTypes";
+import { markGuidanceComplete, recordTourResult, type GuidanceSystemId } from "../features/tutorial/guidance";
+import { sendSystemNotification } from "../notifications/delivery";
+import type { TourStepV2, TourResult } from "../features/tutorial/tourStepsTypes";
 
 interface ToastItem {
   id: number;
@@ -52,7 +53,9 @@ interface AppContextValue {
   /** Start a named guidance system with explicit steps. Completion is
    *  persisted under that system's own key — never any other. */
   startGuidance: (systemId: GuidanceSystemId, steps: TourStepV2[]) => void;
-  endGuidance: (markComplete: boolean) => void;
+  /** End the running tour with an honest result (dev.18). Only runs whose
+   *  status is "completed" (zero auto-skipped steps) are persisted complete. */
+  endGuidance: (result: TourResult) => void;
   /** Notification center state (local notifications only). */
   notifications: NotificationRecord[];
   unreadNotifications: number;
@@ -145,9 +148,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const startGuidance = useCallback((systemId: GuidanceSystemId, steps: TourStepV2[]) => {
     setGuidance({ systemId, steps });
   }, []);
-  const endGuidance = useCallback((markComplete: boolean) => {
+  const endGuidance = useCallback((result: TourResult) => {
     setGuidance((current) => {
-      if (current && markComplete) void markGuidanceComplete(current.systemId);
+      if (current) {
+        // dev.18: record every run honestly; persist completion only for
+        // clean runs (every official target resolved, zero auto-skips).
+        recordTourResult({ ...result, systemId: current.systemId });
+        if (result.status === "completed") void markGuidanceComplete(current.systemId);
+      }
       return null;
     });
   }, []);
@@ -173,6 +181,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       await refreshNotifications();
       if (prefs?.inApp && !quiet) {
         showToast(`${draft.title} — ${draft.body}`);
+      }
+      // dev.18: opt-in native delivery (desktop toast / browser notification).
+      // Quiet hours also silence system delivery; failures are silent here
+      // because the in-app copy was still delivered.
+      if (prefs?.systemDelivery && !quiet) {
+        void sendSystemNotification(draft.title, draft.body);
       }
     },
     [settings.notifications, refreshNotifications, showToast]

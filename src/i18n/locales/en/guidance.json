@@ -48,5 +48,19 @@
   "tourPeopleTitle": "People & handoffs",
   "tourPeopleText": "Record who takes responsibility: transfers, custody history and receiving organizations live here.",
   "tourStatusTitle": "Report statuses",
-  "tourStatusText": "The status chip shows where the report stands — from Reported through In care to Released. Help → Statuses explains every one."
+  "tourStatusText": "The status chip shows where the report stands — from Reported through In care to Released. Help → Statuses explains every one.",
+  "failedDetail": "Step: {{step}} — target “{{target}}” did not appear. This is recorded as an incomplete tour run.",
+  "findingNavTitle": "Where your reports live",
+  "findingNavTextR": "My reports is the list of everything you have reported. Open it to search and filter.",
+  "findingNavTextRPro": "Incidents is the operational list of every case on this device. Open it to search and filter.",
+  "findingListTitle": "The incidents list",
+  "findingListTextR": "Every report is listed here with its status and age. Use search and filters to find the one you need.",
+  "findingListTextRPro": "Every incident is listed here with status, aging and assignment cues. Use search and filters to narrow it down.",
+  "findingSearchTitle": "Search",
+  "findingSearchTextR": "Type to search your reports by reference, animal, location or anything you wrote. Press / to jump to the search box.",
+  "findingSearchTextRPro": "Type to search by reference, species, location, organization or notes. Press / to jump to the search box.",
+  "findingFiltersTitle": "Filters",
+  "findingFiltersText": "Filters narrow the list — by status, incident type, animal group and date range.",
+  "findingSavedTitle": "Saved views",
+  "findingSavedText": "Name a filter combination and press Save view to keep it here as a one-click view you can reuse any time."
 }

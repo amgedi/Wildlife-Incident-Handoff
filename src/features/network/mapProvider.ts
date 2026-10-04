@@ -53,6 +53,17 @@ export function markerPositionFor(incident: Incident, privacy: MapPrivacy): { la
 }
 
 /**
+ * dev.18 — the incident's OWN declared location precision always wins over
+ * the view-level default. A "sensitive" incident must never render at the
+ * approximate fuzz level just because the surrounding view defaults to
+ * approximate. View privacy is only a fallback for legacy records with no
+ * stored precision.
+ */
+export function effectivePrivacy(incident: Incident, viewPrivacy: MapPrivacy): MapPrivacy {
+  return incident.location.precision ?? viewPrivacy;
+}
+
+/**
  * Per-status marker styles (dev.17): every incident status has its own
  * high-contrast color + glyph so markers stay readable on satellite imagery
  * and status is never conveyed by color alone (shape/letter is in the marker).

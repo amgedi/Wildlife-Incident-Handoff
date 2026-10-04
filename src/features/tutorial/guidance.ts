@@ -13,17 +13,39 @@
  * Completing one never marks another complete.
  */
 
-export type GuidanceSystemId = "interface-tour" | "guided-first-incident" | "demo-incident-tour";
+export type GuidanceSystemId = "interface-tour" | "guided-first-incident" | "demo-incident-tour" | "finding-reports";
 
 export const GUIDANCE_STORAGE_KEYS: Record<GuidanceSystemId, string> = {
   "interface-tour": "guidance-interface-tour-version",
   "guided-first-incident": "guidance-guided-incident-version",
   "demo-incident-tour": "guidance-demo-incident-version",
+  "finding-reports": "guidance-finding-reports-version",
 };
 
 export const GUIDANCE_VERSION = 1;
 
 import { getSetting, setSetting } from "../../storage/repositories";
+import type { TourResult } from "./tourStepsTypes";
+
+/**
+ * dev.18 — every tour run is recorded with an honest result
+ * (completed / skipped_by_user / auto_skipped_target_missing / failed).
+ * A run that auto-skipped a missing target is NEVER a clean pass; QA reads
+ * this log (also mirrored on window.__wihTourResults for desktop automation).
+ */
+const tourResultsLog: TourResult[] = [];
+
+export function recordTourResult(result: TourResult): void {
+  tourResultsLog.push(result);
+  if (tourResultsLog.length > 100) tourResultsLog.shift();
+  if (typeof window !== "undefined") {
+    (window as unknown as { __wihTourResults?: TourResult[] }).__wihTourResults = [...tourResultsLog];
+  }
+}
+
+export function getTourResultsLog(): TourResult[] {
+  return [...tourResultsLog];
+}
 
 export async function isGuidanceComplete(systemId: GuidanceSystemId): Promise<boolean> {
   const v = await getSetting<number>(GUIDANCE_STORAGE_KEYS[systemId]);
@@ -156,6 +178,53 @@ export function buildDemoTourSteps() {
       titleKey: "demoTitle3",
       textKey: "demoText3",
       waitMs: 500,
+    },
+  ];
+}
+
+/**
+ * dev.18 — "Finding reports": restores the search/filters teaching that was
+ * removed in dev.17, as its OWN tour with declarative routes. Navigates to
+ * the incidents page first (My Reports for reporters, Incidents for
+ * professionals), then teaches search, filters and saved views on real,
+ * always-present targets. Works in both workspaces.
+ */
+export function buildFindingReportsTourSteps(workspace: "reporter" | "professional") {
+  const reporter = workspace === "reporter";
+  return [
+    {
+      id: "finding-nav",
+      tourId: "nav-incidents",
+      titleKey: "findingNavTitle",
+      textKeyR: reporter ? "findingNavTextR" : "findingNavTextRPro",
+    },
+    {
+      id: "finding-open-list",
+      tourId: "incident-filters",
+      route: "/incidents",
+      waitMs: 900,
+      titleKey: "findingListTitle",
+      textKeyR: reporter ? "findingListTextR" : "findingListTextRPro",
+    },
+    {
+      id: "finding-search",
+      tourId: "incident-search",
+      titleKey: "findingSearchTitle",
+      textKeyR: reporter ? "findingSearchTextR" : "findingSearchTextRPro",
+    },
+    {
+      id: "finding-filters",
+      tourId: "filters-button",
+      titleKey: "findingFiltersTitle",
+      textKey: "findingFiltersText",
+    },
+    {
+      id: "finding-saved-views",
+      tourId: "saved-view-controls",
+      openTarget: "filters-button",
+      waitMs: 600,
+      titleKey: "findingSavedTitle",
+      textKey: "findingSavedText",
     },
   ];
 }

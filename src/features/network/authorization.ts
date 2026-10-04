@@ -27,6 +27,10 @@ export type ProfessionalRole =
   | "organization_administrator"
   | "read_only_reviewer";
 
+/** Only "preview" is ever assigned locally. "verification_pending" and
+ *  "verified" are RESERVED for a future connected verification service that
+ *  actually receives and approves evidence server-side (never synthesized
+ *  on-device — see getAuthorizationState). */
 export type RoleState = "preview" | "verification_pending" | "verified";
 
 export interface RoleVerificationRequest {
@@ -43,8 +47,11 @@ export interface ProfessionalRoleEntry {
   state: RoleState;
   /** ISO timestamp when the role was added / requested. */
   addedAt: string;
-  /** User-submitted verification evidence (dev.17). STILL preview locally —
-   *  a real organization reviews it server-side before permissions change. */
+  /** Locally PREPARED evidence notes (dev.18: nothing is submitted — no
+   *  connected verification service exists, so no reviewer received anything).
+   *  Lives in local settings only; never synced, exported, or backed up.
+   *  "submittedAt" is the local preparation time (legacy field name kept for
+   *  stored-data compatibility). */
   verificationRequest?: RoleVerificationRequest | null;
 }
 

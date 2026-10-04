@@ -3,7 +3,7 @@
  * We validate identity/structure, NOT optional "unknown" scientific content.
  */
 import { SCHEMA_VERSION } from "../types/incident";
-import type { BackupFormat, ImportResult } from "../types/settings";
+import type { BackupFormat, BackupManifest, ImportResult } from "../types/settings";
 
 export interface ValidationIssue {
   code: string;
@@ -68,5 +68,37 @@ export function validateIncidentRecord(raw: unknown): ValidationIssue[] {
 }
 
 export function emptyImportResult(): ImportResult {
-  return { imported: 0, skipped: 0, attachmentCount: 0, warnings: [] };
+  return { imported: 0, skipped: 0, attachmentCount: 0, corrupted: 0, warnings: [] };
+}
+
+/** dev.18: parse/validate an optional manifest block. Returns null for
+ *  legacy backups (no manifest) — they stay importable. */
+export function validateBackupManifest(raw: unknown): { manifest: BackupManifest | null; issues: ValidationIssue[] } {
+  const issues: ValidationIssue[] = [];
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return { manifest: null, issues };
+  const obj = raw as Record<string, unknown>;
+  const m = obj.manifest;
+  if (m == null) return { manifest: null, issues };
+  if (typeof m !== "object" || Array.isArray(m)) {
+    issues.push({ code: "bad_manifest", message: "The backup manifest is malformed." });
+    return { manifest: null, issues };
+  }
+  const mm = m as Record<string, unknown>;
+  if (typeof mm.incidentCount !== "number" || typeof mm.incidentHashes !== "object" || mm.incidentHashes === null || Array.isArray(mm.incidentHashes)) {
+    issues.push({ code: "bad_manifest", message: "The backup manifest is malformed." });
+    return { manifest: null, issues };
+  }
+  return { manifest: m as unknown as BackupManifest, issues };
+}
+
+/** SHA-256 hex of a string via WebCrypto (secure contexts incl. Tauri). */
+export async function sha256Hex(text: string): Promise<string | null> {
+  try {
+    const subtle = globalThis.crypto?.subtle;
+    if (!subtle) return null;
+    const buf = await subtle.digest("SHA-256", new TextEncoder().encode(text));
+    return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+  } catch {
+    return null;
+  }
 }

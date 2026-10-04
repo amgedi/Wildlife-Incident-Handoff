@@ -29,4 +29,28 @@ export interface TourStepV2 {
   waitMs?: number;
   /** Optional guided action button in the callout. */
   action?: TourAction;
+  /**
+   * data-tour-id of a control to click AFTER route readiness and BEFORE
+   * measuring the target — e.g. open a popover so its contents can be
+   * highlighted. Declarative: the engine clicks it, the step never relies
+   * on the user pressing a previous-step button to reach a state.
+   */
+  openTarget?: string;
+}
+
+/** How a tour run actually ended (dev.18 — tours must report honestly). */
+export type TourResultStatus =
+  | "completed" // every step shown; zero target misses
+  | "skipped_by_user" // user chose Exit / Escape
+  | "auto_skipped_target_missing" // one or more targets never appeared
+  | "failed"; // engine error
+
+export interface TourResult {
+  status: TourResultStatus;
+  systemId?: string;
+  /** Step ids whose target was missing and were auto-skipped. */
+  autoSkippedSteps: string[];
+  /** Total steps in the run. */
+  totalSteps: number;
+  finishedAt: string;
 }

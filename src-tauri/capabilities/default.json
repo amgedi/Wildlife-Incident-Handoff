@@ -26,6 +26,7 @@
     "core:window:allow-scale-factor",
     "core:window:allow-outer-size",
     "core:window:allow-maximize",
-    "core:window:allow-unmaximize"
+    "core:window:allow-unmaximize",
+    "notification:default"
   ]
 }
