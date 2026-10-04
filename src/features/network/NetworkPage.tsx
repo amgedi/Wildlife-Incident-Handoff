@@ -34,6 +34,7 @@ import { AnimatedNumber } from "./dashboard/AnimatedNumber";
 import { AgingStrip, BarDistribution } from "./dashboard/opsCharts";
 import { IncidentQueueRow } from "./dashboard/IncidentQueueRow";
 import { ResponseFlow } from "./dashboard/ResponseFlow";
+import { DuplicateReview } from "./dashboard/DuplicateReview";
 import { SimulationCard } from "../simulation/SimulationCard";
 import { type SimulationRole, type SimulationIntensity } from "../simulation/scenario";
 import { computeIntegrityReview } from "../integrity/integrityService";
@@ -120,7 +121,15 @@ export function NetworkPage() {
       setLoaded(true);
     });
     getSetting<DashboardLayout>(DASHBOARD_LAYOUT_KEY).then((saved) => {
-      if (saved && Array.isArray(saved.order) && Array.isArray(saved.hidden)) setLayout(saved);
+      // dev.4 migration: layouts saved before Network Pulse existed render
+      // Live Activity alone beside an empty region. A saved layout is only
+      // honored when it contains every current widget id.
+      if (saved && Array.isArray(saved.order) && Array.isArray(saved.hidden)) {
+        const known: WidgetId[] = ["map", "attention", "activity", "kpis", "pipeline", "performance", "aging", "trend", "statusDist", "animalDist", "typeDist", "workload", "integrity", "networkOrgs"];
+        const complete = known.every((id) => saved.order.includes(id));
+        if (complete) setLayout(saved);
+        else void setSetting(DASHBOARD_LAYOUT_KEY, null);
+      }
     });
     getSetting<boolean>("network-test-view").then((v) => {
       if (v === true) setTestView(true);
@@ -717,17 +726,23 @@ export function NetworkPage() {
             <span aria-hidden="true">·</span>
             <span>{t("opsLiveTitle", { defaultValue: "Local operations" })}</span>
             <span aria-hidden="true">·</span>
-            <span>{t("opsOpenCount", { defaultValue: "{{count}} open incidents", count: kpis.openTotal })}</span>
+            <button className="ops-counter" aria-label={t("opsOpenCountAria", { defaultValue: "Open {{count}} active incidents", count: kpis.openTotal })} onClick={() => navigate("/incidents?category=active")}>
+              {t("opsOpenCount", { defaultValue: "{{count}} open incidents", count: kpis.openTotal })}
+            </button>
             {kpis.unassigned > 0 && (
               <>
                 <span aria-hidden="true">·</span>
-                <span className="ops-flag-warn">{t("opsNeedAssignment", { defaultValue: "{{count}} need assignment", count: kpis.unassigned })}</span>
+                <button className="ops-counter ops-flag-warn" aria-label={t("opsNeedAssignmentAria", { defaultValue: "Review {{count}} incidents needing assignment", count: kpis.unassigned })} onClick={() => navigate("/incidents?category=awaiting")}>
+              {t("opsNeedAssignment", { defaultValue: "{{count}} need assignment", count: kpis.unassigned })}
+            </button>
               </>
             )}
             {attention.handoffWaiting.length > 0 && (
               <>
                 <span aria-hidden="true">·</span>
-                <span className="ops-flag-warn">{t("opsHandoffsWaiting", { defaultValue: "{{count}} handoffs waiting", count: attention.handoffWaiting.length })}</span>
+                <button className="ops-counter ops-flag-warn" aria-label={t("opsHandoffsWaitingAria", { defaultValue: "Review {{count}} handoffs waiting", count: attention.handoffWaiting.length })} onClick={() => navigate("/incidents?category=active")}>
+              {t("opsHandoffsWaiting", { defaultValue: "{{count}} handoffs waiting", count: attention.handoffWaiting.length })}
+            </button>
               </>
             )}
             <span aria-hidden="true">·</span>
@@ -797,6 +812,18 @@ export function NetworkPage() {
             now={simConfig.now}
             onAdvanceTime={async (minutes) => {
               const cfg = { ...simConfig, now: new Date(new Date(simConfig.now).getTime() + minutes * 60_000).toISOString() };
+              setSimConfig(cfg);
+              await setSetting("simulation-config", cfg);
+              const { generateScenario } = await import("../simulation/scenario");
+              const scenario = generateScenario({ role: cfg.role, intensity: cfg.intensity, seed: cfg.seed, now: cfg.now });
+              const existing = new Set((incidents ?? []).map((i) => i.id));
+              for (const d of scenario.incidents) {
+                if (!existing.has(d.id)) await putIncident(d);
+              }
+              await refresh();
+            }}
+            onConfigure={async (next) => {
+              const cfg = { ...simConfig, role: next.role, intensity: next.intensity };
               setSimConfig(cfg);
               await setSetting("simulation-config", cfg);
               const { generateScenario } = await import("../simulation/scenario");
@@ -959,24 +986,11 @@ export function NetworkPage() {
         </div>
       ) : (
         <>
-          {duplicates.length > 0 && (
-            <div className="notice warning" style={{ marginTop: "var(--space-4)" }}>
-              <Icons.warning size={18} />
-              <div>
-                <strong>{t("possibleDuplicates", { defaultValue: "Possible duplicate reports" })}</strong> —{" "}
-                {t("duplicateNote", { defaultValue: "these incidents look similar by location, time and description. Nothing is merged automatically; review them:" })}
-                <ul style={{ margin: "6px 0 0", paddingLeft: 20 }}>
-                  {duplicates.map((d, idx) => (
-                    <li key={idx}>
-                      <Link to={`/incidents/${d.a.id}`}>{d.a.humanReference}</Link> and{" "}
-                      <Link to={`/incidents/${d.b.id}`}>{d.b.humanReference}</Link>
-                      {d.distanceKm != null && <> — {formatDistance(d.distanceKm, settings.units)} apart, ~{Math.round(d.ageHours)}h</>}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
+          {/* 0.3.0-dev.4 Duplicate Review V4: grouped clusters, signal chips,
+              compact summary — replaces the pair-permutation warning wall. */}
+          <div style={{ marginTop: "var(--space-4)" }}>
+            <DuplicateReview pairs={duplicates} incidentsById={new Map(filtered.map((i) => [i.id, i]))} />
+          </div>
 
           <div className="row between" style={{ marginTop: "var(--space-5)", flexWrap: "wrap", gap: 8 }}>
             <h2 className="section-label" style={{ margin: 0 }}>{t("incidentQueue", { defaultValue: "Incident queue" })} ({inArea.length})</h2>

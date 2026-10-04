@@ -131,7 +131,8 @@ describe("localization sweeps found by the pseudo-locale", () => {
     expect(map).toContain("STATUS_MARKER_STYLES");
     const page = readFileSync(join(root, "src/features/network/NetworkPage.tsx"), "utf-8");
     expect(page).toContain("range24h");
-    expect(page).toContain('t("possibleDuplicates"');
+    // 0.3.0-dev.4: the duplicate wall became the grouped DuplicateReview component
+    expect(page).toContain('<DuplicateReview');
     expect(page).not.toContain("Possible duplicate report{duplicates");
   });
 });

@@ -12,7 +12,7 @@
   "app": {
     "windows": [],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' data: blob: https://tile.openstreetmap.org https://server.arcgisonline.com https://nominatim.openstreetmap.org; connect-src 'self' https://tile.openstreetmap.org https://server.arcgisonline.com https://nominatim.openstreetmap.org; script-src 'self' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'"
+      "csp": "default-src 'self'; img-src 'self' data: blob: https://tile.openstreetmap.org https://server.arcgisonline.com https://nominatim.openstreetmap.org https://s3.amazonaws.com; connect-src 'self' https://tile.openstreetmap.org https://server.arcgisonline.com https://nominatim.openstreetmap.org https://s3.amazonaws.com; script-src 'self' blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'"
     },
     "withGlobalTauri": true
   },

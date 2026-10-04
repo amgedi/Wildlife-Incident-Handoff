@@ -74,6 +74,8 @@ export function NetworkMap({
   const [mapReady, setMapReady] = useState(false);
   const [layerPanelOpen, setLayerPanelOpen] = useState(false);
   const [terrainFailed, setTerrainFailed] = useState(false);
+  const [terrainActive, setTerrainActive] = useState(false);
+  const [terrainAttempt, setTerrainAttempt] = useState(0);
   const [measureMode, setMeasureMode] = useState(false);
   const [measurePts, setMeasurePts] = useState<[number, number][]>([]);
   const [cluster, setCluster] = useState<{ summary: ClusterSummary; bounds: [[number, number], [number, number]] } | null>(null);
@@ -211,6 +213,7 @@ export function NetworkMap({
       // Real DEM or nothing: a failed setup falls back to 2D with an honest
       // notice (never synthesized elevation).
       const ok = enableTerrain(map, prefs.exaggeration, () => setTerrainFailed(true));
+      setTerrainActive(ok);
       if (!ok) {
         setTerrainFailed(true);
         setPrefs((p) => ({ ...p, mode: "2d" }));
@@ -223,7 +226,7 @@ export function NetworkMap({
       setTerrainFailed(false);
       if (mode !== "terrain") map.easeTo({ pitch: 0, duration: 400 });
     }
-  }, [mapReady, mode, offline, prefs.layers.terrain, prefs.exaggeration]);
+  }, [mapReady, mode, offline, prefs.layers.terrain, prefs.exaggeration, terrainAttempt]);
 
   // ---- Measure mode (spec 25): two clicks, Esc or button exits --------------
   useEffect(() => {
@@ -317,9 +320,30 @@ export function NetworkMap({
           </span>
         </div>
       )}
+      {prefs.mode === "terrain" && !offline && !terrainFailed && !terrainActive && (
+        <div className="notice" style={{ marginBottom: "var(--space-3)" }} role="status" data-testid="terrain-loading">
+          <span>{t("mv4TerrainLoading", { defaultValue: "Terrain — loading elevation…" })}</span>
+        </div>
+      )}
+      {prefs.mode === "terrain" && !offline && terrainActive && !terrainFailed && (
+        <div className="notice" style={{ marginBottom: "var(--space-3)" }} role="status" data-testid="terrain-active">
+          <span>{t("mv4TerrainActive", { defaultValue: "Terrain active — elevation data: AWS Terrain Tiles (Terrarium). Relief: {{relief}}.", relief: prefs.exaggeration === "enhanced" ? "Enhanced" : "Natural" })}</span>
+        </div>
+      )}
       {terrainFailed && (
-        <div className="notice warning" style={{ marginBottom: "var(--space-3)" }} role="status">
-          <span>{t("mv4TerrainError", { defaultValue: "Terrain 3D needs an internet connection and WebGL — switched back to the 2D map." })}</span>
+        <div className="notice warning" style={{ marginBottom: "var(--space-3)" }} role="status" data-testid="terrain-unavailable">
+          <span>{t("mv4TerrainError", { defaultValue: "Terrain unavailable — using the 2D map. Terrain 3D needs an internet connection and WebGL." })}</span>
+          <button
+            className="btn btn-secondary btn-sm"
+            data-testid="terrain-retry"
+            onClick={() => {
+              setTerrainFailed(false);
+              setPrefs((p) => ({ ...p, mode: "terrain" }));
+              setTerrainAttempt((n) => n + 1);
+            }}
+          >
+            {t("mv4TerrainRetry", { defaultValue: "Retry" })}
+          </button>
         </div>
       )}
       {offline && (

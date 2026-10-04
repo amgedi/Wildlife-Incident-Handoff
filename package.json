@@ -12,7 +12,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "set-version": "node scripts/set-version.mjs"
+    "set-version": "node scripts/set-version.mjs",
+    "prebuild": "node scripts/gen-build-identity.mjs",
+    "desktop:release": "node scripts/desktop-release.mjs"
   },
   "dependencies": {
     "@floating-ui/dom": "^1.8.0",

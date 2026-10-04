@@ -25,6 +25,7 @@ import { getCountryProfile } from "../country/countryProfile";
 import { DeviceCenter } from "../devices/DeviceCenter";
 import { StewardshipCard } from "../recognition/StewardshipCard";
 import { ProfilePhoto } from "../../components/ProfilePhoto";
+import * as buildIdentity from "../../build-identity";
 import { channelStatuses, requestWebNotificationPermission, webNotificationPermission, sendSystemNotification } from "../../notifications/delivery";
 import {
   DEFAULT_LAN_SYNC_CONFIG, acceptPeerWithUnion, lanPairPeer,
@@ -1152,12 +1153,24 @@ function StatusFixture() {
 function AboutSection() {
   const { settings } = useApp();
   const [diagCopied, setDiagCopied] = useState(false);
+  // 0.3.0-dev.4 build identity (spec 1/48): version + commit + build time +
+  // frontend build id, so a stale or crossed build is immediately visible.
+  let identity: { BUILD_COMMIT: string; BUILD_TIME: string; FRONTEND_BUILD_ID: string } | null = null;
+  try {
+    identity = {
+      BUILD_COMMIT: buildIdentity.BUILD_COMMIT,
+      BUILD_TIME: buildIdentity.BUILD_TIME,
+      FRONTEND_BUILD_ID: buildIdentity.FRONTEND_BUILD_ID,
+    };
+  } catch { identity = null; }
   async function copyDiagnostics() {
     const [inc, blobs, est] = await Promise.all([getAllIncidents(), getAllAttachmentBlobs(), estimateStorage()]);
     const lines = [
       "Wildlife Incident Handoff — diagnostics",
       `applicationVersion: ${appVersion}`,
-      `buildId: ${buildId}`,
+      `buildCommit: ${identity?.BUILD_COMMIT ?? "unknown"}`,
+      `builtAt: ${identity?.BUILD_TIME ?? "unknown"}`,
+      `frontendBuildId: ${identity?.FRONTEND_BUILD_ID ?? buildId}`,
       `dataSchemaVersion: ${dataSchemaVersion}`,
       `platform: ${isTauri() ? "desktop (Tauri)" : "web/PWA"}`,
       `workspace: ${settings.workspace}`,
@@ -1177,9 +1190,12 @@ function AboutSection() {
   return (
     <div className="card">
       <h3 style={{ marginTop: 0 }}>Wildlife Incident Handoff</h3>
-      <dl className="kv">
+      <dl className="kv" data-testid="about-build-identity">
         <dt>Version</dt><dd>{appVersion}</dd>
-        <dt>Build</dt><dd><code>{buildId}</code></dd>
+        <dt>Commit</dt><dd><code>{identity?.BUILD_COMMIT ?? "unknown"}</code></dd>
+        <dt>Built</dt><dd>{identity?.BUILD_TIME ?? "unknown"}</dd>
+        <dt>Runtime</dt><dd>{isTauri() ? "Tauri Desktop" : "Web / PWA"}</dd>
+        <dt>Frontend build</dt><dd><code>{identity?.FRONTEND_BUILD_ID ?? buildId}</code></dd>
         <dt>Data format</dt><dd>v{dataSchemaVersion} (schemaVersion)</dd>
         <dt>License</dt><dd>{APP_LICENSE} <a href="https://www.gnu.org/licenses/agpl-3.0.txt" target="_blank" rel="noreferrer">View license</a></dd>
         <dt>Data location</dt><dd>This browser, this device</dd>

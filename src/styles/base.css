@@ -90,7 +90,7 @@ code { font-family: var(--font-mono); font-size: 0.85em; background: var(--c-sur
 .sidebar nav.nav-work { display: flex; flex-direction: column; gap: 2px; flex: 1; }
 .sidebar nav.nav-footer {
   display: flex; flex-direction: column; gap: 2px;
-  margin-top: var(--space-3); padding-top: var(--space-2);
+  margin-top: auto; padding-top: var(--space-2);
   border-top: 1px solid rgb(255 255 255 / 0.12);
   align-items: stretch;
 }
@@ -252,13 +252,28 @@ body.drawer-open { overflow: hidden; }
 }
 
 /* Segmented control */
-.segmented { display: inline-flex; border: 1px solid var(--c-border-strong); border-radius: var(--radius-sm); overflow: hidden; }
-.segmented button {
-  padding: var(--space-2) var(--space-4); border: none; background: var(--c-surface);
-  color: var(--c-ink-soft); font: inherit; font-size: 0.88rem; cursor: pointer; min-height: 38px;
+/* Segmented control V4 (0.3.0-dev.4): floating surface, animated selected
+   state, subtle dividers, theme-aware — one component for true mutually
+   exclusive modes (List/Map, basemap modes, analytics ranges). */
+.segmented {
+  display: inline-flex; gap: 2px; padding: 3px;
+  border: 1px solid var(--c-border); border-radius: 999px;
+  background: color-mix(in srgb, var(--c-surface-alt) 80%, transparent);
 }
-.segmented button + button { border-left: 1px solid var(--c-border-strong); }
-.segmented button[aria-pressed="true"] { background: var(--c-primary); color: var(--c-primary-ink); font-weight: 600; }
+.segmented button {
+  padding: 5px 14px; border: none; background: transparent;
+  color: var(--c-ink-soft); font: inherit; font-size: 0.84rem; font-weight: 550;
+  cursor: pointer; min-height: 30px; border-radius: 999px;
+  transition: background 160ms var(--ease, ease), color 160ms var(--ease, ease), box-shadow 160ms var(--ease, ease);
+}
+.segmented button + button { border-left: none; }
+[data-motion="full"] .segmented button:hover { color: var(--c-ink); background: color-mix(in srgb, var(--c-primary) 7%, transparent); }
+.segmented button[aria-pressed="true"] {
+  background: var(--c-primary); color: var(--c-primary-ink); font-weight: 650;
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--c-primary) 35%, transparent);
+}
+.segmented button:focus-visible { outline: 2px solid var(--c-focus); outline-offset: 2px; }
+.segmented-sm button { padding: 3px 10px; font-size: 0.78rem; min-height: 26px; }
 
 /* ---------- Badges & status ---------- */
 .badge {
@@ -1258,7 +1273,6 @@ h3 { font-size: 1rem; }
 .rflow-more { margin-top: var(--space-2); }
 .rflow-hint { margin: 0; }
 
-.segmented-sm button { padding: 2px 10px; font-size: 0.78rem; }
 
 /* ---------- Command palette (0.3, Ctrl+K) ---------- */
 .palette-scrim {
@@ -1421,7 +1435,7 @@ button.ax-dist-row:hover { border-color: var(--c-border); background: var(--c-su
 }
 
 /* ---------- 0.3.0-dev.3 sidebar contextual sections (spec 52–56) ---------- */
-.sidebar-context { margin-top: auto; padding: 0 10px 8px; display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto; }
+.sidebar-context { margin-top: var(--space-3); padding: 0 10px; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
 .sidebar-section { display: flex; flex-direction: column; gap: 2px; }
 .sidebar-section-label {
   margin: 0 0 3px; font-size: 0.68rem; font-weight: 650; letter-spacing: 0.09em;
@@ -1436,7 +1450,7 @@ button.ax-dist-row:hover { border-color: var(--c-border); background: var(--c-su
 .sidebar-context-item:focus-visible { outline: 2px solid var(--c-focus); outline-offset: -2px; }
 .sidebar-context-ref { font-weight: 600; font-variant-numeric: tabular-nums; }
 .sidebar-context-sub { font-size: 0.74rem; opacity: 0.75; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sidebar-status { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; border-top: 1px solid rgb(255 255 255 / 0.08); }
+.sidebar-status { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; margin-top: auto; border-top: 1px solid rgb(255 255 255 / 0.08); }
 .sidebar-status-item { display: inline-flex; align-items: center; gap: 6px; font-size: 0.74rem; color: var(--c-sidebar-ink, var(--c-ink-faint)); }
 .sidebar-status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c-ink-faint); }
 .sidebar-status-dot.ok { background: var(--c-ok, #4f9d6e); }
@@ -1489,3 +1503,40 @@ button.ax-dist-row:hover { border-color: var(--c-border); background: var(--c-su
   font-weight: 600;
 }
 .mv4-measure { font-variant-numeric: tabular-nums; }
+
+/* ---------- 0.3.0-dev.4 dashboard counters + duplicate review ---------- */
+.ops-counter {
+  font: inherit; font-size: inherit; color: inherit; background: none; border: none;
+  padding: 0 2px; cursor: pointer; border-radius: 4px;
+  text-decoration: none; border-bottom: 1px dashed transparent;
+  transition: color 140ms var(--ease, ease), border-color 140ms var(--ease, ease);
+}
+[data-motion="full"] .ops-counter:hover { color: var(--c-primary); border-bottom-color: currentcolor; }
+.ops-counter:focus-visible { outline: 2px solid var(--c-focus); outline-offset: 2px; }
+.ops-counter.ops-flag-warn { color: var(--c-warn); font-weight: 600; }
+.ops-counter.ops-flag-warn:hover { color: var(--c-warn); }
+.dup-review { border-left: 3px solid color-mix(in srgb, var(--c-warn) 45%, var(--c-border)); }
+.dup-ref {
+  font-variant-numeric: tabular-nums; font-weight: 600; font-size: 0.86rem;
+  color: var(--c-ink); text-decoration: underline; text-decoration-color: var(--c-border-strong);
+  padding: 1px 2px; border-radius: 4px;
+}
+[data-motion="full"] .dup-ref:hover { text-decoration-color: var(--c-primary); }
+.dup-ref:focus-visible { outline: 2px solid var(--c-focus); outline-offset: 2px; }
+.dup-group .chip { font-size: 0.74rem; }
+
+/* ---------- 0.3.0-dev.4 compact simulation bar (spec 25–28) ---------- */
+.sim-bar {
+  margin-top: var(--space-3);
+  padding: 7px 12px;
+  border: 1px dashed color-mix(in srgb, var(--c-warn) 45%, var(--c-border));
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--c-warn) 4%, var(--c-surface));
+}
+.sim-badge {
+  font-size: 0.68rem; font-weight: 750; letter-spacing: 0.1em;
+  color: var(--c-warn); border: 1px solid color-mix(in srgb, var(--c-warn) 55%, transparent);
+  border-radius: 4px; padding: 1px 6px;
+}
+.sim-meta { font-size: 0.8rem; color: var(--c-ink-soft); font-variant-numeric: tabular-nums; }
+.sim-sheet { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--c-border); }
