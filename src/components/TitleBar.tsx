@@ -11,7 +11,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { isTauri } from "../utils/platformFile";
-import { BearPawMark } from "./BrandMark";
+import { AppMark } from "./BrandMark";
 import { NotificationBell } from "./NotificationCenter";
 
 interface WindowApi {
@@ -46,7 +46,7 @@ export function TitleBar() {
       aria-label="Window title bar"
     >
       <div className="titlebar-brand" data-tauri-drag-region>
-        <BearPawMark size={20} />
+        <AppMark size={20} />
         <span data-tauri-drag-region>Wildlife Incident Handoff</span>
       </div>
       <div className="titlebar-bell" data-tauri-drag-region={false}>

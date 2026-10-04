@@ -9,7 +9,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "../../app/AppContext";
 import { Icons } from "../../components/Icons";
-import { BearPawMark } from "../../components/BrandMark";
+import { AppMark } from "../../components/BrandMark";
 import { LeaderboardCard } from "../social/LeaderboardCard";
 
 import { EmptyState } from "../../components/ui";
@@ -292,7 +292,7 @@ export function HomePage() {
       return (
         <div className="card">
           <EmptyState
-            icon={<BearPawMark size={48} tile={false} style={{ color: "var(--brand-icon-bg)" }} />}
+            icon={<AppMark size={48} tile={false} style={{ color: "var(--brand-icon-bg)" }} />}
             title={t("home:noIncidentsTitle", { defaultValue: "No incidents yet" })}
             hint={t("home:noIncidentsHint", { defaultValue: "Create the first incident to get started." })}
             action={

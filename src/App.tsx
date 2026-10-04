@@ -160,7 +160,7 @@ export function App() {
         <aside className={`sidebar${drawerOpen ? " drawer-open" : ""}`} aria-label={t("navigation:mainNav")}>
           {/* Compact identity header — the desktop titlebar already carries the product name. */}
           <NavLink to="/" className="brand">
-            <ProfilePhoto src={settings.profilePhoto} size={34} border={settings.photoBorder} title={identityLine} />
+            <ProfilePhoto src={settings.profilePhoto} size={34} name={settings.professionalProfile?.name || settings.displayName} title={identityLine} />
             <span className="brand-name">
               <strong>{identityLine}</strong>
               <span className="brand-sub">{subLine}</span>

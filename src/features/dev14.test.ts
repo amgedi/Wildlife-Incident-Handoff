@@ -2,7 +2,6 @@
 import { describe, it, expect } from "vitest";
 import { computeLeaderboard, levelFor, nextMilestone } from "./social/leaderboard";
 import { getMapProviderDescriptor, MAP_PROVIDERS } from "./network/mapProvider";
-import { PHOTO_BORDER_STYLES } from "../components/ProfilePhoto";
 import { readFileSync } from "fs";
 
 describe("reporter leaderboard (local, honest)", () => {
@@ -43,13 +42,14 @@ describe("satellite basemap (real-life view)", () => {
   });
 });
 
-describe("profile photo decorative borders", () => {
-  it("offers the requested styles", () => {
-    expect(PHOTO_BORDER_STYLES).toContain("leaves");
-    expect(PHOTO_BORDER_STYLES).toContain("wood");
-    expect(PHOTO_BORDER_STYLES).toContain("rope");
-    expect(PHOTO_BORDER_STYLES).toContain("stars");
-    expect(PHOTO_BORDER_STYLES).toContain("none");
+describe("profile photo decorative borders (0.3: retired)", () => {
+  it("decorative rings are retired — the avatar uses a single subtle accent ring", () => {
+    const src = readFileSync("src/components/ProfilePhoto.tsx", "utf-8");
+    expect(src.includes("leaves")).toBe(false);
+    expect(src.includes("stars")).toBe(false);
+    expect(src.includes("rope")).toBe(false);
+    // paw is no longer the person's default identity
+    expect(src.includes("BearPawMark")).toBe(false);
   });
 });
 

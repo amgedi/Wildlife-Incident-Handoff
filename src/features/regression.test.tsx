@@ -111,47 +111,48 @@ describe("status identity", () => {
   });
 });
 
-describe("canonical bear paw", () => {
-  it("canonical paw has exactly four toes and four claws", async () => {
+describe("canonical app mark (0.3 handoff relay)", () => {
+  it("app mark: two nodes + one route path, no hard-coded colors", async () => {
     const mod = await import("../components/BrandMark");
     const { render } = await import("@testing-library/react");
-    const { container } = render(mod.BearPawMark({ size: 32 }));
-    // toes = ellipses with ry=10 (TOE_RY); claws = ellipses with fill-opacity 0.62
-    const all = container.querySelectorAll("ellipse");
-    const toes = Array.from(all).filter((e) => e.getAttribute("ry") === "10");
-    const claws = Array.from(all).filter((e) => e.getAttribute("fill-opacity") === "0.62");
-    expect(toes.length).toBe(4);
-    expect(claws.length).toBe(4);
-    // symmetric: toe cx pairs mirror around x=32
-    const cxs = toes.map((e) => Number(e.getAttribute("cx"))).sort((a, b) => a - b);
-    expect(Math.abs(32 - (cxs[0]! + cxs[3]!) / 2)).toBeLessThan(0.6);
-    expect(Math.abs(32 - (cxs[1]! + cxs[2]!) / 2)).toBeLessThan(0.6);
-    // one pad
+    const { container } = render(mod.AppMark({ size: 32 }));
+    const circles = container.querySelectorAll("circle");
+    expect(circles.length).toBe(2);
+    const stroked = Array.from(circles).filter((c) => c.getAttribute("stroke"));
+    expect(stroked.length).toBe(1);
     expect(container.querySelectorAll("path").length).toBe(1);
-  });
-
-  it("BrandMark delegates to the canonical BearPawMark geometry", async () => {
-    const { render } = await import("@testing-library/react");
-    const mod = await import("../components/BrandMark");
-    const a = render(mod.BrandMark({ size: 24 })).container.querySelector("g g");
-    const b = render(mod.BearPawMark({ size: 24 })).container.querySelector("g g");
-    expect(a?.innerHTML).toBe(b?.innerHTML);
-  });
-
-  it("in-app logo colors come from theme tokens, not hard-coded green", async () => {
-    const mod = await import("../components/BrandMark");
-    const { render } = await import("@testing-library/react");
-    const { container } = render(mod.BearPawMark({ size: 32 }));
     expect(container.innerHTML.includes("var(--brand-icon-bg")).toBe(true);
     expect(container.innerHTML.includes("var(--brand-icon-fg")).toBe(true);
-    // the fallback in var() is allowed, but no bare hard-coded fill may exist
     expect(/fill="#[0-9a-f]{6}"/i.test(container.innerHTML)).toBe(false);
   });
 
-  it("home hero no longer repeats the brand mark (logo toning, 0.2.0-dev.12)", () => {
-    const src = readFileSync("src/features/home/HomePage.tsx", "utf-8");
-    // The titlebar + sidebar already identify the product; the hero must not.
-    expect(src.includes("hero-art")).toBe(false);
-    expect(src.includes("<BrandMark")).toBe(false);
+  it("BrandMark (shell logo) is the new relay mark, not the paw", async () => {
+    const { render } = await import("@testing-library/react");
+    const mod = await import("../components/BrandMark");
+    const a = render(mod.BrandMark({ size: 24 })).container.querySelector("g");
+    const b = render(mod.AppMark({ size: 24 })).container.querySelector("g");
+    expect(a?.innerHTML).toBe(b?.innerHTML);
+    expect(a?.innerHTML).not.toContain("ellipse");
+  });
+
+  it("paw is retired from identity surfaces", () => {
+    for (const file of ["src/components/TitleBar.tsx", "src/App.tsx", "src/components/ProfilePhoto.tsx", "src/features/home/HomePage.tsx"]) {
+      const src = readFileSync(file, "utf-8");
+      expect(src.includes("BearPawMark"), file).toBe(false);
+    }
+  });
+
+  it("profile avatar defaults to initials/silhouette, never the paw", async () => {
+    const { ProfilePhoto, initialsFor } = await import("../components/ProfilePhoto");
+    const { render } = await import("@testing-library/react");
+    expect(initialsFor("Maya Chen")).toBe("MC");
+    expect(initialsFor("Amged")).toBe("A");
+    expect(initialsFor("   ")).toBe("");
+    const named = render(ProfilePhoto({ src: null, size: 32, name: "Maya Chen" }));
+    expect(named.container.querySelector("text")?.textContent).toBe("MC");
+    named.unmount();
+    const anon = render(ProfilePhoto({ src: null, size: 32, name: null }));
+    expect(anon.container.querySelector("text")).toBeNull();
+    expect(anon.container.querySelector("circle")).toBeTruthy();
   });
 });

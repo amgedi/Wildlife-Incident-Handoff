@@ -19,8 +19,8 @@ import { DEFAULT_NOTIFICATION_CATEGORIES } from "../../types/settings";
 import { displayPhone, normalizePhoneForStorage, isValidPhone, parsePhone } from "../../utils/phone";
 import { resetAllGuidance } from "../../features/tutorial/guidance";
 import { getMapProviderDescriptor } from "../network/mapProvider";
-import { ProfilePhoto, PHOTO_BORDER_STYLES } from "../../components/ProfilePhoto";
 import { RoleCard } from "./RoleCard";
+import { ProfilePhoto } from "../../components/ProfilePhoto";
 import { channelStatuses, requestWebNotificationPermission, webNotificationPermission, sendSystemNotification } from "../../notifications/delivery";
 import {
   DEFAULT_LAN_SYNC_CONFIG, acceptPeerWithUnion, lanPairPeer,
@@ -1001,7 +1001,7 @@ function ProfileSection() {
           <span>{t("profileLocal", { defaultValue: "Stored locally on this device. Pre-fills reports only — final report privacy controls decide what is shared." })}</span>
         </div>
         <div className="row" style={{ gap: "var(--space-4)", flexWrap: "wrap", alignItems: "center", margin: "var(--space-3) 0" }} data-testid="profile-photo">
-          <ProfilePhoto src={settings.profilePhoto} size={72} border={settings.photoBorder} title={t("profileTitle", { defaultValue: "Your profile" })} />
+          <ProfilePhoto src={settings.profilePhoto} size={72} name={draft.name || settings.professionalProfile?.name || settings.displayName} title={t("profileTitle", { defaultValue: "Your profile" })} />
           <div className="stack" style={{ gap: 6 }}>
             <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
               <button className="btn btn-secondary btn-sm" onClick={() => photoInputRef.current?.click()}>
@@ -1022,27 +1022,13 @@ function ProfileSection() {
                 tabIndex={-1}
               />
             </div>
-            <div className="row" style={{ gap: 6, flexWrap: "wrap" }} role="group" aria-label={t("photoBorder", { defaultValue: "Picture border style" })}>
-              {PHOTO_BORDER_STYLES.map((style) => (
-                <button
-                  key={style}
-                  className="chip"
-                  aria-pressed={settings.photoBorder === style}
-                  onClick={() => updateSettings({ photoBorder: style })}
-                >
-                  {t(`photoBorder_${style}`, {
-                    defaultValue: ({ none: "Plain", leaves: "Leaves", wood: "Wood", rope: "Rope", stars: "Stars" } as Record<string, string>)[style] ?? style,
-                  })}
-                </button>
-              ))}
-            </div>
             <p className="hint" style={{ margin: 0 }}>{t("photoHint", { defaultValue: "Shown only in your sidebar, on this device." })}</p>
           </div>
         </div>
         <div className="grid-2">
           <TextField label={t("profileName", { defaultValue: "Name" })} value={draft.name} onChange={(v) => setDraft({ ...draft, name: v })} optional />
-          <TextField label={t("profileOrg", { defaultValue: "Organization (optional)" })} value={draft.organization} onChange={(v) => setDraft({ ...draft, organization: v })} optional />
-          <TextField label={t("profileRole", { defaultValue: "Role (optional)" })} value={draft.role} onChange={(v) => setDraft({ ...draft, role: v })} optional hint={t("profileRoleHint", { defaultValue: "e.g. Volunteer transport, Rehabilitator, Ranger" })} />
+          <TextField label={t("profileOrg", { defaultValue: "Organization" })} value={draft.organization} onChange={(v) => setDraft({ ...draft, organization: v })} optional />
+          <TextField label={t("profileRole", { defaultValue: "Role" })} value={draft.role} onChange={(v) => setDraft({ ...draft, role: v })} optional hint={t("profileRoleHint", { defaultValue: "e.g. Volunteer transport, Rehabilitator, Ranger" })} />
           <Select
             label={t("profileCountry", { defaultValue: "Country or region" })}
             value={settings.country}

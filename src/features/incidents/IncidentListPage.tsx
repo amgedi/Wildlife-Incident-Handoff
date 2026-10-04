@@ -11,7 +11,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useApp } from "../../app/AppContext";
 import { Icons } from "../../components/Icons";
-import { BearPawMark } from "../../components/BrandMark";
+import { AppMark } from "../../components/BrandMark";
 import { EmptyState } from "../../components/ui";
 import { Dialog } from "../../components/Dialog";
 import { useIncidents } from "./IncidentCard";
@@ -380,7 +380,7 @@ export function IncidentListPage() {
         <div className="card">
           {view === "active" && !query && activeFilters.length === 0 ? (
             <EmptyState
-              icon={<BearPawMark size={48} tile={false} style={{ color: "var(--brand-icon-bg)" }} />}
+              icon={<AppMark size={48} tile={false} style={{ color: "var(--brand-icon-bg)" }} />}
               title={isReporter ? t("reports:title") : t("home:noIncidents")}
               hint={isReporter ? t("home:noReportsHint") : t("home:noIncidentsHint")}
               action={
