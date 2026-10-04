@@ -91,12 +91,13 @@ export function StewardshipCard({ incidents, actor, tutorialsCompleted, priorEar
   useEffect(() => {
     if (!priorEarned || toastedRef.current) return;
     const fresh = progress.earned.filter((b) => !priorEarned.includes(b));
-    if (fresh.length > 0) {
+    const first = fresh[0];
+    if (first) {
       toastedRef.current = true;
       showToast(
         t("stewardToast", {
           defaultValue: "Achievement unlocked — {{badge}}",
-          badge: t(`stewardBadge_${fresh[0]}`, { defaultValue: fresh[0].replaceAll("_", " ") }),
+          badge: t(`stewardBadge_${first}`, { defaultValue: first.replaceAll("_", " ") }),
         })
       );
     }
@@ -114,7 +115,7 @@ export function StewardshipCard({ incidents, actor, tutorialsCompleted, priorEar
     updateSettings({ recognitionShowcase: next });
   };
 
-  const levelStart = STEWARDSHIP_LEVELS[progress.level - 1];
+  const levelStart = STEWARDSHIP_LEVELS[progress.level - 1] ?? 0;
   const span = progress.scoreForNextLevel !== null ? progress.scoreForNextLevel - levelStart : progress.score - levelStart;
   const pct = span > 0 ? Math.min(100, Math.round((progress.scoreIntoLevel / span) * 100)) : 100;
 

@@ -187,7 +187,7 @@ export function stewardshipProgress(
     .map((r) => ({ badge: r.badge, how: r.description }));
 
   if (!name) {
-    return { level: 1, score: 0, scoreIntoLevel: 0, scoreForNextLevel: STEWARDSHIP_LEVELS[1], nextMilestone: milestoneFor("accepted_reports", ZERO_VALUES), earned: [], locked };
+    return { level: 1, score: 0, scoreIntoLevel: 0, scoreForNextLevel: STEWARDSHIP_LEVELS[1] ?? 8, nextMilestone: milestoneFor("accepted_reports", ZERO_VALUES), earned: [], locked };
   }
 
   const mine = incidents.filter((i) => !i.deletedAt && !i.isDemo && actorInvolved(i, name));
@@ -224,26 +224,26 @@ export function stewardshipProgress(
   const score = Object.values(values).reduce((a, b) => a + b, 0);
   let level = 1;
   for (let l = STEWARDSHIP_LEVELS.length; l >= 1; l -= 1) {
-    if (score >= STEWARDSHIP_LEVELS[l - 1]) {
+    if (score >= (STEWARDSHIP_LEVELS[l - 1] ?? 0)) {
       level = l;
       break;
     }
   }
 
-  const scoreForNextLevel = level < STEWARDSHIP_MAX_LEVEL ? STEWARDSHIP_LEVELS[level] : null;
+  const nextThreshold = level < STEWARDSHIP_MAX_LEVEL ? STEWARDSHIP_LEVELS[level] ?? null : null;
   const nextMilestone =
-    scoreForNextLevel === null
+    nextThreshold === null
       ? null
       : milestoneFor(
-          (STEWARDSHIP_INPUTS.find((input) => values[input.key] < input.cap) ?? STEWARDSHIP_INPUTS[0]).key,
+          (STEWARDSHIP_INPUTS.find((input) => values[input.key] < input.cap) ?? STEWARDSHIP_INPUTS[0]!).key,
           values
         );
 
   return {
     level,
     score,
-    scoreIntoLevel: score - STEWARDSHIP_LEVELS[level - 1],
-    scoreForNextLevel,
+    scoreIntoLevel: score - (STEWARDSHIP_LEVELS[level - 1] ?? 0),
+    scoreForNextLevel: nextThreshold,
     nextMilestone,
     earned,
     locked,
