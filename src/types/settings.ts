@@ -73,6 +73,9 @@ export interface AppSettings {
   deviceType: DeviceTypeSetting | null;
   /** Community recognition (0.3): opt-in, private by default. */
   recognition: RecognitionPrivacySetting;
+  /** Stewardship badges pinned to the profile showcase (0.3.0-dev.3).
+   *  At most 3 badge ids; only badges actually earned are honored. */
+  recognitionShowcase?: string[];
   /** Display name used as the default "actor" on new events. */
   displayName: string;
   defaultLocationPrecision: "exact" | "approximate" | "sensitive";
@@ -160,6 +163,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   deviceFriendlyName: "",
   deviceType: null,
   recognition: { enabled: false, privacy: "private" },
+  recognitionShowcase: [],
   displayName: "",
   defaultLocationPrecision: "approximate",
   includeContactsInShareable: false,

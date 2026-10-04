@@ -251,6 +251,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     document.documentElement.dataset.motion = settings.motion;
     document.documentElement.dataset.ambient = settings.ambient;
     document.documentElement.dataset.material = settings.material ?? "solid";
+    // dev.3: theme-aware paw window icon (taskbar/switcher follow the window
+    // icon on Windows). Static canonical paw stays for installer shortcuts.
+    void import("../components/themeIcon").then((m) => m.applyThemeWindowIcon(settings.theme)).catch(() => undefined);
   }, [settings.theme, settings.density, settings.motion, settings.ambient, settings.material]);
 
   // dev.19: persist outside the state updater — updater functions must stay

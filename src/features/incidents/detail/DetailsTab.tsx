@@ -1,5 +1,6 @@
 /** Incident details tab: full record + safe corrections with preserved history. */
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { Incident } from "../../../types/incident";
 import { SectionHeading, TextField } from "../../../components/ui";
 import { Dialog } from "../../../components/Dialog";
@@ -7,15 +8,30 @@ import { Icons } from "../../../components/Icons";
 import { useApp } from "../../../app/AppContext";
 import { correctField } from "../../../storage/incidentService";
 import { ANIMAL_GROUPS, INCIDENT_TYPES, LIFE_STAGES, LOCATION_PRECISIONS, SEXES, labelFor } from "../labels";
+import { correctionField, type CorrectionField, type CorrectionFieldKey } from "../correctionFields";
 import { formatDateTime } from "../../../utils/time";
 
 export function DetailsTab({ incident, onChanged }: { incident: Incident; onChanged: () => void }) {
   const { showToast } = useApp();
-  const [editField, setEditField] = useState<null | { key: "species" | "description" | "locationDescription" | "summary"; label: string; current: string }>(null);
+  const { t } = useTranslation("reports");
+  const [editField, setEditField] = useState<null | { field: CorrectionField; current: string }>(null);
   const [editValue, setEditValue] = useState("");
   const [editReason, setEditReason] = useState("");
 
   const corrections = incident.timeline.filter((e) => e.eventType === "field_corrected");
+
+  /** Open the correction dialog from the registry — the label, placeholder and
+   *  help text come from the field's own metadata, never a generic template. */
+  const openCorrection = (key: CorrectionFieldKey, current: string) => {
+    const field = correctionField(key);
+    if (!field || !field.wired) return;
+    setEditField({ field, current });
+    setEditValue(current);
+    setEditReason("");
+  };
+
+  const label = (field: CorrectionField) =>
+    t(`${field.i18nKey}_label`, { defaultValue: field.displayName, ns: "reports" });
 
   return (
     <div className="stack">
@@ -34,7 +50,7 @@ export function DetailsTab({ incident, onChanged }: { incident: Incident; onChan
           <dt>What happened</dt>
           <dd style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
             <span style={{ whiteSpace: "pre-wrap" }}>{incident.summary ?? <span className="unknown-chip">Not recorded</span>}</span>
-            <button className="btn btn-quiet btn-sm" onClick={() => { setEditField({ key: "summary", label: "What happened", current: incident.summary ?? "" }); setEditValue(incident.summary ?? ""); setEditReason(""); }}>
+            <button className="btn btn-quiet btn-sm" onClick={() => openCorrection("summary", incident.summary ?? "")}>
               <Icons.edit size={13} /> Correct
             </button>
           </dd>
@@ -45,14 +61,14 @@ export function DetailsTab({ incident, onChanged }: { incident: Incident; onChan
                 ? <>{incident.animal.species} <span className="tag">unconfirmed — as reported</span></>
                 : <span className="unknown-chip">Unknown</span>}
             </span>
-            <button className="btn btn-quiet btn-sm" onClick={() => { setEditField({ key: "species", label: "Species", current: incident.animal.species ?? "" }); setEditValue(incident.animal.species ?? ""); setEditReason(""); }}>
+            <button className="btn btn-quiet btn-sm" onClick={() => openCorrection("species", incident.animal.species ?? "")}>
               <Icons.edit size={13} /> {incident.animal.species ? "Correct" : "Identify"}
             </button>
           </dd>
           <dt>Animal description</dt>
           <dd style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
             <span>{incident.animal.description ?? <span className="unknown-chip">Not provided</span>}</span>
-            <button className="btn btn-quiet btn-sm" onClick={() => { setEditField({ key: "description", label: "Animal description", current: incident.animal.description ?? "" }); setEditValue(incident.animal.description ?? ""); setEditReason(""); }}>
+            <button className="btn btn-quiet btn-sm" onClick={() => openCorrection("description", incident.animal.description ?? "")}>
               <Icons.edit size={13} /> Correct
             </button>
           </dd>
@@ -67,7 +83,7 @@ export function DetailsTab({ incident, onChanged }: { incident: Incident; onChan
               {incident.location.landmark ? ` — near ${incident.location.landmark}` : ""}
               {incident.location.address ? `, ${incident.location.address}` : ""}
             </span>
-            <button className="btn btn-quiet btn-sm" onClick={() => { setEditField({ key: "locationDescription", label: "Location description", current: incident.location.description ?? "" }); setEditValue(incident.location.description ?? ""); setEditReason(""); }}>
+            <button className="btn btn-quiet btn-sm" onClick={() => openCorrection("locationDescription", incident.location.description ?? "")}>
               <Icons.edit size={13} /> Correct
             </button>
           </dd>
@@ -80,7 +96,7 @@ export function DetailsTab({ incident, onChanged }: { incident: Incident; onChan
               : <span className="unknown-chip">Not recorded</span>}
           </dd>
           <dt>Tags</dt>
-          <dd>{incident.tags.length > 0 ? incident.tags.map((t) => <span key={t} className="tag" style={{ marginRight: 6 }}>{t}</span>) : "None"}</dd>
+          <dd>{incident.tags.length > 0 ? incident.tags.map((tg) => <span key={tg} className="tag" style={{ marginRight: 6 }}>{tg}</span>) : "None"}</dd>
         </dl>
       </div>
 
@@ -105,7 +121,7 @@ export function DetailsTab({ incident, onChanged }: { incident: Incident; onChan
 
       <Dialog
         open={editField !== null}
-        title={`Correct ${editField?.label.toLowerCase() ?? "field"}`}
+        title={editField ? t("correctionDialogTitle", { defaultValue: "Correct {{field}}", field: label(editField.field) }) : ""}
         onClose={() => setEditField(null)}
         actions={
           <>
@@ -114,7 +130,7 @@ export function DetailsTab({ incident, onChanged }: { incident: Incident; onChan
               className="btn btn-primary"
               onClick={async () => {
                 if (editField) {
-                  await correctField(incident, editField.key, editValue, editReason || null);
+                  await correctField(incident, editField.field.key as Parameters<typeof correctField>[1], editValue, editReason || null);
                   showToast("Corrected — original value preserved in history");
                 }
                 setEditField(null);
@@ -126,11 +142,64 @@ export function DetailsTab({ incident, onChanged }: { incident: Incident; onChan
           </>
         }
       >
-        <TextField label="New value" value={editValue} onChange={setEditValue} multiline={editField?.key === "summary"} />
         {editField && (
-          <p style={{ fontSize: "0.85rem", color: "var(--c-ink-faint)" }}>Current value: “{editField.current || "(empty)"}”</p>
+          <>
+            {editField.field.inputType === "select" ? (
+              <div className="field">
+                <label htmlFor="correction-value">{editField.field.inputLabel}</label>
+                <select
+                  id="correction-value"
+                  className="input"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                >
+                  {editField.field.options?.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+                {editField.field.helpText && <p className="hint">{t(`${editField.field.i18nKey}_help`, { defaultValue: editField.field.helpText })}</p>}
+              </div>
+            ) : (
+              <TextField
+                label={t(`${editField.field.i18nKey}_input`, { defaultValue: editField.field.inputLabel })}
+                value={editValue}
+                onChange={setEditValue}
+                multiline={editField.field.inputType === "textarea"}
+                type={editField.field.inputType === "number" ? "number" : "text"}
+                placeholder={editField.field.placeholder ? t(`${editField.field.i18nKey}_placeholder`, { defaultValue: editField.field.placeholder }) : undefined}
+                hint={editField.field.helpText ? t(`${editField.field.i18nKey}_help`, { defaultValue: editField.field.helpText }) : undefined}
+              />
+            )}
+            <div
+              data-testid="correction-preview"
+              className="notice"
+              style={{ fontSize: "0.88rem", margin: "var(--space-3) 0" }}
+            >
+              <div style={{ fontWeight: 600, marginBottom: 2 }}>
+                {t("correctionPreview", { defaultValue: "Current → Proposed" })}
+              </div>
+              <span>
+                <strong>{label(editField.field)}:</strong>{" "}
+                “{editField.current || t("correctionEmpty", { defaultValue: "(empty)" })}” → “{editValue || t("correctionEmpty", { defaultValue: "(empty)" })}”
+              </span>
+            </div>
+            {editField.field.privacyNote && (
+              <p style={{ fontSize: "0.85rem", color: "var(--c-ink-faint)" }}>
+                {t(`${editField.field.i18nKey}_privacy`, { defaultValue: editField.field.privacyNote })}
+              </p>
+            )}
+            <p style={{ fontSize: "0.85rem", color: "var(--c-ink-faint)" }}>
+              {t("correctionCurrentLabel", { defaultValue: "Current {{field}}:", field: label(editField.field) })} “{editField.current || t("correctionEmpty", { defaultValue: "(empty)" })}”
+            </p>
+            <TextField
+              label={t("correctionReason", { defaultValue: "Reason for correction" })}
+              value={editReason}
+              onChange={setEditReason}
+              optional
+              placeholder={t(`${editField.field.i18nKey}_reasonExample`, { defaultValue: `e.g. ${editField.field.reasonExample}` })}
+            />
+          </>
         )}
-        <TextField label="Reason for correction" value={editReason} onChange={setEditReason} optional placeholder="e.g. Identified from a photo by a rehabilitator" />
       </Dialog>
     </div>
   );

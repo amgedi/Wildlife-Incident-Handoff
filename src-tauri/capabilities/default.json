@@ -27,6 +27,7 @@
     "core:window:allow-outer-size",
     "core:window:allow-maximize",
     "core:window:allow-unmaximize",
-    "notification:default"
+    "notification:default",
+    "core:window:allow-set-icon"
   ]
 }
