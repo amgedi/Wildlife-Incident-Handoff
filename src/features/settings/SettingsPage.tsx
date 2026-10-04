@@ -22,6 +22,7 @@ import { getMapProviderDescriptor } from "../network/mapProvider";
 import { RoleCard } from "./RoleCard";
 import { CountryComboBox } from "../../components/CountryComboBox";
 import { getCountryProfile } from "../country/countryProfile";
+import { DeviceCenter } from "../devices/DeviceCenter";
 import { ProfilePhoto } from "../../components/ProfilePhoto";
 import { channelStatuses, requestWebNotificationPermission, webNotificationPermission, sendSystemNotification } from "../../notifications/delivery";
 import {
@@ -42,7 +43,8 @@ const SECTIONS = [
   { id: "storage", labelKey: "storage", icon: Icons.archive, keywords: "backup storage import export where is my data" },
   { id: "notifications", labelKey: "notifications", icon: Icons.bell, keywords: "notifications bell toasts quiet hours sound categories" },
   { id: "map", labelKey: "map", icon: Icons.map, keywords: "map tiles provider online offline test connection" },
-  { id: "sync", labelKey: "sync", icon: Icons.handoff, keywords: "lan sync local network devices peer share wifi ethernet" },
+  { id: "sync", labelKey: "sync", icon: Icons.handoff, keywords: "lan sync local network peer share wifi ethernet" },
+  { id: "devices", labelKey: "devices", icon: Icons.monitor, keywords: "devices identity fingerprint trust pair revoke friendly name" },
   { id: "advanced", labelKey: "advanced", icon: Icons.settings, keywords: "advanced language region units reset factory replay onboarding tutorial testing" },
   { id: "about", labelKey: "about", icon: Icons.book, keywords: "about version license" },
 ] as const;
@@ -140,6 +142,7 @@ export function SettingsPage({ standaloneSection }: { standaloneSection?: Sectio
           <div style={{ display: section === "sync" ? undefined : "none" }} aria-hidden={section !== "sync"}>
             <LanSyncSection />
           </div>
+          {section === "devices" && <DeviceCenter />}
           {section === "advanced" && <AdvancedSection />}
           {section === "about" && <AboutSection />}
         </div>

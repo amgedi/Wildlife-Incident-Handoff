@@ -23,6 +23,7 @@ export type Density = "comfortable" | "compact";
 export type MotionPreference = "full" | "reduced" | "off";
 export type AmbientPreference = "on" | "reduced" | "off";
 export type MaterialPreference = "solid" | "frosted" | "glass";
+export type DeviceTypeSetting = "desktop" | "laptop" | "tablet" | "phone" | "browser" | "other";
 
 export type Workspace = "reporter" | "professional";
 
@@ -62,6 +63,10 @@ export interface AppSettings {
   motion: MotionPreference;
   ambient: AmbientPreference;
   material: MaterialPreference;
+  /** Human-readable device label for the Device Center (local only). */
+  deviceFriendlyName: string;
+  /** Device type for the Device Center; null = auto-detect. */
+  deviceType: DeviceTypeSetting | null;
   /** Display name used as the default "actor" on new events. */
   displayName: string;
   defaultLocationPrecision: "exact" | "approximate" | "sensitive";
