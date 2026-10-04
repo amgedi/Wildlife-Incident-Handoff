@@ -1045,7 +1045,18 @@
     "intelRateLimited": "O serviço de busca está ocupado (limite de taxa). Tente novamente em um minuto.",
     "intelTechDetails": "Detalhes técnicos",
     "intelCoordsHidden": "Coordenadas exatas ocultas para este nível de privacidade.",
-    "intelGeneralizedNote": "Generalizado ~1 km — a coordenada exata armazenada nunca é mostrada ou enviada."
+    "intelGeneralizedNote": "Generalizado ~1 km — a coordenada exata armazenada nunca é mostrada ou enviada.",
+    "opsWelcomeBack": "Bem-vindo de volta",
+    "opsOpenCount": "{{count}} incidentes abertos",
+    "opsNeedAssignment": "{{count}} precisam de atribuição",
+    "opsHandoffsWaiting": "{{count}} transferências aguardando",
+    "rflowSelectHint": "Selecione uma etapa para inspecionar os casos.",
+    "rflowEmpty": "Os casos aparecerão em cada etapa conforme avançarem na resposta.",
+    "rflowDrawerCount": "{{count}} caso(s) nesta etapa",
+    "rflowSort": "Ordenar",
+    "rflowStageEmpty": "Nada nesta etapa por enquanto.",
+    "rflowShowMore": "Mostrar mais ({{n}} restantes)",
+    "rflowCases": "casos"
   },
   "social": {
     "leaderboard": "Classificação de reportadores",

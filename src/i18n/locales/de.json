@@ -1045,7 +1045,18 @@
     "intelRateLimited": "Der Nachschlagedienst ist ausgelastet (Ratenlimit). Versuchen Sie es in einer Minute erneut.",
     "intelTechDetails": "Technische Details",
     "intelCoordsHidden": "Exakte Koordinaten sind für diese Datenschutzbene ausgeblendet.",
-    "intelGeneralizedNote": "Vergröbert ~1 km — die gespeicherte exakte Koordinate wird nie angezeigt oder gesendet."
+    "intelGeneralizedNote": "Vergröbert ~1 km — die gespeicherte exakte Koordinate wird nie angezeigt oder gesendet.",
+    "opsWelcomeBack": "Willkommen zurück",
+    "opsOpenCount": "{{count}} offene Vorfälle",
+    "opsNeedAssignment": "{{count}} ohne Zuweisung",
+    "opsHandoffsWaiting": "{{count}} Übergaben warten",
+    "rflowSelectHint": "Wählen Sie eine Phase, um Fälle zu prüfen.",
+    "rflowEmpty": "Fälle erscheinen hier, sobald Vorfälle die Response durchlaufen.",
+    "rflowDrawerCount": "{{count}} Fall/Fälle in dieser Phase",
+    "rflowSort": "Sortieren",
+    "rflowStageEmpty": "Derzeit nichts in dieser Phase.",
+    "rflowShowMore": "Mehr anzeigen ({{n}} weitere)",
+    "rflowCases": "Fälle"
   },
   "social": {
     "leaderboard": "Melder-Bestenliste",

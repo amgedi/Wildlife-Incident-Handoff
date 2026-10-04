@@ -835,7 +835,18 @@
     "intelRateLimited": "Le service de recherche est occupé (limite de débit). Réessayez dans une minute.",
     "intelTechDetails": "Détails techniques",
     "intelCoordsHidden": "Coordonnées exactes masquées pour ce niveau de confidentialité.",
-    "intelGeneralizedNote": "Généralisé ~1 km — la coordonnée exacte enregistrée n'est jamais affichée ni envoyée."
+    "intelGeneralizedNote": "Généralisé ~1 km — la coordonnée exacte enregistrée n'est jamais affichée ni envoyée.",
+    "opsWelcomeBack": "Bon retour",
+    "opsOpenCount": "{{count}} incidents ouverts",
+    "opsNeedAssignment": "{{count}} à attribuer",
+    "opsHandoffsWaiting": "{{count}} transferts en attente",
+    "rflowSelectHint": "Sélectionnez une étape pour examiner les cas.",
+    "rflowEmpty": "Les cas apparaîtront à chaque étape au fil de la réponse.",
+    "rflowDrawerCount": "{{count}} cas à cette étape",
+    "rflowSort": "Trier",
+    "rflowStageEmpty": "Rien à cette étape pour le moment.",
+    "rflowShowMore": "Afficher plus ({{n}} de plus)",
+    "rflowCases": "cas"
   },
   "guide": {
     "whatHappened": {
