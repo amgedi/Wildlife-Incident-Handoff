@@ -250,7 +250,7 @@ export function NetworkPage() {
       ? ["attention", "kpis", "activity", "networkOrgs", "pipeline", "performance", "aging", "trend", "integrity", "statusDist", "animalDist", "typeDist", "workload"]
       : rolePriority === "transfer-first"
         ? ["map", "attention", "kpis", "activity", "networkOrgs", "pipeline", "aging", "performance", "trend", "integrity", "statusDist", "animalDist", "typeDist", "workload"]
-        : ["map", "attention", "kpis", "activity", "pipeline", "performance", "aging", "trend", "integrity", "networkOrgs", "statusDist", "animalDist", "typeDist", "workload"];
+        : ["map", "attention", "kpis", "activity", "networkOrgs", "pipeline", "performance", "aging", "trend", "integrity", "statusDist", "animalDist", "typeDist", "workload"];
   const widgetOrder: WidgetId[] = layout?.order ?? recommendedOrder;
   const hiddenWidgets = useMemo(() => new Set<WidgetId>(layout?.hidden ?? []), [layout]);
 

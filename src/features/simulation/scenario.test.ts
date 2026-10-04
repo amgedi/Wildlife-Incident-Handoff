@@ -22,13 +22,14 @@ function make(role: "rehabilitator" | "field_responder" | "dispatcher" | "transp
 }
 
 function signature(incidents: Incident[]) {
+  // Times are relative to the scenario clock (defaults to now), so wall-clock
+  // fields are excluded from the identity signature; ordering is checked.
   return incidents.map((i) => ({
     id: i.id,
     ref: i.humanReference,
     status: i.status,
     lat: i.location.latitude,
     lon: i.location.longitude,
-    createdAt: i.createdAt,
   }));
 }
 

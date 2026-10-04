@@ -44,9 +44,35 @@ if (!embedded) throw new Error("dist does not embed the build identity — stale
 console.log("dist embeds identity ✓");
 
 step("build Tauri desktop");
+// CRITICAL (0.3.0-dev.4 parity root cause): cargo does NOT re-embed a changed
+// dist/ when Rust sources are unchanged — `tauri build` can silently package
+// a STALE frontend into the exe. Remove the stale exe to force relink, then
+// verify the freshly built binary embeds the current frontend build id.
+const exe = join(root, "src-tauri", "target", "release", "wildlife-incident-handoff.exe");
+if (existsSync(exe)) {
+  rmSync(exe);
+  console.log("removed stale exe (forces dist re-embed)");
+}
 run("npx tauri build");
+{
+  // Tauri embeds dist compressed — byte-searching the exe cannot verify the
+  // identity. Parity gate: the exe must be NEWER than the dist it embeds,
+  // and scripts/verify-release.mjs does the runtime About check (spec 50).
+  const exeM = statSync(exe).mtimeMs;
+  let distM = 0;
+  for (const f of readdirRecursive(join(root, "dist"))) distM = Math.max(distM, statSync(f).mtimeMs);
+  if (exeM < distM) throw new Error("packaged exe is OLDER than dist — stale build");
+  console.log("exe newer than dist ✓ (runtime identity check: node scripts/verify-release.mjs)");
+}
 
 step("package release artifacts");
+// a running instance locks the exe — close it first (single-instance)
+try { execSync(`taskkill /F /IM "wildlife-incident-handoff.exe"`, { stdio: "ignore" }); } catch {}
+try { execSync(`taskkill /F /IM "Wildlife-Incident-Handoff-Portable-${version}.exe"`, { stdio: "ignore" }); } catch {}
+try {
+  execSync('powershell -Command "Get-Process msedgewebview2 -ErrorAction SilentlyContinue | Where-Object {$_.MainWindowTitle -like '*Wildlife*'} | Stop-Process -Force"', { stdio: "ignore" });
+} catch {}
+await new Promise((r) => setTimeout(r, 2000));
 run("python scripts/package-release.py");
 
 step("packaged");
