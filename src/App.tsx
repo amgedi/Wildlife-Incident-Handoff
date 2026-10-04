@@ -5,6 +5,7 @@ import { REPORTER_NAV_ITEMS, PROFESSIONAL_NAV_ITEMS, FOOTER_NAV_ITEMS } from "./
 import { useApp } from "./app/AppContext";
 import { Icons } from "./components/Icons";
 import { BrandMark } from "./components/BrandMark";
+import { CommandPaletteBinding } from "./components/CommandPalette";
 import { ProfilePhoto } from "./components/ProfilePhoto";
 import { Dialog } from "./components/Dialog";
 import { buildInterfaceTourSteps } from "./features/tutorial/guidance";
@@ -178,6 +179,7 @@ export function App() {
         </aside>
 
       <div className="main-area">
+        <CommandPaletteBinding />
         {/* Web/PWA desktop has no titlebar — fixed top-right bell instead. */}
         {!isTauri() && (
           <div className="web-bell" style={{ position: "fixed", top: 12, right: 16, zIndex: 120 }}>

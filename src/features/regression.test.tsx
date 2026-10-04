@@ -105,9 +105,28 @@ describe("status identity", () => {
     }
   });
 
-  it("no expensive backdrop-filter remains on cards", () => {
-    const css = readFileSync("src/styles/base.css", "utf-8");
-    expect(css.includes("backdrop-filter")).toBe(false);
+  it("backdrop-filter only exists inside the 0.3 material system (never on the default surface)", () => {
+    // 0.3: Solid/Frosted/Glass. The default (solid) must not use
+    // backdrop-filter; it may only appear in data-material-scoped rules and
+    // the palette scrim, and glass keeps dense data solid.
+    const base = readFileSync("src/styles/base.css", "utf-8");
+    const tokens = readFileSync("src/styles/tokens.css", "utf-8");
+    expect(tokens.includes("backdrop-filter")).toBe(true);
+    for (const line of tokens.split(String.fromCharCode(10))) {
+      if (line.includes("backdrop-filter")) {
+        const window = tokens.slice(Math.max(0, tokens.indexOf(line) - 400), tokens.indexOf(line));
+        expect(/data-material/.test(line) || /data-material/.test(window), `unscoped backdrop-filter: ${line.trim()}`).toBe(true);
+      }
+    }
+    for (const line of base.split(String.fromCharCode(10))) {
+      if (line.includes("backdrop-filter")) {
+        const window = base.slice(Math.max(0, base.indexOf(line) - 400), base.indexOf(line));
+        expect(/palette-scrim/.test(line) || /palette-scrim/.test(window), `unscoped backdrop-filter in base.css: ${line.trim()}`).toBe(true);
+      }
+    }
+    // the dense-data readability rule must keep tables solid
+    expect(tokens.includes("[data-material=\"glass\"] .ops-table-wrap")).toBe(true);
+    expect(tokens.includes("backdrop-filter: none")).toBe(true);
   });
 });
 
