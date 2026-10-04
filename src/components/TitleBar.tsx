@@ -62,31 +62,33 @@ export function TitleBar() {
           Search
         </button>
       </div>
-      <div className="titlebar-bell" data-tauri-drag-region={false}>
-        <NotificationBell />
-      </div>
-      <div className="titlebar-controls">
-        <button
-          className="titlebar-btn"
-          aria-label={t("minimize")}
-          onClick={() => void api.minimize()}
-        >
-          <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M0 5h10" stroke="currentColor" strokeWidth="1" /></svg>
-        </button>
-        <button
-          className="titlebar-btn"
-          aria-label={maximized ? t("restore") : t("maximize")}
-          onClick={() => void api.toggleMaximize().then(() => api.isMaximized().then(setMaximized))}
-        >
-          {maximized ? (
-            <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 0v8h8M0 2h8v8" fill="none" stroke="currentColor" strokeWidth="1" /></svg>
-          ) : (
-            <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><rect x="0.5" y="0.5" width="9" height="9" fill="none" stroke="currentColor" strokeWidth="1" /></svg>
-          )}
-        </button>
-        <button className="titlebar-btn titlebar-close" aria-label={t("closeWindow")} onClick={() => void api.close()}>
-          <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M0 0l10 10M10 0L0 10" stroke="currentColor" strokeWidth="1" /></svg>
-        </button>
+      <div className="titlebar-right" data-tauri-drag-region={false}>
+        <div className="titlebar-bell">
+          <NotificationBell />
+        </div>
+        <div className="titlebar-controls">
+          <button
+            className="titlebar-btn"
+            aria-label={t("minimize")}
+            onClick={() => void api.minimize()}
+          >
+            <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M0 5h10" stroke="currentColor" strokeWidth="1" /></svg>
+          </button>
+          <button
+            className="titlebar-btn"
+            aria-label={maximized ? t("restore") : t("maximize")}
+            onClick={() => void api.toggleMaximize().then(() => api.isMaximized().then(setMaximized))}
+          >
+            {maximized ? (
+              <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 0v8h8M0 2h8v8" fill="none" stroke="currentColor" strokeWidth="1" /></svg>
+            ) : (
+              <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><rect x="0.5" y="0.5" width="9" height="9" fill="none" stroke="currentColor" strokeWidth="1" /></svg>
+            )}
+          </button>
+          <button className="titlebar-btn titlebar-close" aria-label={t("closeWindow")} onClick={() => void api.close()}>
+            <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M0 0l10 10M10 0L0 10" stroke="currentColor" strokeWidth="1" /></svg>
+          </button>
+        </div>
       </div>
     </div>
   );

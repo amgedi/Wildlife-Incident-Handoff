@@ -65,6 +65,8 @@ export function IncidentQueueRow({
         {context && <p className="ic-meta">{context}</p>}
       </div>
       <div className="queue-row-actions" role="group" aria-label={t("rowActions", { defaultValue: "Actions" })}>
+        {/* dev.3 action priority: primary → secondary → icon detail; the icon
+            action is visually quiet (aligns with, not competes with, buttons). */}
         {actions.map((a) =>
           a.to ? (
             <Link key={a.label} to={a.to} className={`btn btn-sm ${a.primary ? "btn-primary" : "btn-secondary"}`}>
@@ -76,8 +78,8 @@ export function IncidentQueueRow({
             </button>
           )
         )}
-        <Link to={`/incidents/${incident.id}`} className="btn btn-quiet btn-sm" aria-label={t("moreActions", { defaultValue: "Open incident" })}>
-          <Icons.chevronRight size={14} />
+        <Link to={`/incidents/${incident.id}`} className="queue-row-detail" aria-label={t("moreActions", { defaultValue: "Open incident" })} title={t("moreActions", { defaultValue: "Open incident" })}>
+          <Icons.chevronRight size={15} />
         </Link>
       </div>
     </div>

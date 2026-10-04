@@ -219,9 +219,9 @@ export function NetworkPage() {
   // P80 — effective widget order: saved layout wins; otherwise role-recommended.
   const recommendedOrder: WidgetId[] =
     rolePriority === "attention-first"
-      ? ["attention", "map", "kpis", "activity", "pipeline", "performance", "aging", "trend", "integrity", "networkOrgs", "statusDist", "animalDist", "typeDist", "workload"]
+      ? ["attention", "kpis", "activity", "networkOrgs", "pipeline", "performance", "aging", "trend", "integrity", "statusDist", "animalDist", "typeDist", "workload"]
       : rolePriority === "transfer-first"
-        ? ["map", "attention", "kpis", "activity", "pipeline", "aging", "performance", "trend", "integrity", "networkOrgs", "statusDist", "animalDist", "typeDist", "workload"]
+        ? ["map", "attention", "kpis", "activity", "networkOrgs", "pipeline", "aging", "performance", "trend", "integrity", "statusDist", "animalDist", "typeDist", "workload"]
         : ["map", "attention", "kpis", "activity", "pipeline", "performance", "aging", "trend", "integrity", "networkOrgs", "statusDist", "animalDist", "typeDist", "workload"];
   const widgetOrder: WidgetId[] = layout?.order ?? recommendedOrder;
   const hiddenWidgets = useMemo(() => new Set<WidgetId>(layout?.hidden ?? []), [layout]);
@@ -383,7 +383,7 @@ export function NetworkPage() {
                 <span className="ops-feed-time">{new Date(e.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                 <span className="ops-feed-body">
                   <span className="ops-feed-event" data-evt={e.eventType}>{e.summary}</span>
-                  <span className="ops-feed-ref">{e.incidentRef}{e.animalLabel ? ` · ${e.animalLabel}` : ""}</span>
+                  <span className="ops-feed-ref">{e.incidentRef}{e.animalLabel ? ` · ${e.animalLabel}` : ""}{e.organization ? ` · ${e.organization}` : ""}</span>
                 </span>
               </button>
             </li>
@@ -586,26 +586,46 @@ export function NetworkPage() {
     </div>
   );
 
-  // Response network (0.3): organizations + transfer relationships derived
-  // ONLY from real handoff records + local LAN trust. No invented capacity
-  // (no fake beds/staff/vehicles — spec 26).
+  // Network Pulse (0.3.0-dev.3): the operational counterpart to Live
+  // Activity — handoffs, transfer relationships and coverage derived ONLY
+  // from real records + LAN trust. No invented capacity (spec 26).
+  const oldestHandoff = attention.handoffWaiting.length > 0
+    ? [...attention.handoffWaiting].sort((a, b) => (a.occurredAt ?? a.createdAt).localeCompare(b.occurredAt ?? b.createdAt))[0]
+    : null;
+  const lackingDestination = filtered.filter(
+    (i) => i.status === "transferred" && !i.handoffs?.some((h) => h.toOrganization)
+  ).length;
   const networkWidget = (
     <div className="card ops-panel ops-span-6" data-testid="response-network">
       <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
-        <Icons.handoff size={16} /> {t("networkOrgsTitle", { defaultValue: "Response network" })}
+        <Icons.handoff size={16} /> {t("networkOrgsTitle", { defaultValue: "Network pulse" })}
       </h3>
       <dl className="kv">
+        <dt>{t("networkAwaiting", { defaultValue: "Active handoffs" })}</dt>
+        <dd>{attention.handoffWaiting.length}</dd>
+        {oldestHandoff && (
+          <>
+            <dt>{t("networkOldestHandoff", { defaultValue: "Oldest pending handoff" })}</dt>
+            <dd>{oldestHandoff.humanReference} · {relativeTime(oldestHandoff.occurredAt ?? oldestHandoff.createdAt)}</dd>
+          </>
+        )}
         <dt>{t("networkOrgsCount", { defaultValue: "Organizations in your records" })}</dt>
         <dd>{transfer.receivingOrganizations.length}</dd>
-        <dt>{t("networkAwaiting", { defaultValue: "Handoffs awaiting acceptance" })}</dt>
-        <dd>{attention.handoffWaiting.length}</dd>
         <dt>{t("networkTransferredToday", { defaultValue: "Transferred today" })}</dt>
         <dd>{transfer.transferredToday}</dd>
+        {lackingDestination > 0 && (
+          <>
+            <dt>{t("networkLackingDestination", { defaultValue: "Cases lacking a destination" })}</dt>
+            <dd>{lackingDestination}</dd>
+          </>
+        )}
+        <dt>{t("networkCoverage", { defaultValue: "Service-area coverage" })}</dt>
+        <dd>{inArea.length} / {filtered.length} {t("networkCoverageUnit", { defaultValue: "incidents in area" })}</dd>
       </dl>
       {transfer.receivingOrganizations.length > 0 && (
         <>
           <h4 style={{ margin: "10px 0 4px", fontSize: "0.8rem", letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-ink-faint)" }}>
-            {t("networkTransferPartners", { defaultValue: "Transfer partners" })}
+            {t("networkTransferPartners", { defaultValue: "Recent receiving organizations" })}
           </h4>
           <ul style={{ listStyle: "none", margin: 0, padding: 0, fontSize: "0.88rem" }}>
             {transfer.receivingOrganizations.slice(0, 5).map((orgName) => (
@@ -619,6 +639,16 @@ export function NetworkPage() {
           </ul>
         </>
       )}
+      <div className="row" style={{ gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+        {attention.handoffWaiting.length > 0 && (
+          <button className="btn btn-secondary btn-sm" onClick={() => navigate("/incidents?category=active")}>
+            {t("networkReviewHandoffs", { defaultValue: "Review handoffs" })}
+          </button>
+        )}
+        <button className="btn btn-quiet btn-sm" onClick={() => navigate("/network?view=map")}>
+          {t("networkOpenMap", { defaultValue: "Open service map" })}
+        </button>
+      </div>
       <p className="hint" style={{ margin: "8px 0 0" }}>
         {t("networkHonesty", { defaultValue: "Derived from your records and LAN trust — no live capacity, staffing or availability is invented." })}
       </p>

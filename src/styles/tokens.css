@@ -1218,34 +1218,77 @@ body::after {
    Dense data surfaces (tables, drawers) keep near-solid backgrounds in every
    material: data is primary. */
 
+/* 0.3.0-dev.3 material V4: a deliberate layered recipe rather than plain
+   opacity — translucency + blur + saturation lift + soft tint + inner
+   highlight + gentle edge + fine grain. Three depth levels (base / elevated
+   / floating) so the interface reads as one engineered material system. */
 :root {
   --material-surface: var(--c-surface);
   --material-panel: var(--c-surface);
-  --material-blur: 0px;
+  --material-floating: var(--c-surface);
+  --material-blur: none;
+  --material-tint: transparent;
+  --material-highlight: transparent;
+  --material-edge: var(--c-border);
+  --material-grain: none;
+  --material-shadow: var(--c-shadow);
+  --material-shadow-lift: var(--c-shadow-lift);
 }
 [data-material="frosted"] {
-  --material-surface: color-mix(in srgb, var(--c-surface) 88%, transparent);
-  --material-panel: color-mix(in srgb, var(--c-surface) 82%, transparent);
-  --material-blur: 14px;
+  --material-surface: color-mix(in srgb, var(--c-surface) 82%, transparent);
+  --material-panel: color-mix(in srgb, var(--c-surface) 74%, transparent);
+  --material-floating: color-mix(in srgb, var(--c-surface) 68%, transparent);
+  --material-blur: blur(16px) saturate(1.35);
+  --material-tint: color-mix(in srgb, var(--c-primary) 3%, transparent);
+  --material-highlight: rgb(255 255 255 / 0.07);
+  --material-edge: color-mix(in srgb, var(--c-border-strong) 55%, transparent);
+  --material-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+  --material-shadow: 0 1px 2px rgb(0 0 0 / 0.10), 0 6px 20px rgb(0 0 0 / 0.12);
+  --material-shadow-lift: 0 2px 6px rgb(0 0 0 / 0.12), 0 14px 36px rgb(0 0 0 / 0.16);
 }
 [data-material="glass"] {
-  --material-surface: color-mix(in srgb, var(--c-surface) 72%, transparent);
-  --material-panel: color-mix(in srgb, var(--c-surface) 62%, transparent);
-  --material-blur: 20px;
+  --material-surface: color-mix(in srgb, var(--c-surface) 64%, transparent);
+  --material-panel: color-mix(in srgb, var(--c-surface) 55%, transparent);
+  --material-floating: color-mix(in srgb, var(--c-surface) 46%, transparent);
+  --material-blur: blur(26px) saturate(1.5);
+  --material-tint: color-mix(in srgb, var(--c-primary) 5%, transparent);
+  --material-highlight: rgb(255 255 255 / 0.12);
+  --material-edge: color-mix(in srgb, var(--c-border-strong) 45%, transparent);
+  --material-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+  --material-shadow: 0 1px 2px rgb(0 0 0 / 0.12), 0 8px 26px rgb(0 0 0 / 0.16);
+  --material-shadow-lift: 0 2px 8px rgb(0 0 0 / 0.14), 0 18px 44px rgb(0 0 0 / 0.2);
 }
 [data-material="frosted"] .card,
 [data-material="frosted"] .ops-panel,
 [data-material="glass"] .card,
 [data-material="glass"] .ops-panel {
-  background: var(--material-surface);
-  backdrop-filter: blur(var(--material-blur));
-  -webkit-backdrop-filter: blur(var(--material-blur));
+  background: linear-gradient(var(--material-tint), var(--material-tint)), var(--material-surface);
+  background-image: var(--material-grain), linear-gradient(var(--material-tint), var(--material-tint));
+  backdrop-filter: var(--material-blur);
+  -webkit-backdrop-filter: var(--material-blur);
+  border-color: var(--material-edge);
+  box-shadow: inset 0 1px 0 var(--material-highlight), var(--material-shadow);
+}
+/* Elevated depth: drawers, palette, popovers, dialogs */
+[data-material="frosted"] .rflow-drawer,
+[data-material="frosted"] .combo-pop,
+[data-material="glass"] .rflow-drawer,
+[data-material="glass"] .combo-pop {
+  background: linear-gradient(var(--material-tint), var(--material-tint)), var(--material-panel);
+  backdrop-filter: var(--material-blur);
+  -webkit-backdrop-filter: var(--material-blur);
+  box-shadow: inset 0 1px 0 var(--material-highlight), var(--material-shadow-lift);
+}
+[data-material="frosted"] .palette,
+[data-material="glass"] .palette {
+  background: linear-gradient(var(--material-tint), var(--material-tint)), var(--material-floating);
+  backdrop-filter: var(--material-blur);
+  -webkit-backdrop-filter: var(--material-blur);
+  box-shadow: inset 0 1px 0 var(--material-highlight), var(--material-shadow-lift);
 }
 /* Dense data stays readable */
 [data-material="glass"] .ops-table-wrap,
-[data-material="glass"] .rflow-drawer,
-[data-material="frosted"] .ops-table-wrap,
-[data-material="frosted"] .rflow-drawer {
+[data-material="frosted"] .ops-table-wrap {
   background: var(--c-surface);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
@@ -1260,7 +1303,13 @@ body::after {
   [data-material="frosted"], [data-material="glass"] {
     --material-surface: var(--c-surface);
     --material-panel: var(--c-surface);
-    --material-blur: 0px;
+    --material-floating: var(--c-surface);
+    --material-blur: none;
+    --material-tint: transparent;
+    --material-highlight: transparent;
+    --material-grain: none;
+    --material-shadow: var(--c-shadow);
+    --material-shadow-lift: var(--c-shadow-lift);
   }
   [data-material="frosted"] .card, [data-material="frosted"] .ops-panel,
   [data-material="glass"] .card, [data-material="glass"] .ops-panel { backdrop-filter: none; }
@@ -1285,3 +1334,23 @@ body::after {
 [data-theme="mono-dark"] .attn-tile { border-color: #4a4a4a; }
 [data-theme="mono-dark"] .rflow-node { border-color: #6a6a6a; }
 [data-theme="mono-dark"] .rflow-stage.is-selected .rflow-node { border-color: #ffffff; box-shadow: 0 0 0 3px rgb(255 255 255 / 0.25); }
+
+/* ---------- 0.3.0-dev.3 theme/material transitions (spec 75) ---------- */
+[data-motion="full"] .card,
+[data-motion="full"] .ops-panel,
+[data-motion="full"] .sidebar,
+[data-motion="full"] .titlebar {
+  transition: background-color 300ms var(--ease, ease), border-color 300ms var(--ease, ease), box-shadow 300ms var(--ease, ease);
+}
+[data-motion="reduced"] .card,
+[data-motion="reduced"] .ops-panel,
+[data-motion="reduced"] .sidebar,
+[data-motion="reduced"] .titlebar {
+  transition: background-color 150ms linear, border-color 150ms linear;
+}
+[data-motion="off"] .card,
+[data-motion="off"] .ops-panel,
+[data-motion="off"] .sidebar,
+[data-motion="off"] .titlebar {
+  transition: none;
+}

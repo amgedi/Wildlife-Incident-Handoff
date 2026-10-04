@@ -35,13 +35,15 @@ code { font-family: var(--font-mono); font-size: 0.85em; background: var(--c-sur
 /* ---------- Desktop title bar (Tauri only) ---------- */
 .titlebar {
   flex: 0 0 38px;
-  display: flex; align-items: center; justify-content: space-between;
+  /* dev.3: 1fr / auto / 1fr grid — the center (search) sits at 50% of the
+     WINDOW regardless of how wide the brand and controls groups are. */
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
   height: 38px; width: 100%;
   background: var(--titlebar-bg, var(--c-header)); color: var(--titlebar-fg, var(--c-header-ink));
   border-bottom: 1px solid var(--titlebar-border, transparent);
   user-select: none; -webkit-user-select: none;
 }
-.titlebar-brand { display: flex; align-items: center; gap: 10px; padding-left: 12px; font-size: 0.85rem; font-weight: 600; }
+.titlebar-brand { display: flex; align-items: center; gap: 10px; padding-left: 12px; font-size: 0.85rem; font-weight: 600; justify-self: start; min-width: 0; }
 .titlebar-controls { display: flex; height: 100%; }
 .titlebar-btn {
   width: 46px; height: 100%; display: grid; place-items: center;
@@ -1117,7 +1119,7 @@ h3 { font-size: 1rem; }
 
 
 /* dev.14 — titlebar bell (top-right of the screen) */
-.titlebar-bell { display: flex; align-items: center; margin-left: auto; margin-right: 6px; }
+.titlebar-bell { display: flex; align-items: center; margin-right: 6px; justify-self: end; }
 .titlebar-bell .btn { color: inherit; }
 .titlebar-bell .btn:hover { background: rgb(255 255 255 / 0.12); }
 
@@ -1279,7 +1281,9 @@ h3 { font-size: 1rem; }
 }
 
 /* Titlebar command area (0.3): center search launcher */
-.titlebar-center { flex: 1; display: flex; justify-content: center; pointer-events: auto; }
+.titlebar-right { display: flex; align-items: center; justify-self: end; height: 100%; }
+.titlebar-right { display: flex; align-items: center; justify-self: end; height: 100%; }
+.titlebar-center { display: flex; justify-content: center; pointer-events: auto; }
 .titlebar-center .btn { color: var(--c-ink-soft); }
 
 /* ============================================================
@@ -1395,3 +1399,48 @@ button.ax-dist-row:hover { border-color: var(--c-border); background: var(--c-su
 }
 .ax-dist-share { font-weight: 400; color: var(--c-ink-faint); }
 .ax-dist-empty, .ax-dist-note { margin: 0; }
+
+/* ---------- 0.3.0-dev.3 incident row polish (spec 7–10) ---------- */
+/* Stable grid: content column flexes, action column is content-sized and
+   vertically CENTERED against the row. No flex-end sag on tall rows. */
+.queue-row { align-items: center; }
+.queue-row-actions { align-items: center; gap: 8px; }
+.queue-row-actions .btn { flex: none; }
+.queue-row-detail {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 999px;
+  color: var(--c-ink-faint); background: none; border: none; cursor: pointer;
+  transition: background 140ms var(--ease, ease), color 140ms var(--ease, ease);
+}
+[data-motion="full"] .queue-row-detail:hover { background: color-mix(in srgb, var(--c-primary) 10%, transparent); color: var(--c-ink); }
+.queue-row-detail:focus-visible { outline: 2px solid var(--c-primary); outline-offset: 2px; }
+/* Visual rhythm: consistent row padding + title baseline. */
+.queue-row-main .ic-title { line-height: 1.25; }
+@media (max-width: 640px) {
+  .queue-row-detail { width: 34px; height: 34px; }
+}
+
+/* ---------- 0.3.0-dev.3 sidebar contextual sections (spec 52–56) ---------- */
+.sidebar-context { margin-top: auto; padding: 0 10px 8px; display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto; }
+.sidebar-section { display: flex; flex-direction: column; gap: 2px; }
+.sidebar-section-label {
+  margin: 0 0 3px; font-size: 0.68rem; font-weight: 650; letter-spacing: 0.09em;
+  text-transform: uppercase; color: var(--c-sidebar-ink, var(--c-ink-faint)); opacity: 0.85;
+}
+.sidebar-context-item {
+  display: flex; flex-direction: column; gap: 1px;
+  padding: 5px 8px; border-radius: var(--radius-sm);
+  color: var(--c-sidebar-ink, var(--c-ink-soft)); font-size: 0.82rem; text-decoration: none;
+}
+[data-motion="full"] .sidebar-context-item:hover { background: rgb(255 255 255 / 0.07); color: var(--c-sidebar-ink, var(--c-ink)); }
+.sidebar-context-item:focus-visible { outline: 2px solid var(--c-focus); outline-offset: -2px; }
+.sidebar-context-ref { font-weight: 600; font-variant-numeric: tabular-nums; }
+.sidebar-context-sub { font-size: 0.74rem; opacity: 0.75; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-status { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; border-top: 1px solid rgb(255 255 255 / 0.08); }
+.sidebar-status-item { display: inline-flex; align-items: center; gap: 6px; font-size: 0.74rem; color: var(--c-sidebar-ink, var(--c-ink-faint)); }
+.sidebar-status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c-ink-faint); }
+.sidebar-status-dot.ok { background: var(--c-ok, #4f9d6e); }
+/* Narrow viewport: contextual sections collapse (spec 98). */
+@media (max-height: 760px) {
+  .sidebar-context .sidebar-section:nth-child(n + 2) { display: none; }
+}

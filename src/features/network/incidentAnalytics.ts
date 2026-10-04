@@ -264,6 +264,10 @@ export interface ActivityFeedEntry {
   incidentId: string;
   incidentRef: string;
   animalLabel: string;
+  /** Actor/profile when recorded on the event (never fabricated). */
+  actor: string | null;
+  /** Organization for handoff events, when recorded (never fabricated). */
+  organization: string | null;
 }
 
 /** Live activity feed, derived ONLY from real timeline events of live,
@@ -278,6 +282,16 @@ export function getActivityFeed(incidents: Incident[], limit = 12): ActivityFeed
   for (const inc of live.values()) {
     for (const e of inc.timeline) {
       if (e.eventType === "incident_created" && inc.timeline.length > 1) continue;
+      // Organization only for genuine handoff events with a recorded target.
+      let organization: string | null = null;
+      if (e.eventType === "handoff_started" || e.eventType === "handoff_completed") {
+        const to = e.metadata?.toOrganization ?? e.metadata?.organization ?? null;
+        if (typeof to === "string" && to.trim()) organization = to.trim();
+        else {
+          const h = inc.handoffs.find((hh) => hh.occurredAt === e.timestamp && hh.toOrganization);
+          if (h?.toOrganization) organization = h.toOrganization;
+        }
+      }
       entries.push({
         timestamp: e.timestamp,
         eventType: e.eventType,
@@ -285,6 +299,8 @@ export function getActivityFeed(incidents: Incident[], limit = 12): ActivityFeed
         incidentId: inc.id,
         incidentRef: inc.humanReference,
         animalLabel: inc.animal.species || inc.animal.description || inc.animal.group || "",
+        actor: e.actor ?? null,
+        organization,
       });
     }
   }

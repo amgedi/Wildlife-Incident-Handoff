@@ -6,6 +6,7 @@ import { useApp } from "./app/AppContext";
 import { Icons } from "./components/Icons";
 import { BrandMark } from "./components/BrandMark";
 import { CommandPaletteBinding } from "./components/CommandPalette";
+import { SidebarContextSections } from "./components/SidebarContext";
 import { ProfilePhoto } from "./components/ProfilePhoto";
 import { Dialog } from "./components/Dialog";
 import { buildInterfaceTourSteps } from "./features/tutorial/guidance";
@@ -174,6 +175,7 @@ export function App() {
           <nav aria-label={t("navigation:mainNav")} className="nav-work">
             {navList}
           </nav>
+          <SidebarContextSections />
           <nav aria-label={t("navigation:footerNav", { defaultValue: "Help and settings" })} className="nav-footer">
             {footerList}
           </nav>
