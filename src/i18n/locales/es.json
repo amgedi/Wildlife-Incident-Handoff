@@ -884,7 +884,15 @@
     "ccHandoffNone": "Ninguna",
     "ccHandoffPending": "Pendiente",
     "ccHandoffComplete": "Completada",
-    "ccNoLocation": "Sin ubicación registrada"
+    "ccNoLocation": "Sin ubicación registrada",
+    "axTrendAria": "Informes a lo largo del tiempo: {{reported}} notificados y {{resolved}} resueltos a lo largo de {{days}} días. Sigue una tabla de datos con todos los valores.",
+    "axTrendTableSummary": "Tabla de datos: informes a lo largo del tiempo",
+    "axTrendHint": "Pase el puntero para ver los valores diarios.",
+    "axAgingAria": "Antigüedad de casos: {{under30}} menos de 30 min, {{m30to60}} de 30 a 60 min, {{h1to2}} de 1 a 2 h, {{h2to4}} de 2 a 4 h, {{over4}} más de 4 h.",
+    "axAgingBucketTitle": "{{label}}: {{count}}",
+    "axDistOther": "Otros ({{count}})",
+    "axDistEmpty": "Aún no hay datos",
+    "distributionLabel": "Distribución"
   },
   "guide": {
     "whatHappened": {

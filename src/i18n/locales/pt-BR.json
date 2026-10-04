@@ -1094,7 +1094,15 @@
     "ccHandoffNone": "Nenhuma",
     "ccHandoffPending": "Pendente",
     "ccHandoffComplete": "Concluída",
-    "ccNoLocation": "Sem local registrado"
+    "ccNoLocation": "Sem local registrado",
+    "axTrendAria": "Relatos ao longo do tempo: {{reported}} notificados e {{resolved}} resolvidos em {{days}} dias. Uma tabela de dados com todos os valores segue.",
+    "axTrendTableSummary": "Tabela de dados: relatos ao longo do tempo",
+    "axTrendHint": "Passe o cursor para ver os valores diários.",
+    "axAgingAria": "Idade dos casos: {{under30}} menos de 30 min, {{m30to60}} de 30 a 60 min, {{h1to2}} de 1 a 2 h, {{h2to4}} de 2 a 4 h, {{over4}} mais de 4 h.",
+    "axAgingBucketTitle": "{{label}}: {{count}}",
+    "axDistOther": "Outros ({{count}})",
+    "axDistEmpty": "Ainda sem dados",
+    "distributionLabel": "Distribuição"
   },
   "social": {
     "leaderboard": "Classificação de reportadores",

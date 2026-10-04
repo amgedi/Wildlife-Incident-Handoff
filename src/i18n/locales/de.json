@@ -1094,7 +1094,15 @@
     "ccHandoffNone": "Keine",
     "ccHandoffPending": "Ausstehend",
     "ccHandoffComplete": "Abgeschlossen",
-    "ccNoLocation": "Kein Ort erfasst"
+    "ccNoLocation": "Kein Ort erfasst",
+    "axTrendAria": "Meldungen im Zeitverlauf: {{reported}} gemeldet und {{resolved}} abgeschlossen über {{days}} Tage. Eine Datentabelle mit allen Werten folgt.",
+    "axTrendTableSummary": "Datentabelle: Meldungen im Zeitverlauf",
+    "axTrendHint": "Für Tageswerte über das Diagramm fahren.",
+    "axAgingAria": "Fallalter: {{under30}} unter 30 Min, {{m30to60}} von 30 bis 60 Min, {{h1to2}} von 1 bis 2 Std, {{h2to4}} von 2 bis 4 Std, {{over4}} über 4 Std.",
+    "axAgingBucketTitle": "{{label}}: {{count}}",
+    "axDistOther": "Sonstige ({{count}})",
+    "axDistEmpty": "Noch keine Daten",
+    "distributionLabel": "Verteilung"
   },
   "social": {
     "leaderboard": "Melder-Bestenliste",

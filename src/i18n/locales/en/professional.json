@@ -243,5 +243,13 @@
   "ccHandoffNone": "None",
   "ccHandoffPending": "Pending",
   "ccHandoffComplete": "Complete",
-  "ccNoLocation": "No location recorded"
+  "ccNoLocation": "No location recorded",
+  "axTrendAria": "Reports over time: {{reported}} reported and {{resolved}} resolved over {{days}} days. A data table with all values follows.",
+  "axTrendTableSummary": "Data table: reports over time",
+  "axTrendHint": "Hover for daily values.",
+  "axAgingAria": "Case aging: {{under30}} under 30 min, {{m30to60}} from 30 to 60 min, {{h1to2}} from 1 to 2 h, {{h2to4}} from 2 to 4 h, {{over4}} over 4 h.",
+  "axAgingBucketTitle": "{{label}}: {{count}}",
+  "axDistOther": "Other ({{count}})",
+  "axDistEmpty": "No data yet",
+  "distributionLabel": "Distribution"
 }
