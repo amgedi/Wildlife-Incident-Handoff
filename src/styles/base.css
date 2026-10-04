@@ -1444,3 +1444,48 @@ button.ax-dist-row:hover { border-color: var(--c-border); background: var(--c-su
 @media (max-height: 760px) {
   .sidebar-context .sidebar-section:nth-child(n + 2) { display: none; }
 }
+
+/* ============================================================
+   0.3.0-dev.3 — Field operations map v4 overlay UI (mv4-*)
+   Mode control, layer panel, measure bar, cluster inspector,
+   compass. Everything is overlay chrome; the canvas itself is
+   untouched. (spec 16–30, 90–92, 99–100, 103–106)
+   ============================================================ */
+.mv4-controls .mv4-ctl {
+  justify-content: flex-start;
+  background: var(--c-surface);
+  box-shadow: var(--shadow-sm);
+  white-space: nowrap;
+}
+.mv4-panel .mv4-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.mv4-panel .mv4-group { display: grid; gap: 6px; }
+.mv4-panel .mv4-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--c-ink-faint);
+}
+.mv4-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.mv4-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--c-border);
+  background: var(--c-surface);
+  cursor: pointer;
+}
+.mv4-chip[aria-pressed="true"] {
+  border-color: var(--c-accent, #2e7d5b);
+  background: color-mix(in srgb, var(--c-accent, #2e7d5b) 12%, transparent);
+  font-weight: 600;
+}
+.mv4-measure { font-variant-numeric: tabular-nums; }

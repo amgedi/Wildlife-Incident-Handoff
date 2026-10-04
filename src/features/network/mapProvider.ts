@@ -20,6 +20,9 @@
 import * as maplibregl from "maplibre-gl";
 import type { Incident } from "../../types/incident";
 import type { MapProvider } from "./networkService";
+import type { CameraMemory } from "./map/v4";
+
+export type { CameraMemory };
 
 export type MapPrivacy = "exact" | "approximate" | "sensitive";
 
@@ -277,26 +280,36 @@ export function serviceAreaPolygon(centerLat: number, centerLon: number, radiusK
  *  bounded for very large local datasets (perf pass, 1000-incident test). */
 const DENSE_POINT_COUNT = 120;
 
-export function clusterPoints(points: MapPoint[], zoom: number, bounds: { north: number; south: number; east: number; west: number }): Array<{ lat: number; lon: number; count: number; states: Record<string, number> }> {
+export interface MapCluster {
+  lat: number;
+  lon: number;
+  count: number;
+  states: Record<string, number>;
+  /** 0.3.0-dev.3: stable indexes into the caller's points array (cluster inspector). */
+  refs: number[];
+}
+
+export function clusterPoints(points: MapPoint[], zoom: number, bounds: { north: number; south: number; east: number; west: number }): MapCluster[] {
   if (points.length === 0) return [];
   const dense = points.length > DENSE_POINT_COUNT;
   if (zoom > CLUSTER_MAX_ZOOM && !dense) return [];
   const subdivisions = dense ? Math.min(24, Math.ceil(Math.sqrt(points.length))) : 8;
-  const cells = new Map<string, { lat: number; lon: number; count: number; states: Record<string, number> }>();
+  const cells = new Map<string, MapCluster>();
   const latStep = Math.max(0.001, (bounds.north - bounds.south) / subdivisions);
   const lonStep = Math.max(0.001, (bounds.east - bounds.west) / subdivisions);
-  for (const p of points) {
+  points.forEach((p, index) => {
     const key = `${Math.floor(p.lat / latStep)}:${Math.floor(p.lon / lonStep)}`;
     const cell = cells.get(key);
     if (cell) {
       cell.count += 1;
       cell.states[p.state] = (cell.states[p.state] ?? 0) + 1;
+      cell.refs.push(index);
       cell.lat = (cell.lat * (cell.count - 1) + p.lat) / cell.count;
       cell.lon = (cell.lon * (cell.count - 1) + p.lon) / cell.count;
     } else {
-      cells.set(key, { lat: p.lat, lon: p.lon, count: 1, states: { [p.state]: 1 } });
+      cells.set(key, { lat: p.lat, lon: p.lon, count: 1, states: { [p.state]: 1 }, refs: [index] });
     }
-  }
+  });
   // Only cluster when it actually reduces marker count meaningfully —
   // except for dense datasets, where bounding the marker DOM is the goal.
   const list = [...cells.values()];
@@ -308,19 +321,34 @@ export function createMapLibreProvider(options?: {
   serviceArea?: MapServiceArea | null;
   fitMode?: "service-area" | "points";
   providerId?: string | null;
+  /** 0.3.0-dev.3 (v4): false renders every point unclustered. Default true. */
+  clustering?: boolean;
+  /** v4: false hides the service-area fill/line layers. Default true. */
+  showServiceArea?: boolean;
+  /** v4 (spec 99): restore a persisted camera instead of auto-fitting. */
+  initialCamera?: CameraMemory | null;
+  /** v4 (spec 99): called on moveend with the current camera (rounded). */
+  onCameraChange?: (camera: CameraMemory) => void;
 }): MapProvider & {
   destroy(): void;
   setErrorHandler(fn: (offline: boolean) => void): void;
   setLoadHandler(fn: () => void): void;
   setSelectHandler(fn: (point: MapPoint) => void): void;
+  /** v4: direct MapLibre access for terrain/measure/compass wiring (null until rendered). */
+  getMap(): maplibregl.Map | null;
+  /** v4 (spec 92): called when a cluster badge is clicked; without a handler the map zooms in. */
+  setClusterHandler(fn: (cluster: MapCluster) => void): void;
 } {
   let map: maplibregl.Map | null = null;
   let markers: maplibregl.Marker[] = [];
   let errorFn: ((offline: boolean) => void) | null = null;
   let loadFn: (() => void) | null = null;
   let selectFn: ((point: MapPoint) => void) | null = null;
+  let clusterFn: ((cluster: MapCluster) => void) | null = null;
   let currentPoints: MapPoint[] = [];
   let areaLayersAdded = false;
+  const clusteringEnabled = options?.clustering ?? true;
+  const showServiceArea = options?.showServiceArea ?? true;
   // 0.3.0-dev.3 MAP LOAD BUG ROOT CAUSE: the map could be initialized while
   // its container was still 0-sized (lazy route mount / tab switch), and
   // nothing resized it after layout settled — the canvas stayed blank until
@@ -343,6 +371,12 @@ export function createMapLibreProvider(options?: {
     setSelectHandler(fn) {
       selectFn = fn;
     },
+    setClusterHandler(fn) {
+      clusterFn = fn;
+    },
+    getMap() {
+      return map;
+    },
     renderMarkers(container, points) {
       currentPoints = points;
       if (map) {
@@ -352,9 +386,17 @@ export function createMapLibreProvider(options?: {
         return;
       }
       // P31/P34 — camera starts on the user's operational area, not the world.
+      // v4 (spec 99): a persisted camera takes precedence (restore-on-mount).
       let center: [number, number] = [0, 20];
       let zoom = 2;
-      if (serviceArea?.centerLat != null && serviceArea.centerLon != null) {
+      let pitch = 0;
+      let bearing = 0;
+      if (options?.initialCamera) {
+        center = [options.initialCamera.lng, options.initialCamera.lat];
+        zoom = options.initialCamera.zoom;
+        pitch = options.initialCamera.pitch;
+        bearing = options.initialCamera.bearing;
+      } else if (serviceArea?.centerLat != null && serviceArea.centerLon != null) {
         center = [serviceArea.centerLon, serviceArea.centerLat];
         // Approximate zoom so the radius circle fits: zoom ≈ log2(360 / degreesSpan).
         const latDegPerKm = 1 / 110.574;
@@ -372,6 +414,8 @@ export function createMapLibreProvider(options?: {
         style: styleForProvider(providerDescriptor),
         center,
         zoom,
+        pitch,
+        bearing,
       });
       styleLoaded = false;
       styleRetryDone = false;
@@ -418,8 +462,21 @@ export function createMapLibreProvider(options?: {
       // Belt-and-braces: schedule a first render so a missed load event can
       // never leave the overlay empty.
       requestAnimationFrame(() => updatePoints());
-      // Re-cluster as the user zooms.
-      map.on("moveend", () => updatePoints());
+      // Re-cluster as the user zooms + persist the camera (spec 99, moveend only).
+      map.on("moveend", () => {
+        updatePoints();
+        if (options?.onCameraChange && map) {
+          try {
+            options.onCameraChange({
+              lng: Math.round(map.getCenter().lng * 1e5) / 1e5,
+              lat: Math.round(map.getCenter().lat * 1e5) / 1e5,
+              zoom: Math.round(map.getZoom() * 100) / 100,
+              pitch: Math.round(map.getPitch()),
+              bearing: Math.round(map.getBearing()),
+            });
+          } catch { /* map destroyed mid-event */ }
+        }
+      });
     },
     destroy() {
       containerObserver?.disconnect();
@@ -432,7 +489,7 @@ export function createMapLibreProvider(options?: {
   };
 
   function addServiceAreaLayers() {
-    if (!map || !serviceArea || serviceArea.centerLat == null || serviceArea.centerLon == null || areaLayersAdded) return;
+    if (!map || !showServiceArea || !serviceArea || serviceArea.centerLat == null || serviceArea.centerLon == null || areaLayersAdded) return;
     areaLayersAdded = true;
     const ring = serviceAreaPolygon(serviceArea.centerLat, serviceArea.centerLon, serviceArea.radiusKm);
     map.addSource("service-area", { type: "geojson", data: { type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [ring] } } });
@@ -456,9 +513,12 @@ export function createMapLibreProvider(options?: {
     markers = [];
     const zoom = map.getZoom();
     const b = map.getBounds();
-    const clusters = clusterPoints(currentPoints, zoom, {
-      north: b.getNorth(), south: b.getSouth(), east: b.getEast(), west: b.getWest(),
-    });
+    // v4 (spec 22): the Clusters layer toggle can turn grid clustering off.
+    const clusters = clusteringEnabled
+      ? clusterPoints(currentPoints, zoom, {
+          north: b.getNorth(), south: b.getSouth(), east: b.getEast(), west: b.getWest(),
+        })
+      : [];
     if (clusters.length > 0) {
       for (const c of clusters) {
         if (!c) continue;
@@ -483,8 +543,12 @@ export function createMapLibreProvider(options?: {
         el.dataset.state = dominant;
         el.title = `${c.count} incidents — zoom in to see them`;
         el.innerHTML = `<span class="map-cluster-count">${c.count}</span>`;
-        el.addEventListener("click", () => {
-          map?.easeTo({ center: [c.lon, c.lat], zoom: (map?.getZoom() ?? 4) + 2.5 });
+        el.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          // v4 (spec 92): with a cluster handler the UI opens the inspector;
+          // the legacy behavior (zoom toward the cluster) stays the default.
+          if (clusterFn) clusterFn(c);
+          else map?.easeTo({ center: [c.lon, c.lat], zoom: (map?.getZoom() ?? 4) + 2.5 });
         });
         markers.push(new maplibregl.Marker({ element: el }).setLngLat([c.lon, c.lat]).addTo(map));
       }

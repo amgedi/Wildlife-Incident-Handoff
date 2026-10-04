@@ -1,8 +1,9 @@
 /** React wrapper for the MapLibre provider (network map + dashboard panel). */
 import "maplibre-gl/dist/maplibre-gl.css";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
+import type { MapMouseEvent } from "maplibre-gl";
 import type { Incident } from "../../types/incident";
 import { createMapLibreProvider, markerPositionFor, markerStateFor, STATUS_MARKER_STYLES, getMapDiagnostics, effectivePrivacy, type MapPrivacy, type MapServiceArea } from "./mapProvider";
 import { resolveGeocodeTarget, reverseGeocode, getExactGeocodeConsent, setExactGeocodeConsent, getActiveGeocodingProvider, peekGeocodeCache } from "./geocoding";
@@ -11,6 +12,14 @@ import { animalLabel } from "../export/exportService";
 import { Icons } from "../../components/Icons";
 import { StatusBadge } from "../../components/ui";
 import { relativeTime } from "../../utils/time";
+import { getSetting, setSetting } from "../../storage/repositories";
+import {
+  buildClusterSummary, buildFieldLens, CAMERA_MEMORY_KEY, DEFAULT_PREFS, filterByStatuses, filterByTimeRange,
+  formatDistance, formatElevation, greatCircleKm, MAP_V4_PREFS_KEY, providerIdForMode, sanitizeCameraStore,
+  sanitizePrefs, statusesPresent, serializeCamera, TERRAIN_PITCH,
+  type CameraMemoryStore, type ClusterSummary, type MapV4Prefs, type Units,
+} from "./map/v4";
+import { disableTerrain, enableTerrain, queryElevationM, resetCompass, setMeasureLine } from "./map/v4Map";
 
 type MapState = "loading" | "ready" | "offline" | "provider-failed" | "no-coordinates";
 
@@ -35,6 +44,7 @@ export function NetworkMap({
   fitMode = "points",
   full = false,
   offline = false,
+  units = "metric",
 }: {
   incidents: Incident[];
   privacy: MapPrivacy;
@@ -48,26 +58,85 @@ export function NetworkMap({
   full?: boolean;
   /** Offline provider: plain device-rendered basemap, zero tile requests (P18/P19). */
   offline?: boolean;
+  /** v4 (spec 25): measure distance unit. Metric (km) by default. */
+  units?: Units;
 }) {
   const { t } = useTranslation("professional");
   const containerRef = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<MapState>(() => (incidents.length === 0 ? "no-coordinates" : "loading"));
   const [retryToken, setRetryToken] = useState(0);
   const [inspected, setInspected] = useState<number | null>(null);
-  const [basemap, setBasemap] = useState<"satellite" | "streets">("satellite");
   const providerRef = useRef<ReturnType<typeof createMapLibreProvider> | null>(null);
 
+  // ---- v4 field-operations state -------------------------------------------
+  const [prefs, setPrefs] = useState<MapV4Prefs>(DEFAULT_PREFS);
+  const [prefsReady, setPrefsReady] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
+  const [layerPanelOpen, setLayerPanelOpen] = useState(false);
+  const [terrainFailed, setTerrainFailed] = useState(false);
+  const [measureMode, setMeasureMode] = useState(false);
+  const [measurePts, setMeasurePts] = useState<[number, number][]>([]);
+  const [cluster, setCluster] = useState<{ summary: ClusterSummary; bounds: [[number, number], [number, number]] } | null>(null);
+  const [view, setView] = useState({ bearing: 0, pitch: 0 });
+  const [viewResetToken, setViewResetToken] = useState(0);
+  const [lensElevation, setLensElevation] = useState<number | null>(null);
+  // Camera memory lives in a ref so the map-creating effect can read it
+  // without re-creating the map on every moveend.
+  const cameraStoreRef = useRef<CameraMemoryStore>({});
+
+  // Hydrate persisted prefs (spec 22) + camera memory (spec 99) once.
   useEffect(() => {
-    if (incidents.length === 0) {
-      setState("no-coordinates");
-      return;
-    }
-    if (!containerRef.current) return;
+    let alive = true;
+    void (async () => {
+      const [rawPrefs, rawCamera] = await Promise.all([
+        getSetting<unknown>(MAP_V4_PREFS_KEY),
+        getSetting<unknown>(CAMERA_MEMORY_KEY),
+      ]);
+      if (!alive) return;
+      const camera = sanitizeCameraStore(rawCamera);
+      cameraStoreRef.current = camera;
+      setPrefs(sanitizePrefs(rawPrefs));
+      setPrefsReady(true);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Persist layer/mode prefs whenever they change (after hydration).
+  useEffect(() => {
+    if (prefsReady) void setSetting(MAP_V4_PREFS_KEY, prefs);
+  }, [prefs, prefsReady]);
+
+  const mode = prefs.mode;
+  const visibleIncidents = useMemo(
+    () => filterByStatuses(filterByTimeRange(incidents, prefs.timeRange), prefs.statuses),
+    [incidents, prefs.timeRange, prefs.statuses],
+  );
+  const availableStatuses = useMemo(
+    () => statusesPresent(incidents, Object.keys(STATUS_MARKER_STYLES)),
+    [incidents],
+  );
+
+  useEffect(() => {
+    if (!prefsReady || !containerRef.current) return;
     setState((s) => (s === "ready" ? s : "loading"));
     const provider = createMapLibreProvider({
       serviceArea,
       fitMode,
-      providerId: offline ? "offline-basemap" : basemap === "streets" ? "osm-raster" : "esri-satellite",
+      providerId: providerIdForMode(mode, offline),
+      clustering: prefs.layers.clusters,
+      showServiceArea: prefs.layers.serviceArea,
+      // Spec 99: restore the persisted camera unless the view must fit the
+      // service area. Never restored when nothing was persisted.
+      initialCamera: fitMode !== "service-area" ? cameraStoreRef.current[full ? "full" : "compact"] ?? null : null,
+      onCameraChange: (cam) => {
+        setView({ bearing: cam.bearing, pitch: cam.pitch });
+        const size = full ? "full" : "compact";
+        const next = { ...cameraStoreRef.current, [size]: serializeCamera(cam) };
+        cameraStoreRef.current = next;
+        void setSetting(CAMERA_MEMORY_KEY, next);
+      },
     });
     // Bounded failure detection: if tiles haven't produced a load event within
     // 8 seconds while errors fired, classify as provider failure.
@@ -85,15 +154,14 @@ export function NetworkMap({
         settled = true;
         setState("ready");
       }
+      setMapReady(true);
     });
     // Marker elements are recreated on re-render; selection flows through the
     // provider with a stable refId so clicks survive camera moves.
     provider.setSelectHandler((point) => {
       setInspected(point.refId ?? null);
     });
-    providerRef.current = provider;
-
-    const points = incidents
+    const points = visibleIncidents
       .map((i, idx) => {
         const pos = markerPositionFor(i, effectivePrivacy(i, privacy));
         if (!pos) return null;
@@ -101,6 +169,19 @@ export function NetworkMap({
       })
       .filter((p): p is NonNullable<typeof p> => p !== null);
 
+    // Spec 92: cluster badge clicks open the inspector instead of just zooming.
+    provider.setClusterHandler((c) => {
+      const members = c.refs.map((refId) => points[refId]).filter((p): p is NonNullable<typeof p> => p != null);
+      const summary = buildClusterSummary(members, (refId) => visibleIncidents[refId]);
+      const memberPositions = members.map((m) => [m.lon, m.lat] as [number, number]);
+      const west = Math.min(...memberPositions.map((p) => p[0]));
+      const east = Math.max(...memberPositions.map((p) => p[0]));
+      const south = Math.min(...memberPositions.map((p) => p[1]));
+      const north = Math.max(...memberPositions.map((p) => p[1]));
+      setCluster({ summary, bounds: [[west, south], [east, north]] });
+    });
+
+    providerRef.current = provider;
     provider.renderMarkers(containerRef.current, points);
 
     const readyTimer = window.setTimeout(() => {
@@ -112,12 +193,118 @@ export function NetworkMap({
 
     return () => {
       window.clearTimeout(readyTimer);
+      setMapReady(false);
       provider.destroy();
       providerRef.current = null;
     };
-  }, [incidents, privacy, retryToken, serviceArea, fitMode, offline, basemap]);
+    // cameraStoreRef is read (not subscribed) deliberately — see its comment.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleIncidents, privacy, retryToken, serviceArea, fitMode, offline, mode, prefsReady, prefs.layers.clusters, prefs.layers.serviceArea, full, viewResetToken]);
 
-  const inspectedIncident = inspected != null ? incidents[inspected] : undefined;
+  // ---- Terrain / 3D (spec 17/19) -------------------------------------------
+  useEffect(() => {
+    if (!mapReady) return;
+    const map = providerRef.current?.getMap();
+    if (!map) return;
+    const wantTerrain = mode === "terrain" && !offline && prefs.layers.terrain;
+    if (wantTerrain) {
+      // Real DEM or nothing: a failed setup falls back to 2D with an honest
+      // notice (never synthesized elevation).
+      const ok = enableTerrain(map, prefs.exaggeration, () => setTerrainFailed(true));
+      if (!ok) {
+        setTerrainFailed(true);
+        setPrefs((p) => ({ ...p, mode: "2d" }));
+        return;
+      }
+      setTerrainFailed(false);
+      map.easeTo({ pitch: TERRAIN_PITCH, duration: 500 });
+    } else {
+      disableTerrain(map);
+      setTerrainFailed(false);
+      if (mode !== "terrain") map.easeTo({ pitch: 0, duration: 400 });
+    }
+  }, [mapReady, mode, offline, prefs.layers.terrain, prefs.exaggeration]);
+
+  // ---- Measure mode (spec 25): two clicks, Esc or button exits --------------
+  useEffect(() => {
+    if (!measureMode || !mapReady) return;
+    const map = providerRef.current?.getMap();
+    if (!map) return;
+    const onClick = (e: MapMouseEvent) => {
+      setMeasurePts((pts) => (pts.length >= 2 ? pts : [...pts, [e.lngLat.lng, e.lngLat.lat] as [number, number]]));
+    };
+    map.on("click", onClick);
+    return () => {
+      map.off("click", onClick);
+    };
+  }, [measureMode, mapReady]);
+
+  // Redraw (or clear) the measure line whenever its points change.
+  useEffect(() => {
+    const map = providerRef.current?.getMap();
+    if (!map) return;
+    setMeasureLine(map, measurePts.length === 2 ? measurePts : null);
+  }, [measurePts, mapReady]);
+
+  const exitMeasure = () => {
+    setMeasureMode(false);
+    setMeasurePts([]);
+  };
+
+  useEffect(() => {
+    if (!measureMode) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") exitMeasure();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [measureMode]);
+
+  // ---- Field lens (spec 90/23): coarse elevation in active terrain mode only
+  const inspectedIncident = inspected != null ? visibleIncidents[inspected] : undefined;
+  useEffect(() => {
+    if (!mapReady || mode !== "terrain" || !inspectedIncident) {
+      setLensElevation(null);
+      return;
+    }
+    const map = providerRef.current?.getMap();
+    if (!map) return;
+    // Same privacy-respecting position the marker uses — never the raw point.
+    const pos = markerPositionFor(inspectedIncident, effectivePrivacy(inspectedIncident, privacy));
+    setLensElevation(pos ? queryElevationM(map, pos.lon, pos.lat) : null);
+  }, [mapReady, mode, inspectedIncident, privacy]);
+
+  // ---- Compass + camera (spec 99/100) ---------------------------------------
+  const resetCompassView = () => {
+    const map = providerRef.current?.getMap();
+    if (map) resetCompass(map);
+  };
+  const resetView = () => {
+    const size = full ? "full" : "compact";
+    const next = { ...cameraStoreRef.current };
+    delete next[size];
+    cameraStoreRef.current = next;
+    void setSetting(CAMERA_MEMORY_KEY, next);
+    setViewResetToken((n) => n + 1); // recreate the provider → refit the area/points
+  };
+
+  const measureKm =
+    measurePts.length === 2 ? greatCircleKm(measurePts[0]![1], measurePts[0]![0], measurePts[1]![1], measurePts[1]![0]) : null;
+
+  const setLayer = (key: keyof MapV4Prefs["layers"], value: boolean) =>
+    setPrefs((p) => ({ ...p, layers: { ...p.layers, [key]: value } }));
+  const toggleStatus = (status: string) =>
+    setPrefs((p) => ({
+      ...p,
+      statuses: p.statuses.includes(status) ? p.statuses.filter((s) => s !== status) : [...p.statuses, status],
+    }));
+
+
+  // Zero visible incidents: say so honestly instead of showing an empty map.
+  useEffect(() => {
+    if (incidents.length === 0) setState("no-coordinates");
+  }, [incidents.length]);
 
   return (
     <div style={{ position: "relative" }}>
@@ -128,6 +315,11 @@ export function NetworkMap({
             offline. Marker positions respect each incident's location privacy: approximate reports are fuzzed to ~1 km and
             sensitive reports never show a precise point.
           </span>
+        </div>
+      )}
+      {terrainFailed && (
+        <div className="notice warning" style={{ marginBottom: "var(--space-3)" }} role="status">
+          <span>{t("mv4TerrainError", { defaultValue: "Terrain 3D needs an internet connection and WebGL — switched back to the 2D map." })}</span>
         </div>
       )}
       {offline && (
@@ -211,13 +403,137 @@ export function NetworkMap({
         </div>
       ) : (
         <div style={{ position: "relative" }}>
-          {!offline && (
-            <div style={{ position: "absolute", top: 10, left: 10, zIndex: 20 }}>
-              <div className="segmented" role="group" aria-label={t("basemapToggle", { defaultValue: "Basemap" })} style={{ boxShadow: "var(--shadow-sm)" }}>
-                <button aria-pressed={basemap === "satellite"} onClick={() => setBasemap("satellite")}>{t("basemapSatellite", { defaultValue: "Satellite" })}</button>
-                <button aria-pressed={basemap === "streets"} onClick={() => setBasemap("streets")}>{t("basemapStreets", { defaultValue: "Streets" })}</button>
-              </div>
+          {/* Spec 17 — mode control: 2D / Satellite / Terrain 3D. Terrain and
+              satellite honestly require the internet; offline keeps only 2D. */}
+          <div style={{ position: "absolute", top: 10, left: 10, zIndex: 20 }}>
+            <div className="segmented" role="group" aria-label={t("mv4ModeLabel", { defaultValue: "Map mode" })} style={{ boxShadow: "var(--shadow-sm)" }}>
+              <button aria-pressed={mode === "2d"} onClick={() => setPrefs((p) => ({ ...p, mode: "2d" }))}>
+                {t("basemapStreets", { defaultValue: "2D" })}
+              </button>
+              <button aria-pressed={mode === "satellite"} disabled={offline} title={offline ? t("mv4OfflineModes", { defaultValue: "Satellite imagery needs an internet connection." }) : undefined} onClick={() => setPrefs((p) => ({ ...p, mode: "satellite" }))}>
+                {t("basemapSatellite", { defaultValue: "Satellite" })}
+              </button>
+              <button aria-pressed={mode === "terrain"} disabled={offline} title={offline ? t("mv4OfflineModes", { defaultValue: "Terrain needs an internet connection and WebGL." }) : undefined} onClick={() => setPrefs((p) => ({ ...p, mode: "terrain" }))}>
+                {t("mv4ModeTerrain", { defaultValue: "Terrain 3D" })}
+              </button>
             </div>
+          </div>
+          {/* Spec 22/25/99/100 — right-hand control column. */}
+          <div className="mv4-controls" style={{ position: "absolute", top: 10, right: 10, zIndex: 20, display: "grid", gap: 6, justifyItems: "stretch" }}>
+            <button className="btn btn-quiet btn-sm mv4-ctl" aria-expanded={layerPanelOpen} onClick={() => setLayerPanelOpen((v) => !v)}>
+              <Icons.map size={14} /> {t("mv4Layers", { defaultValue: "Layers" })}
+            </button>
+            <button className="btn btn-quiet btn-sm mv4-ctl" aria-pressed={measureMode} onClick={() => (measureMode ? exitMeasure() : (setMeasureMode(true), setMeasurePts([])))}>
+              <Icons.pin size={14} /> {t("mv4Measure", { defaultValue: "Measure" })}
+            </button>
+            <button className="btn btn-quiet btn-sm mv4-ctl" onClick={resetCompassView} aria-label={t("mv4Compass", { defaultValue: "Reset compass — face north, level view" })} title={t("mv4Compass", { defaultValue: "Reset compass — face north, level view" })}>
+              <span aria-hidden="true" style={{ display: "inline-block", transform: `rotate(${-view.bearing}deg)` }}>↑</span>
+              {t("mv4CompassShort", { defaultValue: "N" })}
+            </button>
+            <button className="btn btn-quiet btn-sm mv4-ctl" onClick={resetView} aria-label={t("mv4ResetView", { defaultValue: "Reset view" })} title={t("mv4ResetView", { defaultValue: "Reset view" })}>
+              <Icons.refresh size={14} /> {t("mv4ResetView", { defaultValue: "Reset view" })}
+            </button>
+          </div>
+          {layerPanelOpen && (
+            <aside className="card mv4-panel" aria-label={t("mv4Layers", { defaultValue: "Layers" })} style={{ position: "absolute", top: 118, right: 10, width: 240, maxWidth: "calc(100% - 20px)", zIndex: 25, padding: "var(--space-3)", boxShadow: "var(--shadow-lg)", display: "grid", gap: 10 }}>
+              <label className="mv4-row">
+                <input type="checkbox" checked={prefs.layers.incidents} onChange={(e) => setLayer("incidents", e.target.checked)} />
+                {t("mv4LayerIncidents", { defaultValue: "Incidents" })}
+              </label>
+              <label className="mv4-row">
+                <input type="checkbox" checked={prefs.layers.clusters} onChange={(e) => setLayer("clusters", e.target.checked)} />
+                {t("mv4LayerClusters", { defaultValue: "Clusters" })}
+              </label>
+              {serviceArea && (
+                <label className="mv4-row">
+                  <input type="checkbox" checked={prefs.layers.serviceArea} onChange={(e) => setLayer("serviceArea", e.target.checked)} />
+                  {t("mv4LayerServiceArea", { defaultValue: "Service area" })}
+                </label>
+              )}
+              {mode === "terrain" && (
+                <label className="mv4-row">
+                  <input type="checkbox" checked={prefs.layers.terrain} onChange={(e) => setLayer("terrain", e.target.checked)} />
+                  {t("mv4LayerTerrain", { defaultValue: "Terrain / hillshade" })}
+                </label>
+              )}
+              <div className="mv4-group">
+                <span className="mv4-label">{t("mv4TimeFilter", { defaultValue: "Time" })}</span>
+                <div className="segmented" role="group" aria-label={t("mv4TimeFilter", { defaultValue: "Time filter" })}>
+                  {([["24h", "24 h"], ["7d", "7 d"], ["30d", "30 d"], ["all", t("mv4TimeAll", { defaultValue: "All" })]] as const).map(([r, label]) => (
+                    <button key={r} aria-pressed={prefs.timeRange === r} onClick={() => setPrefs((p) => ({ ...p, timeRange: r }))}>{label}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="mv4-group">
+                <span className="mv4-label">{t("mv4StatusFilter", { defaultValue: "Statuses" })}</span>
+                <div className="mv4-chips" role="group" aria-label={t("mv4StatusFilter", { defaultValue: "Status filter" })}>
+                  {availableStatuses.map((s) => (
+                    <button key={s} className="mv4-chip" aria-pressed={prefs.statuses.includes(s)} onClick={() => toggleStatus(s)}>
+                      <span aria-hidden="true" style={{ color: STATUS_MARKER_STYLES[s]?.color }}>{STATUS_MARKER_STYLES[s]?.glyph ?? "●"}</span>
+                      {STATUS_MARKER_STYLES[s]?.label ?? s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {mode === "terrain" && (
+                <div className="mv4-group">
+                  <span className="mv4-label">{t("mv4Exaggeration", { defaultValue: "Terrain exaggeration" })}</span>
+                  <div className="segmented" role="group" aria-label={t("mv4Exaggeration", { defaultValue: "Terrain exaggeration" })}>
+                    <button aria-pressed={prefs.exaggeration === "natural"} onClick={() => setPrefs((p) => ({ ...p, exaggeration: "natural" }))}>{t("mv4ExagNatural", { defaultValue: "Natural" })}</button>
+                    <button aria-pressed={prefs.exaggeration === "enhanced"} onClick={() => setPrefs((p) => ({ ...p, exaggeration: "enhanced" }))}>{t("mv4ExagEnhanced", { defaultValue: "Enhanced" })}</button>
+                  </div>
+                </div>
+              )}
+            </aside>
+          )}
+          {measureMode && (
+            <div className="card mv4-measure" role="status" style={{ position: "absolute", top: 10, left: "50%", transform: "translateX(-50%)", zIndex: 25, padding: "6px var(--space-3)", boxShadow: "var(--shadow-lg)", display: "flex", gap: 10, alignItems: "center", maxWidth: "calc(100% - 20px)" }}>
+              <span style={{ fontSize: "0.82rem" }}>
+                {measureKm != null
+                  ? t("mv4MeasureResult", { defaultValue: "Distance: {{distance}}", distance: formatDistance(measureKm, units) })
+                  : t("mv4MeasureHint", { defaultValue: "Click two points on the map to measure the distance. Esc exits." })}
+              </span>
+              <button className="btn btn-quiet btn-sm" onClick={exitMeasure} aria-label={t("mv4MeasureExit", { defaultValue: "Exit measure mode" })}>
+                <Icons.x size={14} />
+              </button>
+            </div>
+          )}
+          {cluster && (
+            <aside className="card mv4-panel" aria-label={t("mv4ClusterTitle", { defaultValue: "Cluster" })} style={{ position: "absolute", bottom: 12, left: 10, width: 250, maxWidth: "calc(100% - 20px)", zIndex: 25, padding: "var(--space-3)", boxShadow: "var(--shadow-lg)", display: "grid", gap: 6 }}>
+              <div className="row between" style={{ gap: 8 }}>
+                <strong style={{ fontSize: "0.9rem" }}>{t("mv4ClusterTitle", { defaultValue: "Cluster" })}</strong>
+                <button className="btn btn-quiet btn-sm" aria-label={t("inspectorClose", { defaultValue: "Close" })} onClick={() => setCluster(null)}>
+                  <Icons.x size={14} />
+                </button>
+              </div>
+              <span style={{ fontSize: "0.85rem" }}>
+                {t("mv4ClusterCases", { defaultValue: "{{count}} incidents", count: cluster.summary.count })}
+              </span>
+              <span style={{ fontSize: "0.78rem", color: "var(--c-ink-soft)" }}>
+                {Object.entries(cluster.summary.states)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([s, n]) => `${STATUS_MARKER_STYLES[s]?.label ?? s}: ${n}`)
+                  .join(" · ")}
+              </span>
+              {cluster.summary.oldestReference && (
+                <span style={{ fontSize: "0.78rem", color: "var(--c-ink-soft)" }}>
+                  {t("mv4ClusterOldest", { defaultValue: "Oldest case" })}: <bdi>{cluster.summary.oldestReference}</bdi>
+                </span>
+              )}
+              <span style={{ fontSize: "0.78rem", color: "var(--c-ink-soft)" }}>
+                {t("mv4ClusterUnassigned", { defaultValue: "Unassigned" })}: {cluster.summary.unassigned}
+              </span>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  const map = providerRef.current?.getMap();
+                  if (map) map.fitBounds(cluster.bounds, { padding: 60, maxZoom: 14, duration: 400 });
+                  setCluster(null);
+                }}
+              >
+                {t("mv4ClusterInspect", { defaultValue: "Inspect cluster" })}
+              </button>
+            </aside>
           )}
           <div
             ref={containerRef}
@@ -260,6 +576,20 @@ export function NetworkMap({
                   ? inspectedIncident.custody.find((c) => !c.endedAt)?.holder
                   : t("colUnassigned", { defaultValue: "Unassigned" })}
               </p>
+              {/* Field lens (spec 90/23): terrain mode only, coarse "≈" elevation,
+                  built through buildFieldLens so no coordinates can leak. */}
+              {(() => {
+                const lens = buildFieldLens(inspectedIncident, lensElevation);
+                if (lens.elevationM == null) return null;
+                return (
+                  <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--c-ink-soft)" }}>
+                    {t("mv4LensElevation", { defaultValue: "Elevation" })} {formatElevation(lens.elevationM)}
+                    <span className="hint" style={{ display: "block", margin: 0, fontSize: "0.68rem" }}>
+                      {t("mv4DemNote", { defaultValue: "Elevation: AWS Terrain Tiles (~30 m resolution)" })}
+                    </span>
+                  </p>
+                );
+              })()}
               <Link className="btn btn-primary btn-sm" to={`/incidents/${inspectedIncident.id}`} onClick={() => onSelect?.(inspectedIncident)}>
                 {t("openIncident", { defaultValue: "Open incident" })}
               </Link>
