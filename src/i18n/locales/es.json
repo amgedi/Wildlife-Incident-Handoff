@@ -535,7 +535,8 @@
     "notifWebDenied": "El navegador no concedió permiso de notificación.",
     "notifSystemDesktopOnly": "Las notificaciones del sistema están disponibles en la aplicación de escritorio.",
     "notifSystemUnavailable": "Las notificaciones del sistema no están disponibles en este dispositivo.",
-    "notifWebUnavailable": "Las notificaciones del navegador no están disponibles en este entorno."
+    "notifWebUnavailable": "Las notificaciones del navegador no están disponibles en este entorno.",
+    "devices": "Dispositivos"
   },
   "tabs": {
     "tabsOverview": "Resumen",

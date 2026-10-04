@@ -848,7 +848,8 @@
     "notifWebDenied": "Der Browser hat die Benachrichtigungsberechtigung nicht erteilt.",
     "notifSystemDesktopOnly": "Systembenachrichtigungen sind in der Desktop-App verfügbar.",
     "notifSystemUnavailable": "Systembenachrichtigungen sind auf diesem Gerät nicht verfügbar.",
-    "notifWebUnavailable": "Browser-Benachrichtigungen sind in dieser Umgebung nicht verfügbar."
+    "notifWebUnavailable": "Browser-Benachrichtigungen sind in dieser Umgebung nicht verfügbar.",
+    "devices": "Geräte"
   },
   "professional": {
     "title": "Respons-Netzwerk",

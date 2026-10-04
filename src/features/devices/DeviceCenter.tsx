@@ -70,16 +70,19 @@ export function collectThisDevice(displayName: string | undefined, typeOverride:
 export function DeviceCenter() {
   const { t } = useTranslation("settings");
   const { settings, updateSettings, lanSync, refreshLanSyncTrusted } = useApp();
-  const [identity, setIdentity] = useState<LanIdentity | null>(null);
+  const [directIdentity, setDirectIdentity] = useState<LanIdentity | null>(null);
   const [identityError, setIdentityError] = useState(false);
 
   useEffect(() => {
     let alive = true;
     lanIdentity()
-      .then((id) => { if (alive) setIdentity(id); })
+      .then((id) => { if (alive) setDirectIdentity(id); })
       .catch(() => { if (alive) setIdentityError(true); });
     return () => { alive = false; };
   }, []);
+  // Prefer the identity the app context already loaded (LAN server lifecycle);
+  // fall back to a direct query for when sync is disabled.
+  const identity = lanSync.identity ?? directIdentity;
 
   const deviceType = (settings.deviceType as DeviceType | undefined) ?? detectDeviceType();
   const deviceName = (settings.deviceFriendlyName || "").trim();

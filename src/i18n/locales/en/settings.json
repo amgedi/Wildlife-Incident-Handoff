@@ -210,5 +210,6 @@
   "notifWebDenied": "The browser did not grant notification permission.",
   "notifSystemDesktopOnly": "System notifications are available in the desktop app.",
   "notifSystemUnavailable": "System notifications are not available on this device.",
-  "notifWebUnavailable": "Browser notifications are not available in this environment."
+  "notifWebUnavailable": "Browser notifications are not available in this environment.",
+  "devices": "Devices"
 }

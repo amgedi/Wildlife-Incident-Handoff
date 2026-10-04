@@ -848,7 +848,8 @@
     "notifWebDenied": "O navegador não concedeu permissão de notificação.",
     "notifSystemDesktopOnly": "As notificações do sistema estão disponíveis no aplicativo desktop.",
     "notifSystemUnavailable": "As notificações do sistema não estão disponíveis neste dispositivo.",
-    "notifWebUnavailable": "As notificações do navegador não estão disponíveis neste ambiente."
+    "notifWebUnavailable": "As notificações do navegador não estão disponíveis neste ambiente.",
+    "devices": "Dispositivos"
   },
   "professional": {
     "title": "Rede de resposta",
