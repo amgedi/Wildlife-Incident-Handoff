@@ -358,7 +358,7 @@ export function NetworkPage() {
   );
 
   const activityWidget = (
-    <div className="card ops-panel ops-span-4" style={{ display: "flex", flexDirection: "column" }}>
+    <div className="card ops-panel ops-span-6" style={{ display: "flex", flexDirection: "column" }}>
       <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
         <Icons.activity size={16} /> {t("liveActivity", { defaultValue: "Live activity" })}
       </h3>
