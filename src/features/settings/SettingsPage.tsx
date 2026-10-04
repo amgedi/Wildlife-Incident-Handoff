@@ -20,6 +20,8 @@ import { displayPhone, normalizePhoneForStorage, isValidPhone, parsePhone } from
 import { resetAllGuidance } from "../../features/tutorial/guidance";
 import { getMapProviderDescriptor } from "../network/mapProvider";
 import { RoleCard } from "./RoleCard";
+import { CountryComboBox } from "../../components/CountryComboBox";
+import { getCountryProfile } from "../country/countryProfile";
 import { ProfilePhoto } from "../../components/ProfilePhoto";
 import { channelStatuses, requestWebNotificationPermission, webNotificationPermission, sendSystemNotification } from "../../notifications/delivery";
 import {
@@ -732,26 +734,6 @@ function ResetAndTestingSection() {
   );
 }
 
-const COUNTRIES = [
-  { value: "", label: "Not set" },
-  { value: "CA", label: "Canada" },
-  { value: "US", label: "United States" },
-  { value: "GB", label: "United Kingdom" },
-  { value: "AU", label: "Australia" },
-  { value: "NZ", label: "New Zealand" },
-  { value: "IE", label: "Ireland" },
-  { value: "FR", label: "France" },
-  { value: "DE", label: "Germany" },
-  { value: "NL", label: "Netherlands" },
-  { value: "ES", label: "Spain" },
-  { value: "IT", label: "Italy" },
-  { value: "BR", label: "Brazil" },
-  { value: "MX", label: "Mexico" },
-  { value: "ZA", label: "South Africa" },
-  { value: "IN", label: "India" },
-  { value: "JP", label: "Japan" },
-  { value: "OTHER", label: "Other / not listed" },
-];
 
 function AdvancedSection() {
   const { settings, updateSettings } = useApp();
@@ -817,13 +799,12 @@ function AdvancedSection() {
             {t("settings:devPreviewLocales", { defaultValue: "Developer preview: show incomplete languages and the pseudo-locale" })}
           </label>
         </div>
-        <Select
+        <CountryComboBox
           label="Country or region"
           value={settings.country}
-          options={COUNTRIES}
           onChange={(v) => updateSettings({ country: v, units: defaultUnitsFor(v) })}
-          hint="Used for regional defaults and, in future, for finding participating response organizations near you. Dates, times and numbers follow your browser's locale settings."
         />
+        <CountryEffectsNote country={settings.country} />
         <Select
           label="Measurement units"
           value={settings.units}
@@ -851,6 +832,18 @@ function AdvancedSection() {
         </span>
       </div>
     </div>
+  );
+}
+
+/** Honest explanation of what the country selection does and does not affect. */
+function CountryEffectsNote({ country }: { country: string }) {
+  const profile = getCountryProfile(country);
+  return (
+    <p className="hint" style={{ margin: "6px 0 0" }}>
+      {profile
+        ? `Used for: date/time formatting, phone guidance, default map context and regional suggestions (units and language are suggestions only). It is not used to alter your incident data.`
+        : "Choose a country or region to get date/time formatting, phone guidance and a default map context. It is never used to alter your incident data."}
+    </p>
   );
 }
 
@@ -1029,12 +1022,10 @@ function ProfileSection() {
           <TextField label={t("profileName", { defaultValue: "Name" })} value={draft.name} onChange={(v) => setDraft({ ...draft, name: v })} optional />
           <TextField label={t("profileOrg", { defaultValue: "Organization" })} value={draft.organization} onChange={(v) => setDraft({ ...draft, organization: v })} optional />
           <TextField label={t("profileRole", { defaultValue: "Role" })} value={draft.role} onChange={(v) => setDraft({ ...draft, role: v })} optional hint={t("profileRoleHint", { defaultValue: "e.g. Volunteer transport, Rehabilitator, Ranger" })} />
-          <Select
+          <CountryComboBox
             label={t("profileCountry", { defaultValue: "Country or region" })}
             value={settings.country}
-            options={COUNTRIES}
             onChange={(v) => updateSettings({ country: v })}
-            optional
           />
           <div>
             <TextField

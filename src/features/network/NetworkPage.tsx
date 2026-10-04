@@ -35,6 +35,7 @@ import { AgingStrip, BarDistribution } from "./dashboard/opsCharts";
 import { IncidentQueueRow } from "./dashboard/IncidentQueueRow";
 import { ResponseFlow } from "./dashboard/ResponseFlow";
 import { getAuthorizationState } from "./authorization";
+import { countryDateLocale, countryMapViewport } from "../country/countryProfile";
 import type { Incident } from "../../types/incident";
 
 type TimeRangeFilter = "all" | "today" | "7d" | "30d";
@@ -104,6 +105,11 @@ export function NetworkPage() {
   useEffect(() => {
     getSetting<ServiceArea>("network-service-area").then((saved) => {
       if (saved) setArea(saved);
+      else {
+        // Country default viewport ONLY when no service area exists (spec 65).
+        const vp = countryMapViewport(settings.country);
+        if (vp) setArea((a) => (a.centerLat == null ? { ...a, centerLat: vp.lat, centerLon: vp.lon } : a));
+      }
       setLoaded(true);
     });
     getSetting<DashboardLayout>(DASHBOARD_LAYOUT_KEY).then((saved) => {
@@ -112,6 +118,7 @@ export function NetworkPage() {
     getSetting<boolean>("network-test-view").then((v) => {
       if (v === true) setTestView(true);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // "Updated X ago" honesty: re-stamp the clock on a slow tick.
@@ -577,7 +584,7 @@ export function NetworkPage() {
               : t("opsWelcomeBack", { defaultValue: "Welcome back" })}
           </h1>
           <p style={{ margin: "2px 0 0", color: "var(--c-ink-faint)", fontSize: "0.85rem", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <span>{now.toLocaleDateString(undefined, { weekday: "long" })}</span>
+            <span>{now.toLocaleDateString(countryDateLocale(settings.country) ?? undefined, { weekday: "long" })}</span>
             <span aria-hidden="true">·</span>
             <span>{t("opsLiveTitle", { defaultValue: "Local operations" })}</span>
             <span aria-hidden="true">·</span>
@@ -595,7 +602,7 @@ export function NetworkPage() {
               </>
             )}
             <span aria-hidden="true">·</span>
-            <span>{t("opsUpdatedNow", { defaultValue: "Updated" })} {now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+            <span>{t("opsUpdatedNow", { defaultValue: "Updated" })} {now.toLocaleTimeString(countryDateLocale(settings.country) ?? [], { hour: "2-digit", minute: "2-digit" })}</span>
             <span aria-hidden="true">·</span>
             <span className="badge" data-status="response_requested">
               {isVerified ? t("networkConnected", { defaultValue: "Connected" }) : t("networkLocalPreview", { defaultValue: "Network: local professional preview" })}
