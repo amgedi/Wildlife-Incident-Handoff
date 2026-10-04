@@ -16,7 +16,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useApp } from "../../app/AppContext";
 import { APP_VERSION } from "../../version";
-import { lanIdentity, lanRevoke, type LanIdentity } from "../sync/lanSync";
+import { lanIdentity, lanRevoke, invokeOptional, type LanIdentity } from "../sync/lanSync";
 import { Icons } from "../../components/Icons";
 import { Select } from "../../components/Select";
 
@@ -75,7 +75,16 @@ export function DeviceCenter() {
 
   useEffect(() => {
     let alive = true;
-    lanIdentity()
+    const load = async (): Promise<LanIdentity> => {
+      try {
+        return await lanIdentity();
+      } catch {
+        // Identity may not be loaded yet (sync never started this session):
+        // ask the backend to load/create it WITHOUT starting the server.
+        return invokeOptional<LanIdentity>("lan_sync_ensure_identity");
+      }
+    };
+    load()
       .then((id) => { if (alive) setDirectIdentity(id); })
       .catch(() => { if (alive) setIdentityError(true); });
     return () => { alive = false; };

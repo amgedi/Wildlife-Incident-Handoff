@@ -142,6 +142,37 @@ fn chrono_now() -> String {
     format!("{}ms", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis()).unwrap_or(0))
 }
 
+/// Load (or create) the persistent device identity WITHOUT starting the LAN
+/// server. Used by the Device Center so the public fingerprint is visible
+/// even when sync is disabled. Private keys stay on disk; only the public
+/// fingerprint/public key are returned to the frontend.
+#[tauri::command]
+pub fn lan_sync_ensure_identity(state: State<LanSyncManaged>, app: AppHandle) -> Result<serde_json::Value, String> {
+    if state.identity.lock().map_err(|_| "lock")?.is_some() {
+        return lan_sync_identity(state);
+    }
+    let mut dir: PathBuf = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    if let Ok(profile) = std::env::var("WIH_PROFILE") {
+        let profile = profile.trim();
+        if !profile.is_empty() && profile.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
+            dir = dir.join(profile);
+        }
+    }
+    *state.data_dir.lock().map_err(|_| "lock")? = dir.clone();
+    let identity = load_or_create_identity(&dir)?;
+    *state.identity.lock().map_err(|_| "lock")? = Some(identity.clone());
+    if state.trust.lock().map_err(|_| "lock")?.peers.is_empty() {
+        *state.trust.lock().map_err(|_| "lock")? = load_trust(&dir);
+    }
+    let (_sk, public_key) = identity;
+    let fp = crypto::fingerprint(&public_key)?;
+    Ok(serde_json::json!({
+        "fingerprint": fp,
+        "fingerprintFormatted": crypto::format_fingerprint(&fp),
+        "publicKey": public_key,
+    }))
+}
+
 #[tauri::command]
 pub fn lan_sync_start(state: State<LanSyncManaged>, app: AppHandle, port: u16) -> Result<String, String> {
     let mut dir: PathBuf = app.path().app_data_dir().map_err(|e| e.to_string())?;

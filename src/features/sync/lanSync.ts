@@ -242,6 +242,12 @@ export interface LanIdentity {
   publicKey: string;
 }
 
+/** invoke() that survives non-Tauri (web) contexts. */
+export async function invokeOptional<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
+  const { invoke } = await import("@tauri-apps/api/core");
+  return invoke<T>(cmd, args);
+}
+
 export async function lanIdentity(): Promise<LanIdentity> {
   return invoke<LanIdentity>("lan_sync_identity");
 }

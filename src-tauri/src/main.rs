@@ -63,6 +63,7 @@ fn main() {
             lan_sync::lan_sync_set_snapshot,
             lan_sync::lan_sync_take_inbox,
             lan_sync::lan_sync_identity,
+            lan_sync::lan_sync_ensure_identity,
             lan_sync::lan_sync_new_pairing_code,
             lan_sync::lan_sync_close_pairing,
             lan_sync::lan_sync_take_pair_requests,
