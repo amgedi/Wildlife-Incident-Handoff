@@ -1144,3 +1144,116 @@ h3 { font-size: 1rem; }
 
 .web-bell { position: fixed; }
 @media (max-width: 860px) { .web-bell { display: none; } }
+
+/* ==========================================================================
+   0.3.0 professional workspace — attention band + response flow v3
+   ========================================================== */
+
+/* Needs Attention: one responsive, prioritized band across the dashboard.
+   Tiles share one row on wide screens, wrap on narrow ones — no far-left
+   column of stacked cards beside an empty dashboard. */
+.attn-band {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--space-3);
+  align-items: stretch;
+}
+.attn-band.attn-clear {
+  display: flex; align-items: center; gap: 8px;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--c-border); border-radius: var(--radius-md);
+  background: var(--c-surface); color: var(--c-ink-faint);
+}
+.attn-tile {
+  display: flex; align-items: center; gap: 10px; text-align: left; font: inherit;
+  color: var(--c-ink); cursor: pointer; min-width: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--c-border); border-radius: var(--radius-md, 12px);
+  background: var(--c-surface);
+  transition: border-color 160ms var(--ease, ease), box-shadow 160ms var(--ease, ease), background 160ms var(--ease, ease);
+}
+[data-motion="full"] .attn-tile:hover { border-color: color-mix(in srgb, var(--c-primary) 35%, var(--c-border)); box-shadow: var(--shadow-sm); }
+.attn-tile:focus-visible { outline: 2px solid var(--c-primary); outline-offset: 2px; }
+.attn-tile.severity-alert { border-color: color-mix(in srgb, var(--c-warn) 55%, var(--c-border)); background: linear-gradient(180deg, color-mix(in srgb, var(--c-warn) 9%, transparent), transparent 55%), var(--c-surface); }
+.attn-tile.severity-warn { border-color: color-mix(in srgb, var(--c-warn) 30%, var(--c-border)); }
+.attn-tile-icon { color: var(--c-warn); display: inline-flex; flex: none; }
+.attn-tile-body { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.attn-tile-count { font-size: 1.3rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.attn-tile-label { font-size: 0.8rem; color: var(--c-ink-soft); }
+.attn-tile-detail { font-size: 0.72rem; color: var(--c-ink-faint); }
+.attn-tile-action { font-size: 0.78rem; font-weight: 600; color: var(--c-primary); display: inline-flex; align-items: center; gap: 2px; flex: none; }
+
+/* Command-center header flags */
+.ops-flag-warn { color: var(--c-warn); font-weight: 600; }
+
+/* Response Flow v3 — stage rail. Selection = stronger node + ring + accent
+   underline + halo; never a filled card around the stage. */
+.rflow { display: flex; flex-direction: column; gap: var(--space-3); }
+.rflow-rail { display: flex; align-items: stretch; overflow-x: auto; padding: 2px 0 4px; }
+.rflow-stage {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  min-width: 72px; flex: 1;
+  background: none; border: none; font: inherit; color: var(--c-ink); cursor: pointer;
+  padding: 8px 4px 6px; border-radius: var(--radius-sm);
+  position: relative;
+}
+.rflow-stage + .rflow-stage { margin-left: 26px; }
+.rflow-link {
+  position: absolute; top: 24px; height: 1px; width: 26px; margin-left: -26px;
+  background: var(--c-border-strong);
+  transition: background 200ms var(--ease, ease);
+}
+.rflow-link[data-active] { background: color-mix(in srgb, var(--c-primary) 60%, var(--c-border-strong)); }
+.rflow-node {
+  display: grid; place-items: center;
+  min-width: 34px; height: 34px; padding: 0 8px;
+  border-radius: 999px;
+  font-size: 1.05rem; font-weight: 700; font-variant-numeric: tabular-nums;
+  border: 1px solid var(--c-border-strong);
+  background: color-mix(in srgb, var(--c-surface-alt) 70%, transparent);
+  transition: box-shadow 200ms var(--ease, ease), border-color 200ms var(--ease, ease), transform 200ms var(--ease, ease);
+}
+.rflow-label { font-size: 0.72rem; color: var(--c-ink-faint); letter-spacing: 0.02em; }
+.rflow-stage.is-zero .rflow-node { opacity: 0.4; }
+.rflow-stage.is-zero .rflow-label { opacity: 0.55; }
+[data-motion="full"] .rflow-stage:hover .rflow-node { border-color: color-mix(in srgb, var(--c-primary) 45%, var(--c-border-strong)); }
+.rflow-stage.is-selected .rflow-node {
+  border-color: var(--c-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-primary) 22%, transparent), 0 0 14px color-mix(in srgb, var(--c-primary) 25%, transparent);
+  transform: translateY(-1px);
+}
+.rflow-stage.is-selected .rflow-label { color: var(--c-ink); font-weight: 650; }
+.rflow-stage.is-selected::after {
+  content: ""; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 34px; height: 2px; border-radius: 2px; background: var(--c-primary);
+}
+.rflow-stage:focus-visible { outline: 2px solid var(--c-primary); outline-offset: 2px; }
+
+/* Case drawer: animates open; compact rows. */
+.rflow-drawer {
+  border: 1px solid var(--c-border); border-radius: var(--radius-md);
+  background: var(--c-surface-alt);
+  padding: var(--space-3) var(--space-4);
+  opacity: 0; transform: translateY(-4px);
+}
+[data-motion="full"] .rflow-drawer { transition: opacity 180ms var(--ease, ease), transform 180ms var(--ease, ease); }
+.rflow-drawer.is-open { opacity: 1; transform: none; }
+[data-motion="reduced"] .rflow-drawer, [data-motion="off"] .rflow-drawer { opacity: 1; transform: none; }
+.rflow-drawer-title { font-size: 0.86rem; }
+.rflow-cases { list-style: none; margin: var(--space-2) 0 0; padding: 0; }
+.rflow-cases li + li { border-top: 1px solid var(--c-border); }
+.rflow-case-row {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; font: inherit;
+  color: inherit; background: none; border: none; cursor: pointer;
+  padding: 7px 2px; border-radius: var(--radius-sm);
+}
+[data-motion="full"] .rflow-case-row:hover { background: color-mix(in srgb, var(--c-primary) 7%, transparent); }
+.rflow-case-row:focus-visible { outline: 2px solid var(--c-primary); outline-offset: -2px; }
+.rflow-case-main { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.rflow-case-ref { font-weight: 600; font-size: 0.86rem; font-variant-numeric: tabular-nums; }
+.rflow-case-sub { font-size: 0.76rem; color: var(--c-ink-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rflow-empty { margin: var(--space-2) 0 0; }
+.rflow-more { margin-top: var(--space-2); }
+.rflow-hint { margin: 0; }
+
+.segmented-sm button { padding: 2px 10px; font-size: 0.78rem; }

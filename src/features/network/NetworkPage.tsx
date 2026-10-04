@@ -33,6 +33,7 @@ import { TrendChart } from "./TrendChart";
 import { AnimatedNumber } from "./dashboard/AnimatedNumber";
 import { AgingStrip, BarDistribution } from "./dashboard/opsCharts";
 import { IncidentQueueRow } from "./dashboard/IncidentQueueRow";
+import { ResponseFlow } from "./dashboard/ResponseFlow";
 import { getAuthorizationState } from "./authorization";
 import type { Incident } from "../../types/incident";
 
@@ -93,7 +94,6 @@ export function NetworkPage() {
   const [now, setNow] = useState(() => new Date());
   const [layout, setLayout] = useState<DashboardLayout | null>(null);
   const [testView, setTestView] = useState(false);
-  const [stageFocus, setStageFocus] = useState<string | null>(null);
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [confirmHideAttention, setConfirmHideAttention] = useState(false);
   const org = LOCAL_ORG_REGISTRY[0];
@@ -190,7 +190,6 @@ export function NetworkPage() {
   const feed = useMemo(() => analytics.getActivityFeed(filtered), [filtered]);
   const series = useMemo(() => analytics.getTimeSeries(filtered, range), [filtered, range]);
   const attention = useMemo(() => analytics.getNeedsAttention(filtered, now), [filtered, now]);
-  const pipeline = useMemo(() => analytics.getPipelineCounts(filtered), [filtered]);
   const rangeDays = filters.time === "today" ? 1 : filters.time === "7d" ? 7 : filters.time === "30d" ? 30 : 30;
   const newWithDelta = useMemo(() => analytics.getCountWithDelta(filtered, rangeDays as 1 | 7 | 30, now), [filtered, rangeDays, now]);
 
@@ -231,6 +230,9 @@ export function NetworkPage() {
   };
 
   const attentionCards = useMemo(() => {
+    // 0.3: tiles for the responsive attention band (priority = deterministic
+    // operational state, most severe first). "Unassigned" joins the band so
+    // the whole attention surface is one prioritized queue.
     const cards: Array<{ key: string; icon: JSX.Element; count: number; reason: string; severity: "alert" | "warn" | "info"; action: string; to: string; time?: string }> = [];
     if (kpis.unassigned > 0) {
       cards.push({
@@ -327,26 +329,27 @@ export function NetworkPage() {
   );
 
   const attentionPanel = (
-    <section className="ops-span-4" aria-labelledby="attn-title" style={{ display: "flex", flexDirection: "column" }}>
+    <section className="ops-span-12" aria-labelledby="attn-title">
       <h2 id="attn-title" className="section-label" style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: "var(--space-2)" }}>
         <span className="ops-live-dot" aria-hidden="true" />
         {t("needsAttention", { defaultValue: "Needs attention" })}
       </h2>
       {attentionCards.length === 0 ? (
-        <div className="card ops-panel" style={{ flex: 1, display: "grid", placeItems: "center", color: "var(--c-ink-faint)" }}>
+        <div className="attn-band attn-clear" role="status">
+          <Icons.check size={16} />
           <span>{t("attentionClear", { defaultValue: "Nothing needs attention right now." })}</span>
         </div>
       ) : (
-        <div className="attn-grid" style={{ gridTemplateColumns: "1fr", flex: 1 }}>
+        <div className="attn-band">
           {attentionCards.map((c) => (
-            <button key={c.key} className={`attn-card severity-${c.severity}`} onClick={() => navigate(c.to)}>
-              <span className="attn-row1">
-                <span className="attn-icon" aria-hidden="true">{c.icon}</span>
-                <span className="attn-count"><AnimatedNumber value={c.count} /></span>
-                <span className="attn-reason">{c.reason}</span>
-                <span className="attn-action">{c.action} <Icons.chevronRight size={12} /></span>
+            <button key={c.key} className={`attn-tile severity-${c.severity}`} onClick={() => navigate(c.to)}>
+              <span className="attn-tile-icon" aria-hidden="true">{c.icon}</span>
+              <span className="attn-tile-body">
+                <span className="attn-tile-count">{c.count}</span>
+                <span className="attn-tile-label">{c.reason}</span>
+                {c.time && <span className="attn-tile-detail">{t("attnOldest", { defaultValue: "Oldest: {{time}}", time: c.time })}</span>}
               </span>
-              {c.time && <span className="attn-row2">{t("attnOldest", { defaultValue: "Oldest: {{time}}", time: c.time })}</span>}
+              <span className="attn-tile-action">{c.action} <Icons.chevronRight size={12} /></span>
             </button>
           ))}
         </div>
@@ -391,30 +394,14 @@ export function NetworkPage() {
   );
 
   const pipelineWidget = (
-    <div className="card ops-panel ops-span-8" style={{ display: "flex", flexDirection: "column" }}>
+    <div className="card ops-panel ops-span-12" style={{ display: "flex", flexDirection: "column" }}>
       <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
         <Icons.zap size={16} /> {t("pipelineTitle", { defaultValue: "Response flow" })}
       </h3>
-      <div className="pipeline-wrap" style={{ flex: 1, display: "grid", alignContent: "center" }}>
-        <div className="pipeline" role="list" aria-label={t("pipelineTitle", { defaultValue: "Response flow" })}>
-          {pipeline.map((s) => (
-            <button
-              key={s.key}
-              role="listitem"
-              aria-pressed={stageFocus === s.key}
-              className={`pipeline-stage${s.count === 0 ? " is-zero" : ""}${stageFocus === s.key ? " is-selected" : ""}`}
-              onClick={() => setStageFocus(stageFocus === s.key ? null : s.key)}
-            >
-              <span className="pipeline-count"><AnimatedNumber value={s.count} /></span>
-              <span className="pipeline-label">{s.label}</span>
-            </button>
-          ))}
-        </div>
-        <p className="hint" style={{ margin: "10px 0 0" }}>
-          {t("pipelineHint", { defaultValue: "Cases currently sitting at each stage. Select a stage to see them here." })}
-        </p>
-        {stageFocus && <StageCaseList stage={stageFocus} scope={filtered} />}
-      </div>
+      {/* 0.3 Response Flow v3: stage rail, nothing selected by default; the
+          case drawer mounts only after a stage is selected and derives from
+          the same `filtered` scope as the stage counts. */}
+      <ResponseFlow scope={filtered} />
     </div>
   );
 
@@ -582,19 +569,31 @@ export function NetworkPage() {
           <h1 style={{ margin: 0, fontSize: "1.35rem" }}>
             {firstName
               ? t("opsGreeting", {
-                  defaultValue: "Good day, {{name}}",
+                  defaultValue: "Welcome, {{name}}",
                   name: firstName,
                   interpolation: { escapeValue: false },
                   context: daypart(),
                 })
-              : t("opsLiveTitle", { defaultValue: "Live local operations" })}
+              : t("opsWelcomeBack", { defaultValue: "Welcome back" })}
           </h1>
           <p style={{ margin: "2px 0 0", color: "var(--c-ink-faint)", fontSize: "0.85rem", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            {settings.professionalProfile?.organization && <strong>{settings.professionalProfile.organization}</strong>}
-            {activeRole && <span aria-hidden="true">·</span>}
-            {activeRole && <span>{t(`navigation:role_${activeRole.role}`, { ns: "navigation", defaultValue: activeRole.role.replaceAll("_", " ") })}</span>}
-            <span className="ops-live-dot" aria-hidden="true" />
-            <span>{t("opsLiveTitle", { defaultValue: "Live local operations" })}</span>
+            <span>{now.toLocaleDateString(undefined, { weekday: "long" })}</span>
+            <span aria-hidden="true">·</span>
+            <span>{t("opsLiveTitle", { defaultValue: "Local operations" })}</span>
+            <span aria-hidden="true">·</span>
+            <span>{t("opsOpenCount", { defaultValue: "{{count}} open incidents", count: kpis.openTotal })}</span>
+            {kpis.unassigned > 0 && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span className="ops-flag-warn">{t("opsNeedAssignment", { defaultValue: "{{count}} need assignment", count: kpis.unassigned })}</span>
+              </>
+            )}
+            {attention.handoffWaiting.length > 0 && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span className="ops-flag-warn">{t("opsHandoffsWaiting", { defaultValue: "{{count}} handoffs waiting", count: attention.handoffWaiting.length })}</span>
+              </>
+            )}
             <span aria-hidden="true">·</span>
             <span>{t("opsUpdatedNow", { defaultValue: "Updated" })} {now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
             <span aria-hidden="true">·</span>
@@ -986,48 +985,6 @@ export function NetworkPage() {
         <p>{t("attentionHideWarnBody", { defaultValue: "Needs attention surfaces incidents that may be waiting too long, missing a responder, or missing a usable location. You can re-enable it any time from Customize dashboard." })}</p>
       </Dialog>
     </main>
-  );
-}
-
-/**
- * Case drawer for a selected response-flow stage. Receives the SAME scope the
- * stage counts were computed from (`scope` = the dashboard's filtered list) —
- * never re-queries raw records, so count(stage) === list(stage).length always.
- */
-function StageCaseList({ stage, scope }: { stage: string; scope: Incident[] }) {
-  const { t } = useTranslation("professional");
-  const [sort, setSort] = useState<"earliest" | "latest">("earliest");
-  const navigate = useNavigate();
-  const cases = useMemo(() => {
-    const list = analytics.getPipelineStageCases(scope, stage);
-    return sort === "earliest" ? list : [...list].reverse();
-  }, [scope, stage, sort]);
-  return (
-    <div className="stage-case-list" role="region" aria-label={stage} style={{ marginTop: 10, border: "1px solid var(--c-border)", borderRadius: "var(--radius-sm)", padding: 10, background: "var(--c-surface-alt)" }}>
-      <div className="row between" style={{ gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
-        <strong style={{ fontSize: "0.85rem" }}>{cases.length} {t("stageCases", { defaultValue: "case(s) at this stage" })}</strong>
-        <div className="segmented">
-          <button aria-pressed={sort === "earliest"} onClick={() => setSort("earliest")}>{t("sortEarliest", { defaultValue: "Earliest" })}</button>
-          <button aria-pressed={sort === "latest"} onClick={() => setSort("latest")}>{t("sortLatest", { defaultValue: "Latest" })}</button>
-        </div>
-      </div>
-      {cases.length === 0 ? (
-        <p className="hint" style={{ margin: 0 }}>{t("stageEmpty", { defaultValue: "Nothing at this stage right now." })}</p>
-      ) : (
-        <ul style={{ listStyle: "none", margin: 0, padding: 0, maxHeight: 220, overflowY: "auto" }}>
-          {cases.map((i) => (
-            <li key={i.id}>
-              <button className="dist-row" style={{ width: "100%" }} onClick={() => navigate(`/incidents/${i.id}`)}>
-                <StatusBadge status={i.status} />
-                <span style={{ flex: 1, textAlign: "left", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {i.humanReference} · {relativeTime(i.occurredAt ?? i.createdAt)} · {i.location.description || i.animal.description || i.animal.species || ""}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
   );
 }
 
