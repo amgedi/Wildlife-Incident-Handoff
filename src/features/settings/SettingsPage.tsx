@@ -23,9 +23,9 @@ import { ProfilePhoto, PHOTO_BORDER_STYLES } from "../../components/ProfilePhoto
 import { RoleCard } from "./RoleCard";
 import { channelStatuses, requestWebNotificationPermission, webNotificationPermission, sendSystemNotification } from "../../notifications/delivery";
 import {
-  DEFAULT_LAN_SYNC_CONFIG, acceptPeerWithUnion, ensureDeviceIdentity, lanLocalAddress, lanPairPeer,
-  lanSetPairingCode, lanSetTrusted, lanStart, lanStop, lanTakePairRequests, runSyncRound,
-  lanSyncSupported, SYNC_CONFLICTS_KEY, type LanSyncConfig, type SyncConflict,
+  DEFAULT_LAN_SYNC_CONFIG, acceptPeerWithUnion, lanPairPeer,
+  lanApprovePair, lanDenyPair, lanRevoke, lanSyncSupported, SYNC_CONFLICTS_KEY, SYNC_PEER_STATE_KEY,
+  type LanSyncConfig, type SyncConflict, type SyncPeerStates,
 } from "../sync/lanSync";
 import { PROFESSIONAL_ROLES, ROLE_VERIFICATION_REQUIREMENTS, type ProfessionalRole, type ProfessionalRoleEntry } from "../../features/network/authorization";
 import { resetOnboardingForReplay, beginOnboardingPreview } from "../../features/onboarding/onboardingState";
@@ -132,7 +132,12 @@ export function SettingsPage({ standaloneSection }: { standaloneSection?: Sectio
           {section === "storage" && <StorageSection />}
           {section === "notifications" && <NotificationsSection />}
           {section === "map" && <MapSection />}
-          {section === "sync" && <LanSyncSection />}
+          {/* dev.19: the LAN sync lifecycle stays MOUNTED (hidden) while the
+              user is in other settings sections — sync must keep running with
+              the settings page closed, not only while its panel is visible. */}
+          <div style={{ display: section === "sync" ? undefined : "none" }} aria-hidden={section !== "sync"}>
+            <LanSyncSection />
+          </div>
           {section === "advanced" && <AdvancedSection />}
           {section === "about" && <AboutSection />}
         </div>
@@ -216,7 +221,7 @@ function AppearanceSection() {
             { value: "off", label: "Off" },
           ]}
         />
-        <p className="hint">A very slow background ambience behind the interface — each theme has its own character. Functional transitions keep working even with ambience off, and the background never animates when your OS requests reduced motion.</p>
+        <p className="hint">A very slow background ambience behind the interface — each theme has its own character, on by default. Functional transitions keep working even with ambience off, and you can lower or stop the ambience here at any time.</p>
       </div>
     </div>
   );
@@ -279,7 +284,7 @@ function AccessibilitySection() {
         Full uses the app's normal subtle animations. Reduced keeps only the shortest transitions. Off removes all movement.
         The app also follows your system “prefers reduced motion” setting automatically.
       </p>
-      <p className="hint">Ambient background effects follow the Appearance → “Ambient theme effects” setting and are automatically calmed when your OS requests reduced motion.</p>
+      <p className="hint">Ambient background effects follow the Appearance → “Ambient theme effects” setting (on by default; you choose Reduced or Off).</p>
       <h3>Keyboard & screen readers</h3>
       <p style={{ color: "var(--c-ink-soft)", fontSize: "0.92rem" }}>
         All controls are reachable by keyboard; dialogs trap focus and restore it on close. Status is never conveyed by color
@@ -1205,113 +1210,49 @@ function AboutSection() {
 const LAN_SYNC_CONFIG_KEY = "lan-sync-config";
 
 function LanSyncSection() {
-  const { showToast, settings: appSettings, notify } = useApp();
+  const { showToast, settings: appSettings, lanSync, refreshLanSyncTrusted, dismissLanPairRequest } = useApp();
   const { t } = useTranslation("settings");
   const supported = lanSyncSupported();
   const [config, setConfig] = useState<LanSyncConfig>(DEFAULT_LAN_SYNC_CONFIG);
-  const [loaded, setLoaded] = useState(false);
-  const [identity, setIdentity] = useState<{ deviceId: string; deviceLabel: string }>({ deviceId: "", deviceLabel: "" });
-  const [address, setAddress] = useState<string | null>(null);
-  const [pairingCode, setPairingCode] = useState("");
   const [pairAddressInput, setPairAddressInput] = useState("");
   const [pairCodeInput, setPairCodeInput] = useState("");
-  const [pairRequests, setPairRequests] = useState<Array<{ deviceId: string; name: string; address?: string }>>([]);
-  const [trustedDevices, setTrustedDevices] = useState<Array<{ id: string; name: string }>>([]);
-  const [conflicts, setConflicts] = useState<SyncConflict[]>([]);
-  const [log, setLog] = useState<string[]>([]);
-  const [lastSync, setLastSync] = useState<string | null>(null);
+  const [pairedNotice, setPairedNotice] = useState<string | null>(null);
+
+  // dev.19: server + sync round loop live app-wide in AppContext; this panel
+  // is pure UI on top of the shared lanSync state.
+  const { log, lastSync, address, pairingCode, identity, pairRequests, trustedDevices, conflicts } = lanSync;
 
   useEffect(() => {
     getSetting<LanSyncConfig>(LAN_SYNC_CONFIG_KEY).then((saved) => {
       if (saved && typeof saved.port === "number") setConfig({ ...DEFAULT_LAN_SYNC_CONFIG, ...saved, peers: Array.isArray(saved.peers) ? saved.peers : [] });
-      setLoaded(true);
     });
-    void ensureDeviceIdentity().then(setIdentity);
   }, []);
-
-  // Server + sync loop lifecycle.
-  useEffect(() => {
-    if (!supported || !loaded || !config.enabled) return;
-    let cancelled = false;
-    const addLog = (line: string) => setLog((l) => [`${new Date().toLocaleTimeString()} — ${line}`, ...l].slice(0, 8));
-    (async () => {
-      try {
-        await lanStart(config.port);
-        setAddress(await lanLocalAddress(config.port));
-        // Re-register trusted device ids with the server after (re)start.
-        const trusted = (await getSetting<Array<{ id: string; name: string }>>("lan-sync-trusted")) ?? [];
-        await lanSetTrusted(trusted.map((d) => d.id));
-        // A fresh pairing code per session; shown to the user to give out.
-        const code = Math.random().toString(36).slice(2, 8).toUpperCase();
-        setPairingCode(code);
-        await lanSetPairingCode(code);
-        addLog(t("syncStartedLog", { defaultValue: "LAN sync server started" }));
-        while (!cancelled) {
-          const r = await runSyncRound(
-            config,
-            appSettings.displayName || appSettings.professionalProfile?.name || "Device",
-            identity.deviceId || (await ensureDeviceIdentity()).deviceId,
-            addLog
-          );
-          if (r.added > 0 || r.updated > 0 || r.peersUp > 0) setLastSync(new Date().toISOString());
-          const nextConflicts = ((await getSetting<SyncConflict[]>(SYNC_CONFLICTS_KEY)) ?? []).slice(-20);
-          setConflicts(nextConflicts);
-          setTrustedDevices((await getSetting<Array<{ id: string; name: string }>>("lan-sync-trusted")) ?? []);
-          const reqs = await lanTakePairRequests();
-          if (reqs.length > 0) {
-            const parsed = reqs
-              .map((body) => {
-                try {
-                  return JSON.parse(body) as { deviceId: string; name: string; address?: string };
-                } catch {
-                  return null;
-                }
-              })
-              .filter((x): x is { deviceId: string; name: string; address?: string } => !!x);
-            setPairRequests((prev) => [...prev, ...parsed.filter((p) => !prev.some((q) => q.deviceId === p.deviceId))]);
-            void notify({
-              category: "sync_conflict",
-              title: t("syncPairRequest", { defaultValue: "Pairing request" }),
-              body: t("syncPairRequestBody", { defaultValue: "A device wants to sync with this one. Review it in Settings → LAN sync." }),
-            });
-          }
-          await new Promise((res) => setTimeout(res, 5000));
-        }
-      } catch (e) {
-        addLog(`error: ${String(e).slice(0, 90)}`);
-      }
-    })();
-    return () => {
-      cancelled = true;
-      void lanStop();
-    };
-    // The loop restarts when config or identity changes.
-  }, [supported, loaded, config.enabled, config.port, config.peers, identity.deviceId]);
 
   const saveConfig = (next: LanSyncConfig) => {
     setConfig(next);
     void setSetting(LAN_SYNC_CONFIG_KEY, next);
   };
 
-  const trustDevice = async (req: { deviceId: string; name: string; address?: string }) => {
-    const trusted = (await getSetting<Array<{ id: string; name: string }>>("lan-sync-trusted")) ?? [];
-    const next = [...trusted.filter((d) => d.id !== req.deviceId), { id: req.deviceId, name: req.name }];
-    await setSetting("lan-sync-trusted", next);
-    setTrustedDevices(next);
-    await lanSetTrusted(next.map((d) => d.id));
+  const setPeerFingerprint = async (url: string, fingerprint: string, name: string) => {
+    const states = ((await getSetting<SyncPeerStates>(SYNC_PEER_STATE_KEY)) ?? {}) as SyncPeerStates;
+    states[url] = { ...(states[url] ?? { trusted: true, ack: {} }), deviceId: fingerprint, name, trusted: true, ack: states[url]?.ack ?? {} };
+    await setSetting(SYNC_PEER_STATE_KEY, states);
+  };
+
+  const trustDevice = async (req: { fingerprint: string; public_key: string; name: string; address: string }) => {
+    await lanApprovePair(req.fingerprint, req.public_key, req.name);
     if (req.address && !config.peers.includes(req.address)) {
-      saveConfig({ ...config, peers: [...config.peers, req.address] });
+      const base = req.address.replace(/\/$/, "");
+      saveConfig({ ...config, peers: [...config.peers, base] });
+      await setPeerFingerprint(base, req.fingerprint, req.name);
     }
-    setPairRequests((prev) => prev.filter((p) => p.deviceId !== req.deviceId));
+    await refreshLanSyncTrusted();
     showToast(t("syncTrustedToast", { defaultValue: "Device trusted" }));
   };
 
-  const revokeTrust = async (id: string) => {
-    const trusted = (await getSetting<Array<{ id: string; name: string }>>("lan-sync-trusted")) ?? [];
-    const next = trusted.filter((d) => d.id !== id);
-    await setSetting("lan-sync-trusted", next);
-    setTrustedDevices(next);
-    await lanSetTrusted(next.map((d) => d.id));
+  const revokeTrust = async (fingerprint: string) => {
+    await lanRevoke(fingerprint);
+    await refreshLanSyncTrusted();
     showToast(t("syncRevokedToast", { defaultValue: "Trust removed — that device can no longer sync until re-paired" }));
   };
 
@@ -1353,7 +1294,6 @@ function LanSyncSection() {
       ],
     });
     const next = conflicts.filter((c) => c.id !== conflict.id);
-    setConflicts(next);
     await setSetting(SYNC_CONFLICTS_KEY, next);
     showToast(t("syncConflictResolvedToast", { defaultValue: "Conflict resolved and recorded" }));
   };
@@ -1380,7 +1320,7 @@ function LanSyncSection() {
       </p>
       <p className="hint" style={{ marginTop: 0 }}>
         {t("syncExperimentalWarning", {
-          defaultValue: "Experimental: traffic between devices is not encrypted yet, and device identity is not cryptographically verified. Use only on networks you fully trust (for example your own home or office network), with people you trust. Off by default.",
+          defaultValue: "Experimental: records are exchanged only between paired devices over an encrypted channel (each device has its own cryptographic key; compare the device fingerprints when pairing). Still new — use it on networks you fully trust, with people you trust. Off by default.",
         })}
       </p>
       <label style={{ display: "flex", gap: 8, alignItems: "center", margin: "var(--space-3) 0", cursor: "pointer" }}>
@@ -1401,6 +1341,8 @@ function LanSyncSection() {
             <dd><code>{address ?? "…"}</code></dd>
             <dt>{t("syncPairingCode", { defaultValue: "Your pairing code" })}</dt>
             <dd><code style={{ fontWeight: 700, letterSpacing: "0.1em" }}>{pairingCode || "…"}</code></dd>
+            <dt>{t("syncFingerprint", { defaultValue: "This device's fingerprint" })}</dt>
+            <dd><code style={{ fontSize: "0.75rem" }}>{identity?.fingerprintFormatted ?? "…"}</code></dd>
             <dt>{t("syncLastSync", { defaultValue: "Last exchange" })}</dt>
             <dd>{lastSync ? new Date(lastSync).toLocaleTimeString() : t("never", { defaultValue: "Never" })}</dd>
           </dl>
@@ -1410,11 +1352,13 @@ function LanSyncSection() {
               <strong>{t("syncPairRequests", { defaultValue: "Pairing requests" })}</strong>
               <ul style={{ margin: "6px 0 0", paddingLeft: 0, listStyle: "none", display: "grid", gap: 6 }}>
                 {pairRequests.map((r) => (
-                  <li key={r.deviceId} className="row between" style={{ gap: 8, flexWrap: "wrap" }}>
-                    <span>{r.name || r.deviceId.slice(0, 8)}</span>
+                  <li key={r.fingerprint} className="row between" style={{ gap: 8, flexWrap: "wrap" }}>
+                    <span>
+                      {r.name} <code style={{ fontSize: "0.72rem", display: "block" }}>{r.fingerprint.slice(0, 16).toUpperCase()}… · {r.address}</code>
+                    </span>
                     <span className="row" style={{ gap: 6 }}>
                       <button className="btn btn-primary btn-sm" onClick={() => void trustDevice(r)}>{t("syncTrust", { defaultValue: "Trust device" })}</button>
-                      <button className="btn btn-quiet btn-sm" onClick={() => setPairRequests((prev) => prev.filter((p) => p.deviceId !== r.deviceId))}>{t("syncDeny", { defaultValue: "Deny" })}</button>
+                      <button className="btn btn-quiet btn-sm" onClick={() => { void lanDenyPair(r.fingerprint); dismissLanPairRequest(r.fingerprint); }}>{t("syncDeny", { defaultValue: "Deny" })}</button>
                     </span>
                   </li>
                 ))}
@@ -1466,11 +1410,20 @@ function LanSyncSection() {
                 onClick={async () => {
                   try {
                     const addr = pairAddressInput.trim().replace(/\/$/, "");
-                    await lanPairPeer(addr, identity.deviceId, appSettings.displayName || "Device", pairCodeInput.trim());
+                    const result = await lanPairPeer(addr, pairCodeInput.trim(), appSettings.displayName || "Device", address ?? `http://127.0.0.1:${config.port}`);
                     if (!config.peers.includes(addr)) saveConfig({ ...config, peers: [...config.peers, addr] });
+                    await setPeerFingerprint(addr, result.fingerprint, result.name);
+                    setPairedNotice(
+                      t("syncPairedNotice", {
+                        defaultValue: "Paired with {{name}} — verify their fingerprint matches the one shown on that device: {{fp}}",
+                        name: result.name,
+                        fp: result.fingerprintFormatted,
+                        interpolation: { escapeValue: false },
+                      })
+                    );
                     setPairCodeInput("");
                     setPairAddressInput("");
-                    showToast(t("syncPairRequested", { defaultValue: "Pairing sent — if they accept, sync starts automatically" }));
+                    showToast(t("syncPairRequested", { defaultValue: "Paired — sync starts automatically" }));
                   } catch {
                     showToast(t("syncPairFailed", { defaultValue: "Pairing failed — check the address and code" }));
                   }
@@ -1479,7 +1432,8 @@ function LanSyncSection() {
                 {t("syncPairBtn", { defaultValue: "Pair" })}
               </button>
             </div>
-            <p className="hint">{t("syncPeerHint", { defaultValue: "Both devices must be running with LAN sync enabled. Show your pairing code, enter theirs — each side confirms the other." })}</p>
+            <p className="hint">{t("syncPeerHint", { defaultValue: "Both devices must be running with LAN sync enabled. Enter their address and pairing code, then compare the device fingerprints shown on both screens." })}</p>
+            {pairedNotice && <p className="hint" style={{ color: "var(--c-ok, #2c7a4b)" }}>{pairedNotice}</p>}
           </div>
 
           {trustedDevices.length > 0 && (
@@ -1487,9 +1441,12 @@ function LanSyncSection() {
               <strong style={{ fontSize: "0.85rem" }}>{t("syncTrustedDevices", { defaultValue: "Trusted devices" })}</strong>
               <ul style={{ listStyle: "none", margin: "6px 0 0", padding: 0, display: "grid", gap: 4 }}>
                 {trustedDevices.map((d) => (
-                  <li key={d.id} className="row between" style={{ padding: "6px 8px", border: "1px solid var(--c-border)", borderRadius: "var(--radius-sm)" }}>
-                    <span>{d.name || d.id.slice(0, 8)}</span>
-                    <button className="btn btn-quiet btn-sm" onClick={() => void revokeTrust(d.id)}>{t("syncRemoveTrust", { defaultValue: "Remove trust" })}</button>
+                  <li key={d.fingerprint} className="row between" style={{ padding: "6px 8px", border: "1px solid var(--c-border)", borderRadius: "var(--radius-sm)" }}>
+                    <span>
+                      {d.name}
+                      <code style={{ fontSize: "0.7rem", display: "block", color: "var(--c-ink-soft)" }}>{d.fingerprintFormatted}</code>
+                    </span>
+                    <button className="btn btn-quiet btn-sm" onClick={() => void revokeTrust(d.fingerprint)}>{t("syncRemoveTrust", { defaultValue: "Remove trust" })}</button>
                   </li>
                 ))}
               </ul>
@@ -1506,7 +1463,7 @@ function LanSyncSection() {
             </ul>
           </div>
           <p className="hint" style={{ marginBottom: 0 }}>
-            {t("syncMediaNote", { defaultValue: "v2 syncs incident records (text, timeline, contacts, privacy settings). Photo and video files are not synced yet — use backups to move media." })}
+            {t("syncMediaNote", { defaultValue: "Sync exchanges incident records (text, timeline, contacts, privacy settings) between paired devices, encrypted. Photo and video files are not synced yet — use backups to move media." })}
             {" "}
             {t("syncTrustNote", { defaultValue: "Only pair devices you trust: a paired device receives full records, including private notes." })}
           </p>

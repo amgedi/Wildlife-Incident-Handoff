@@ -1,4 +1,4 @@
-# LAN Sync Security & Threat Model (0.2.0-dev.15)
+# LAN Sync Security & Threat Model (0.2.0-dev.19, protocol v3)
 
 ## What LAN sync is
 
@@ -7,72 +7,96 @@ local network. No internet, no cloud, no relay. Each device runs a small HTTP
 server (`tiny_http`) on `0.0.0.0:<port>` (default 47618) while LAN sync is
 enabled in Settings.
 
-## Trust model
+## Why v3 exists
 
-- **Device identity**: every installation generates a persistent UUID
-  (`deviceId`, stored in app settings). All sync requests carry it in the
-  `X-WIH-Device` header. Identity is NOT derived from hostname.
-- **Trust is explicit**: the server answers `/wih/sync` (read AND write) only
-  for device IDs the user approved through the pairing flow. `/wih/ping` is
-  intentionally open — it returns a static acknowledgement and no data
-  (discovery ≠ authorization).
-- **Pairing**: the receiving device shows a per-session pairing code; the
-  requesting device must send `POST /wih/pair {deviceId, name, code, address}`.
-  Correct code → the request is queued for **manual user approval**
-  ("Trust device" / "Deny"). Approved devices are remembered; a revoked device
-  can no longer read or write until re-paired.
-- **Conflict safety**: both-sides-changed records become visible SYNC
-  CONFLICTS; the local record is kept untouched until a human chooses
-  (use mine / use the peer's / keep both). Resolutions are recorded as
-  timeline events. Deleted/archived records propagate as tombstones and are
-  never resurrected by a stale peer copy.
+dev.15–dev.18 authenticated peers with a plaintext `X-WIH-Device` UUID header
+on plain HTTP. Anyone on the LAN could read another device's header (or just
+try UUIDs) and gain full read/write of incident records, including private
+notes. That was disclosed honestly as an EXPERIMENTAL gap; v3 replaces it.
 
-## Limits & hardening (implemented)
+## Identity
 
-- 8 MB request body cap (text snapshots only; media not transferred).
-- 60 requests/minute rate limit per server.
-- Malformed bodies are rejected; they cannot crash the listener.
-- Demo (fictional) records never sync.
+- Every installation generates a persistent **P-256 keypair** the first time
+  LAN sync starts. The private key never leaves the device (stored in the app
+  data directory, `lan-identity.json`); it is generated and used only by the
+  Rust process — the webview cannot export it.
+- The **fingerprint** (SHA-256 of the public key, hex) is what users see and
+  compare out-of-band during pairing. The friendly name ("Field Laptop") is
+  decorative only and proves nothing.
 
-## Known gaps (honest)
+## Pairing
 
-1. **Plaintext HTTP inside the LAN.** Sensitive content (contacts, exact
-   locations, private notes) is NOT encrypted in transit yet. Risk: another
-   device on the same network can passively observe traffic. Planned fix:
-   TLS with device certificates issued at pairing (real crypto via an
-   established TLS stack — no custom cryptography). Until then, treat LAN
-   sync as appropriate for trusted office/home networks only.
-2. **No media transfer yet** (photos/videos stay device-local; use backups).
-3. **Discovery**: manual address + code pairing; mDNS/UDP discovery planned
-   and will remain prompt-gated (never auto-trusted).
-4. **Firewall exposure**: enabling LAN sync opens a listener port on the LAN.
-   Windows may prompt for firewall permission. Disable LAN sync when not in
-   use; the server only runs while the toggle is on.
+1. Device A enables LAN sync; it shows a **6-digit pairing code** (OS CSPRNG)
+   and its fingerprint. Pairing is open only while that session code exists;
+   turning sync off closes it.
+2. Device B enters A's address + code. B's real public key travels in the
+   pair request. A validates the code and **queues the request for explicit
+   user approval** — a correct code never grants trust by itself.
+3. A's user sees B's name + fingerprint + address and chooses
+   **Trust device / Deny**. Approving stores B's public key.
+4. Both sides now display the peer's fingerprint so users can compare
+   out-of-band (defeats MITM at pairing time).
 
-## Data location
+Discovery never implies trust. Unpaired devices get `403` and **no data** —
+not even incident metadata.
 
-- Records, settings, notifications: IndexedDB inside the WebView2 user-data
-  folder (`%LOCALAPPDATA%\org.wildlifeincidenthandoff.app` on desktop).
-- Media: IndexedDB blob store on the same profile.
-- No data is written outside the app profile; no telemetry exists.
+## Transport & request authorization
 
-## dev.18 status update (2026-10-03)
+- Every `/wih/sync` request is an **AES-256-GCM sealed envelope**. The channel
+  key is **static-static ECDH (P-256) → HKDF-SHA256**, with the HKDF salt/info
+  binding both fingerprints, so a key derived against the wrong peer identity
+  cannot decrypt anything.
+- The AEAD **additional authenticated data** binds sender fingerprint,
+  recipient fingerprint and a monotonic counter; the server rejects counters
+  it has already seen (**replay protection**). Counters are persisted, so a
+  restart cannot rewind them.
+- Plaintext exists only inside each device; the LAN never sees incident data.
+- Each sealed payload carries our snapshot **plus our ack map** (what we last
+  saw of the peer's records), and the reply carries ours — the three-way merge
+  on both sides gets a common ancestor in both directions.
+- **Acks compare content versions, not timestamps** (dev.19): a record's
+  version is a deterministic hash of its content (per-device sync stamps
+  excluded). Two different edits can share a timestamp (Windows clock
+  granularity is ~15 ms); timestamp-only acks would mistake "peer has my
+  version" for "peer made a different edit". The common ancestor is never
+  rewritten on skip, so a real conflict can not be defused by a stale
+  snapshot.
+- `GET /wih/sync` and the old plaintext header protocol were **removed**.
+- `/wih/ping` remains intentionally open: it returns a static app tag and no
+  data (discovery ≠ authorization). While sync is DISABLED it reports the
+  device unavailable, and every sync/pair endpoint rejects with 403.
 
-- The feature is now labeled **EXPERIMENTAL** in Settings and stays **off by
-  default** (`DEFAULT_LAN_SYNC_CONFIG.enabled = false`).
-- What sync sends: full incident records **including exact coordinates** for
-  every non-demo incident, to **trusted paired devices only** (trust gate
-  returns 403 for unknown device ids before any data is served). This is by
-  design — a shared operational workspace needs real coordinates — but it
-  means the trust model is exactly as strong as device-id identity, which is
-  a spoofable UUID header. Hence the EXPERIMENTAL label.
-- Verification/role evidence, settings, notes-kind data outside incidents,
-  and attachment blobs never travel over sync.
-- Tombstones (archive/trash) propagate and cannot be resurrected by a peer
-  that still holds an older live copy (covered by tests).
-- Clock-skew: wall-clock timestamps never decide conflicts by themselves —
-  competing edits since the shared ack always raise an explicit conflict
-  (tests include a peer with a future 2027 clock and a 1999 clock).
-- Planned hardening (unimplemented, do not assume): TLS or a standard
-  encrypted transport, and a cryptographic pairing credential instead of the
-  bare device-id header.
+## Trust store & revocation
+
+- Trusted peers (fingerprint, public key, name, tx/rx counters) persist in the
+  app data directory (`lan-trusted.json`), surviving restarts.
+- **Remove trust** deletes the peer locally; that device can no longer read or
+  write until it is re-paired with a fresh code. Revocation is immediate —
+  every request must authenticate under the channel key, which is destroyed
+  with the stored peer key.
+
+## Server scope & request safety
+
+- Binds `0.0.0.0:<port>` while the app runs with sync configured; disabling
+  sync gates every endpoint server-side (403 + closed pairing) — no sync
+  endpoints are exposed while off. The listener socket itself stays bound
+  while the app runs (tiny_http accept loops cannot be shut down reliably);
+  this is disclosed here rather than overstated.
+- Windows Firewall: the first start triggers the standard firewall prompt;
+  allow it only on Private networks.
+- Body cap 8 MiB (413 beyond), 60 requests/60 s rate limit (429), malformed
+  input handled as 4xx, request timeouts 4–12 s. A hostile peer cannot crash
+  or freeze the app; decryption failures are rejected, never unwrapped.
+- Rate limiting is global (not per-IP) — a known limitation on busy networks.
+
+## Known remaining limits (honest)
+
+- Static-static ECDH gives forward secrecy only when peers re-pair (re-pairing
+  rotates the channel key). Recorded traffic could in principle be decrypted
+  if a private key is stolen AND the traffic was captured AND the peer key is
+  unchanged.
+- The pairing code gates the request queue, but the trust decision ultimately
+  relies on the user comparing fingerprints; skipping that comparison on a
+  hostile network leaves MITM-during-pairing possible.
+- Media (photos/videos) is not synced — see the Settings → Sync notes.
+- The feature remains labeled EXPERIMENTAL pending field QA on real networks.

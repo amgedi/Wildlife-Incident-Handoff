@@ -19,21 +19,29 @@ import {
 
 export async function createBackup(applicationVersion: string): Promise<BackupFormat> {
   const [incidents, blobs] = await Promise.all([getAllIncidents(), getAllAttachmentBlobs()]);
-  const attachments = await Promise.all(
-    blobs.map(async (b) => ({
+  const attachments = [];
+  for (const b of blobs) {
+    attachments.push({
       id: b.id,
       incidentId: b.incidentId,
       fileName: b.fileName,
       mimeType: b.mimeType,
       byteSize: b.byteSize,
       data: await blobToBase64(b.data),
-    }))
-  );
+    });
+  }
   // dev.18: per-record integrity hashes so restore can detect corruption.
   const incidentHashes: Record<string, string> = {};
   for (const inc of incidents) {
     const h = await sha256Hex(JSON.stringify(inc));
     if (h) incidentHashes[inc.id] = h;
+  }
+  // dev.19: media is covered by the manifest too — a corrupted photo/video
+  // is refused on restore instead of silently imported.
+  const attachmentHashes: Record<string, string> = {};
+  for (const att of attachments) {
+    const h = await sha256Hex(att.data);
+    if (h) attachmentHashes[att.id] = h;
   }
   return {
     schemaVersion: SCHEMA_VERSION,
@@ -44,6 +52,7 @@ export async function createBackup(applicationVersion: string): Promise<BackupFo
       incidentCount: incidents.length,
       attachmentCount: attachments.length,
       incidentHashes,
+      attachmentHashes,
     },
     incidents,
     attachments,
@@ -51,9 +60,40 @@ export async function createBackup(applicationVersion: string): Promise<BackupFo
 }
 
 export async function downloadBackup(applicationVersion: string): Promise<"saved" | "cancelled" | "browser"> {
-  const backup = await createBackup(applicationVersion);
-  const json = JSON.stringify(backup, null, 2);
-  const blob = new Blob([json], { type: "application/json" });
+  const [incidents, blobs] = await Promise.all([getAllIncidents(), getAllAttachmentBlobs()]);
+  const incidentHashes: Record<string, string> = {};
+  for (const inc of incidents) {
+    const h = await sha256Hex(JSON.stringify(inc));
+    if (h) incidentHashes[inc.id] = h;
+  }
+  const manifest = {
+    generatedBy: applicationVersion,
+    incidentCount: incidents.length,
+    attachmentCount: blobs.length,
+    incidentHashes,
+    attachmentHashes: {} as Record<string, string>,
+  };
+  const header =
+    JSON.stringify({
+      schemaVersion: SCHEMA_VERSION,
+      applicationVersion,
+      exportedAt: nowIso(),
+      manifest,
+    }).slice(0, -1) + `,"incidents":${JSON.stringify(incidents)},"attachments":[`;
+  // Streaming-style assembly: one attachment in memory at a time; the Blob
+  // keeps parts, so multi-GB libraries never need one giant JSON string.
+  const parts: BlobPart[] = [header];
+  const attachmentParts: string[] = [];
+  for (let i = 0; i < blobs.length; i++) {
+    const b = blobs[i]!;
+    const data = await blobToBase64(b.data);
+    const h = await sha256Hex(data);
+    if (h) manifest.attachmentHashes[b.id] = h;
+    attachmentParts.push((i === 0 ? "" : ",") + JSON.stringify({ id: b.id, incidentId: b.incidentId, fileName: b.fileName, mimeType: b.mimeType, byteSize: b.byteSize, data }));
+  }
+  parts.push(...attachmentParts);
+  parts.push("]}");
+  const blob = new Blob(parts, { type: "application/json" });
   return downloadBlob(blob, `wildlife-incident-handoff-backup-${dateStamp()}.json`);
 }
 
@@ -120,6 +160,9 @@ export async function importBackup(raw: unknown): Promise<ImportResult> {
 
   if (Array.isArray(backup.attachments)) {
     const importedIds = new Set(toImport.map((i) => i.id));
+    // dev.19: decode AND verify every attachment BEFORE writing anything —
+    // a corrupted media file is detected and refused, never half-imported.
+    const staged: Array<{ id: string; incidentId: string; fileName: string; mimeType: string; data: string }> = [];
     for (const att of backup.attachments) {
       if (!att || typeof att !== "object") continue;
       const a = att as Record<string, unknown>;
@@ -128,19 +171,39 @@ export async function importBackup(raw: unknown): Promise<ImportResult> {
         continue;
       }
       if (!importedIds.has(a.incidentId)) continue;
+      if (manifest?.attachmentHashes && typeof manifest.attachmentHashes[a.id] === "string") {
+        const expected = manifest.attachmentHashes[a.id];
+        const actual = await sha256Hex(a.data);
+        if (actual && actual !== expected) {
+          result.corrupted += 1;
+          result.warnings.push(
+            `Attachment "${safeFileName((a.fileName as string) ?? "attachment")}" failed its integrity check (corrupted or altered) and was NOT imported.`
+          );
+          continue;
+        }
+      }
       try {
-        const blob = base64ToBlob(a.data as string, (a.mimeType as string) ?? "application/octet-stream");
-        await putAttachmentBlob({
-          id: a.id as string,
-          incidentId: a.incidentId as string,
-          fileName: safeFileName((a.fileName as string) ?? "attachment"),
-          mimeType: (a.mimeType as string) ?? "application/octet-stream",
-          byteSize: blob.size,
-          data: blob,
-        });
+        base64ToBlob(a.data as string, (a.mimeType as string) ?? "application/octet-stream");
+      } catch {
+        result.corrupted += 1;
+        result.warnings.push("One attachment could not be decoded and was NOT imported.");
+        continue;
+      }
+      staged.push({
+        id: a.id as string,
+        incidentId: a.incidentId as string,
+        fileName: safeFileName((a.fileName as string) ?? "attachment"),
+        mimeType: (a.mimeType as string) ?? "application/octet-stream",
+        data: a.data as string,
+      });
+    }
+    for (const a of staged) {
+      try {
+        const blob = base64ToBlob(a.data, a.mimeType);
+        await putAttachmentBlob({ id: a.id, incidentId: a.incidentId, fileName: a.fileName, mimeType: a.mimeType, byteSize: blob.size, data: blob });
         result.attachmentCount += 1;
       } catch {
-        result.warnings.push("One attachment could not be decoded and was skipped.");
+        result.warnings.push("One attachment could not be stored and was skipped.");
       }
     }
   }
@@ -153,16 +216,29 @@ export function dateStamp(): string {
   return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
 }
 
-export function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
+export async function blobToBase64(blob: Blob): Promise<string> {
+  // arrayBuffer() instead of FileReader where available: works across JS
+  // realms (web, WebView2, tests through fake-indexeddb). jsdom's older Blob
+  // lacks arrayBuffer(), so fall back to FileReader there.
+  const anyBlob = blob as Blob & { arrayBuffer?: () => Promise<ArrayBuffer> };
+  let bytes: Uint8Array;
+  if (typeof anyBlob.arrayBuffer === "function") {
+    bytes = new Uint8Array(await anyBlob.arrayBuffer());
+  } else {
     const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = String(reader.result ?? "");
-      resolve(result.includes(",") ? result.slice(result.indexOf(",") + 1) : result);
-    };
-    reader.onerror = () => reject(new Error("Could not read attachment data"));
-    reader.readAsDataURL(blob);
-  });
+    const result = await new Promise<string>((resolve, reject) => {
+      reader.onloadend = () => resolve(String(reader.result ?? ""));
+      reader.onerror = () => reject(new Error("Could not read attachment data"));
+      reader.readAsDataURL(blob);
+    });
+    return result.includes(",") ? result.slice(result.indexOf(",") + 1) : result;
+  }
+  let binary = "";
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
 }
 
 export function base64ToBlob(base64: string, mimeType: string): Blob {

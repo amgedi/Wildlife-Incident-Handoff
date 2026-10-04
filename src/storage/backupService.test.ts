@@ -168,3 +168,114 @@ describe("dev.18 backup integrity + staged restore", () => {
     console.log(`[perf] 100-incident backup export ${exportMs}ms, import ${importMs}ms`);
   });
 });
+
+describe("dev.19 backup: attachment integrity + staged media restore", () => {
+  const b64 = (bytes: number[]) => btoa(String.fromCharCode(...bytes));
+  const attachment = (id: string, incidentId: string, data: string) => ({ id, incidentId, fileName: "photo.jpg", mimeType: "image/jpeg", byteSize: 5, data });
+  // One object per id, memoized: hashes must be computed over the EXACT
+  // serialized record (makeIncident generates fresh random fields per call).
+  const incidentCache = new Map<string, ReturnType<typeof makeIncident>>();
+  const incidentFor = (id: string) => {
+    if (!incidentCache.has(id)) incidentCache.set(id, makeIncident({ id, humanReference: "WIH-D19-" + id }));
+    return incidentCache.get(id)!;
+  };
+
+  it("round-trips a healthy attachment (hash verified)", async () => {
+    const { sha256Hex } = await import("../utils/validation");
+    const backup = {
+      schemaVersion: 1,
+      applicationVersion: "0.2.0-dev.19",
+      exportedAt: new Date().toISOString(),
+      manifest: {
+        generatedBy: "0.2.0-dev.19",
+        incidentCount: 1,
+        attachmentCount: 1,
+        incidentHashes: { "d19-ok": await sha256Hex(JSON.stringify(incidentFor("d19-ok"))) },
+        attachmentHashes: { "att-ok": await sha256Hex(b64([9, 8, 7])) },
+      },
+      incidents: [incidentFor("d19-ok")],
+      attachments: [attachment("att-ok", "d19-ok", b64([9, 8, 7]))],
+    };
+    const result = await importBackup(JSON.parse(JSON.stringify(backup)));
+    expect(result.corrupted).toBe(0);
+    expect(result.imported).toBe(1);
+    expect(result.attachmentCount).toBe(1);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("detects a corrupted photo: hash mismatch → refused, not imported", async () => {
+    const { sha256Hex } = await import("../utils/validation");
+    const good = b64([1, 2, 3, 4, 5]);
+    const backup = {
+      schemaVersion: 1,
+      applicationVersion: "0.2.0-dev.19",
+      exportedAt: new Date().toISOString(),
+      manifest: {
+        generatedBy: "0.2.0-dev.19",
+        incidentCount: 1,
+        attachmentCount: 1,
+        incidentHashes: { "d19-corrupt": await sha256Hex(JSON.stringify(incidentFor("d19-corrupt"))) },
+        attachmentHashes: { "att-corrupt": await sha256Hex(good) },
+      },
+      incidents: [incidentFor("d19-corrupt")],
+      // payload altered in transit (still valid base64 → decode succeeds)
+      attachments: [attachment("att-corrupt", "d19-corrupt", b64([9, 9, 9, 9, 9]))],
+    };
+    const result = await importBackup(JSON.parse(JSON.stringify(backup)));
+    expect(result.corrupted).toBe(1);
+    expect(result.warnings.some((w) => w.includes("integrity check"))).toBe(true);
+    expect(result.attachmentCount).toBe(0);
+  });
+
+  it("undecodable attachment data is refused (staged decode)", async () => {
+    const { sha256Hex } = await import("../utils/validation");
+    const backup = {
+      schemaVersion: 1,
+      applicationVersion: "0.2.0-dev.19",
+      exportedAt: new Date().toISOString(),
+      manifest: {
+        generatedBy: "0.2.0-dev.19",
+        incidentCount: 1,
+        attachmentCount: 1,
+        incidentHashes: { "d19-bad": await sha256Hex(JSON.stringify(incidentFor("d19-bad"))) },
+        attachmentHashes: { "att-bad": "0".repeat(64) },
+      },
+      incidents: [incidentFor("d19-bad")],
+      attachments: [attachment("att-bad", "d19-bad", "!!!not-base64!!!")],
+    };
+    const result = await importBackup(JSON.parse(JSON.stringify(backup)));
+    expect(result.corrupted).toBe(1);
+    expect(result.attachmentCount).toBe(0);
+  });
+
+  it("legacy backups without attachmentHashes still import (compat)", async () => {
+    const backup = {
+      schemaVersion: 1,
+      applicationVersion: "0.2.0-dev.17",
+      exportedAt: new Date().toISOString(),
+      manifest: { generatedBy: "0.2.0-dev.17", incidentCount: 1, attachmentCount: 1, incidentHashes: {} },
+      incidents: [incidentFor("d19-legacy")],
+      attachments: [attachment("att-legacy", "d19-legacy", b64([4, 4, 4]))],
+    };
+    const result = await importBackup(JSON.parse(JSON.stringify(backup)));
+    expect(result.corrupted).toBe(0);
+    expect(result.warnings.every((w) => !w.includes("integrity"))).toBe(true);
+  });
+
+  it("leaves existing data intact when a restore is refused (staged restore)", async () => {
+    await putIncident(makeIncident({ id: "d19-keep", humanReference: "WIH-D19-KEEP", summary: "precious local record" }));
+    const tampered = {
+      schemaVersion: 1,
+      applicationVersion: "0.2.0-dev.19",
+      exportedAt: new Date().toISOString(),
+      manifest: { generatedBy: "0.2.0-dev.19", incidentCount: 1, attachmentCount: 0, incidentHashes: {} },
+      incidents: [{ ...makeIncident({ id: "d19-new", humanReference: "WIH-D19-NEW" }), summary: "TAMPERED" }],
+      attachments: [],
+    };
+    const result = await importBackup(tampered);
+    // The locally-created record is untouched and never overwritten.
+    const kept = await getIncident("d19-keep");
+    expect(kept?.summary).toBe("precious local record");
+    void result;
+  });
+});

@@ -72,8 +72,20 @@ describe("response time metrics", () => {
   });
 
   it("counts opened/resolved today using LOCAL calendar days", () => {
+    // Anchor inside today's local calendar day so the test is stable right
+    // after local midnight (an hour ago can already be yesterday).
+    const todayIso = (): string => {
+      const d = new Date();
+      d.setHours(0, 0, 1, 0);
+      return d.toISOString();
+    };
     const opened = statusIncident("reported", 1); // created now
+    opened.createdAt = todayIso();
+    opened.occurredAt = todayIso();
     const resolved = statusIncident("closed", 1);
+    resolved.createdAt = todayIso();
+    resolved.occurredAt = todayIso();
+    resolved.updatedAt = todayIso();
     const metrics = getResponseTimeMetrics([opened, resolved]);
     expect(metrics.openedToday).toBe(2);
     expect(metrics.resolvedToday).toBe(1);

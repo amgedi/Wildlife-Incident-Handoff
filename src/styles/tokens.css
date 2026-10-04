@@ -358,9 +358,9 @@ body::after {
   opacity: 0 !important;
   animation: none !important;
 }
-@media (prefers-reduced-motion: reduce) {
-  body::before, body::after { animation: none !important; }
-}
+/* dev.19: the ambient background follows the user's explicit "Ambient theme
+   effects" setting only — the OS reduced-motion preference no longer
+   force-disables it (default stays On; users can still choose Reduced/Off). */
 
 /* Pause ambient when the tab is hidden. */
 

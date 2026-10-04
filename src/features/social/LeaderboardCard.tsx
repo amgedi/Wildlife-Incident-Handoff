@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 import { useApp } from "../../app/AppContext";
 import { useIncidents } from "../incidents/IncidentCard";
 import { computeLeaderboard, levelFor, nextMilestone, MILESTONES } from "./leaderboard";
-import { DEFAULT_LAN_SYNC_CONFIG, deviceNameFromPayload, ensureDeviceIdentity, incidentsFromPayload, lanFetchSnapshot, lanSyncSupported, type LanSyncConfig } from "../sync/lanSync";
+import { DEFAULT_LAN_SYNC_CONFIG, deviceNameFromPayload, incidentsFromPayload, lanFetchSnapshot, lanSyncSupported, SYNC_PEER_STATE_KEY, type LanSyncConfig, type SyncPeerStates } from "../sync/lanSync";
 import { getSetting } from "../../storage/repositories";
 import { Icons } from "../../components/Icons";
 
@@ -32,10 +32,14 @@ export function LeaderboardCard() {
         const config = (await getSetting<LanSyncConfig>(LAN_SYNC_CONFIG_KEY)) ?? DEFAULT_LAN_SYNC_CONFIG;
         if (!config.enabled || config.peers.length === 0) return;
         const found: Array<{ name: string; count: number }> = [];
+        const peerStates = ((await getSetting<SyncPeerStates>(SYNC_PEER_STATE_KEY)) ?? {}) as SyncPeerStates;
         for (const peer of config.peers) {
           try {
-            const { deviceId } = await ensureDeviceIdentity();
-            const payload = await lanFetchSnapshot(peer, deviceId);
+            // dev.19: peer snapshots are only available to PAIRED devices over
+            // the encrypted channel; unpaired peers are rejected by both sides.
+            const fingerprint = peerStates[peer]?.deviceId;
+            if (!fingerprint) continue;
+            const payload = await lanFetchSnapshot(peer, fingerprint, "{}");
             if (cancelled) return;
             found.push({
               name: deviceNameFromPayload(payload) ?? peer.replace(/^https?:\/\//, "").split(":")[0] ?? "Device",

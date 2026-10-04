@@ -164,15 +164,19 @@ export type PhotoBorderStyle = "none" | "leaves" | "wood" | "rope" | "stars";
 /** Versioned backup container.
  *  dev.18: optional `manifest` block adds integrity — per-record SHA-256
  *  hashes so restore can detect corruption instead of silently ignoring it.
+ *  dev.19: manifest also covers attachments (attachmentHashes), so a corrupted
+ *  photo/video is detected and refused, not silently imported.
  *  Legacy backups without a manifest remain importable (structural checks
- *  only). Media stays base64-embedded; a packaged .wihbackup container is
- *  documented as future work in docs/DEV18_BASELINE.md. */
+ *  only). Media stays base64-embedded; export assembles the file in parts so
+ *  multi-GB libraries don't need one giant string in memory. */
 export interface BackupManifest {
   generatedBy: string;
   incidentCount: number;
   attachmentCount: number;
   /** SHA-256 (hex) of JSON.stringify(incident) per record id. */
   incidentHashes: Record<string, string>;
+  /** dev.19: SHA-256 (hex) of the base64 payload per attachment id. */
+  attachmentHashes?: Record<string, string>;
 }
 
 export interface BackupFormat {
