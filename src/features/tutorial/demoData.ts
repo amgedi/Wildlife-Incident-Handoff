@@ -227,7 +227,7 @@ export function buildDemoIncidents(): Incident[] {
     provenance: "demo",
     summary: null,
     nextStep: null,
-    notes: null,
+    notes: [],
   });
   const spamCopy = { ...spamBase, id: "demo-spam-2", humanReference: "WIH-2026-000106", createdAt: minutesAgo(11), occurredAt: minutesAgo(11), updatedAt: minutesAgo(11), provenance: "demo" as const };
 
