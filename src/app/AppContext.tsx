@@ -250,7 +250,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     document.documentElement.dataset.density = settings.density;
     document.documentElement.dataset.motion = settings.motion;
     document.documentElement.dataset.ambient = settings.ambient;
-  }, [settings.theme, settings.density, settings.motion, settings.ambient]);
+    document.documentElement.dataset.material = settings.material ?? "solid";
+  }, [settings.theme, settings.density, settings.motion, settings.ambient, settings.material]);
 
   // dev.19: persist outside the state updater — updater functions must stay
   // pure (React may re-invoke or discard them), which previously could drop

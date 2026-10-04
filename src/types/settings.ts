@@ -12,10 +12,17 @@ export type ThemeName =
   | "slate"
   | "high-contrast-dark"
   | "mono-dark"
-  | "mono-light";
+  | "mono-light"
+  | "forest-night"
+  | "midnight-ops"
+  | "storm"
+  | "aurora"
+  | "sand"
+  | "arctic";
 export type Density = "comfortable" | "compact";
 export type MotionPreference = "full" | "reduced" | "off";
 export type AmbientPreference = "on" | "reduced" | "off";
+export type MaterialPreference = "solid" | "frosted" | "glass";
 
 export type Workspace = "reporter" | "professional";
 
@@ -54,6 +61,7 @@ export interface AppSettings {
   density: Density;
   motion: MotionPreference;
   ambient: AmbientPreference;
+  material: MaterialPreference;
   /** Display name used as the default "actor" on new events. */
   displayName: string;
   defaultLocationPrecision: "exact" | "approximate" | "sensitive";
@@ -137,6 +145,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   density: "comfortable",
   motion: "full",
   ambient: "on",
+  material: "frosted",
   displayName: "",
   defaultLocationPrecision: "approximate",
   includeContactsInShareable: false,
