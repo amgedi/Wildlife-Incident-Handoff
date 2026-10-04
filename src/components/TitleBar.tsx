@@ -49,6 +49,20 @@ export function TitleBar() {
         <AppMark size={20} />
         <span data-tauri-drag-region>Wildlife Incident Handoff</span>
       </div>
+      {/* 0.3 titlebar command area: global search launcher (opens the palette). */}
+      <div className="titlebar-center" data-tauri-drag-region={false}>
+        <button
+          className="btn btn-quiet btn-sm"
+          data-testid="titlebar-search"
+          aria-label="Search (Ctrl+K)"
+          title="Search (Ctrl+K)"
+          onClick={() => window.dispatchEvent(new Event("wih:open-palette"))}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+          Search
+          <span className="kbd-hint">Ctrl+K</span>
+        </button>
+      </div>
       <div className="titlebar-bell" data-tauri-drag-region={false}>
         <NotificationBell />
       </div>

@@ -174,6 +174,10 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
 }
 
 /** Global Ctrl+K / Cmd+K binding; renders the palette. Mount once in App. */
+export function openCommandPalette() {
+  window.dispatchEvent(new Event("wih:open-palette"));
+}
+
 export function CommandPaletteBinding() {
   const [open, setOpen] = useState(false);
   const { t } = useTranslation();
@@ -184,8 +188,13 @@ export function CommandPaletteBinding() {
         setOpen((v) => !v);
       }
     };
+    const onOpenEvent = () => setOpen(true);
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("wih:open-palette", onOpenEvent);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("wih:open-palette", onOpenEvent);
+    };
   }, []);
   return (
     <>
@@ -195,10 +204,10 @@ export function CommandPaletteBinding() {
         className="btn btn-quiet btn-sm palette-open-btn"
         data-testid="open-command-palette"
         aria-label={t("paletteTitle", { defaultValue: "Command palette" })}
+        title={t("paletteShortcut", { defaultValue: "Search (Ctrl+K)" })}
         onClick={() => setOpen(true)}
-        style={{ display: "none" }}
       >
-        {t("paletteSearch", { defaultValue: "Search" })}
+        <Icons.search size={14} /> {t("paletteSearch", { defaultValue: "Search" })}
       </button>
     </>
   );

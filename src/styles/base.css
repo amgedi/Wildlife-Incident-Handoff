@@ -1277,3 +1277,7 @@ h3 { font-size: 1rem; }
   font-size: 0.72rem; color: var(--c-ink-faint);
   border: 1px solid var(--c-border); border-radius: 4px; padding: 1px 5px;
 }
+
+/* Titlebar command area (0.3): center search launcher */
+.titlebar-center { flex: 1; display: flex; justify-content: center; pointer-events: auto; }
+.titlebar-center .btn { color: var(--c-ink-soft); }
