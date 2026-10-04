@@ -34,6 +34,7 @@ import { AnimatedNumber } from "./dashboard/AnimatedNumber";
 import { AgingStrip, BarDistribution } from "./dashboard/opsCharts";
 import { IncidentQueueRow } from "./dashboard/IncidentQueueRow";
 import { ResponseFlow } from "./dashboard/ResponseFlow";
+import { computeIntegrityReview } from "../integrity/integrityService";
 import { getAuthorizationState } from "./authorization";
 import { countryDateLocale, countryMapViewport } from "../country/countryProfile";
 import type { Incident } from "../../types/incident";
@@ -59,7 +60,8 @@ const EMPTY_FILTERS: DashboardFilters = { status: "", animalGroup: "", incidentT
 
 type WidgetId =
   | "map" | "attention" | "activity" | "kpis" | "pipeline" | "performance"
-  | "aging" | "trend" | "statusDist" | "animalDist" | "typeDist" | "workload";
+  | "aging" | "trend" | "statusDist" | "animalDist" | "typeDist" | "workload"
+  | "integrity";
 
 const DASHBOARD_LAYOUT_KEY = "network-dashboard-layout";
 
@@ -185,6 +187,8 @@ export function NetworkPage() {
     return map;
   }, [inArea]);
   const dupIds = useMemo(() => new Set(duplicates.flatMap((d) => [d.a.id, d.b.id])), [duplicates]);
+  // Report integrity review (0.3): heuristic review hints — professionals decide.
+  const integrityReview = useMemo(() => computeIntegrityReview(filtered, { duplicatePairs: duplicates }), [filtered, duplicates]);
 
   const kpis = useMemo(() => analytics.getOpenCounts(filtered), [filtered]);
   const metrics = useMemo(() => analytics.getResponseTimeMetrics(filtered, now), [filtered, now]);
@@ -215,10 +219,10 @@ export function NetworkPage() {
   // P80 — effective widget order: saved layout wins; otherwise role-recommended.
   const recommendedOrder: WidgetId[] =
     rolePriority === "attention-first"
-      ? ["attention", "map", "kpis", "activity", "pipeline", "performance", "aging", "trend", "statusDist", "animalDist", "typeDist", "workload"]
+      ? ["attention", "map", "kpis", "activity", "pipeline", "performance", "aging", "trend", "integrity", "statusDist", "animalDist", "typeDist", "workload"]
       : rolePriority === "transfer-first"
-        ? ["map", "attention", "kpis", "activity", "pipeline", "aging", "performance", "trend", "statusDist", "animalDist", "typeDist", "workload"]
-        : ["map", "attention", "kpis", "activity", "pipeline", "performance", "aging", "trend", "statusDist", "animalDist", "typeDist", "workload"];
+        ? ["map", "attention", "kpis", "activity", "pipeline", "aging", "performance", "trend", "integrity", "statusDist", "animalDist", "typeDist", "workload"]
+        : ["map", "attention", "kpis", "activity", "pipeline", "performance", "aging", "trend", "integrity", "statusDist", "animalDist", "typeDist", "workload"];
   const widgetOrder: WidgetId[] = layout?.order ?? recommendedOrder;
   const hiddenWidgets = useMemo(() => new Set<WidgetId>(layout?.hidden ?? []), [layout]);
 
@@ -538,6 +542,50 @@ export function NetworkPage() {
     </div>
   ) : null;
 
+  const integrityWidget = integrityReview.queue.length === 0 ? null : (
+    <div className="card ops-panel ops-span-6" data-testid="integrity-review">
+      <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
+        <Icons.shield size={16} /> {t("integrityTitle", { defaultValue: "Report integrity review" })}
+      </h3>
+      <p className="hint" style={{ marginBottom: 8 }}>
+        {t("integrityNote", { defaultValue: "Review hints from report patterns — never proof of fraud, never auto-rejected. You decide." })}
+      </p>
+      <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+        {integrityReview.queue.slice(0, 5).map((item) => (
+          <li key={item.incident.id} className="row between" style={{ borderTop: "1px solid var(--c-border)", padding: "7px 0", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ minWidth: 0 }}>
+              <Link to={`/incidents/${item.incident.id}`}>{item.incident.humanReference}</Link>
+              <span className="hint" style={{ display: "block", margin: 0 }}>
+                {item.signals.map((sig) => t(`integritySignal_${sig.key}`, {
+                  defaultValue: sig.key.replaceAll("_", " "),
+                })).join(" · ")}
+              </span>
+            </span>
+            <button
+              className="btn btn-quiet btn-sm"
+              onClick={async () => {
+                const { dismissSignal } = await import("../integrity/integrityService");
+                let next = item.incident;
+                for (const sig of item.signals) next = dismissSignal(next, sig.key);
+                const { putIncident: put } = await import("../../storage/repositories");
+                await put(next);
+                showToast(t("integrityDismissedToast", { defaultValue: "Signals dismissed for this report" }));
+                await refresh();
+              }}
+            >
+              {t("integrityDismiss", { defaultValue: "Dismiss signals" })}
+            </button>
+          </li>
+        ))}
+      </ul>
+      {integrityReview.queue.length > 5 && (
+        <p className="hint" style={{ margin: "6px 0 0" }}>
+          {t("integrityMore", { defaultValue: "{{n}} more reports with review hints — open Incidents to review them.", n: integrityReview.queue.length - 5 })}
+        </p>
+      )}
+    </div>
+  );
+
   const widgetNodes: Record<WidgetId, JSX.Element | null> = {
     map: mapPanel,
     attention: attentionPanel,
@@ -551,6 +599,7 @@ export function NetworkPage() {
     animalDist: animalDistWidget,
     typeDist: typeDistWidget,
     workload: workloadWidget,
+    integrity: integrityWidget,
   };
 
   const widgetLabels: Record<WidgetId, string> = {
@@ -566,6 +615,7 @@ export function NetworkPage() {
     animalDist: t("animalGroups", { defaultValue: "Animal groups" }),
     typeDist: t("incidentTypes", { defaultValue: "Incident types" }),
     workload: t("workload", { defaultValue: "Responder workload" }),
+    integrity: t("integrityTitle", { defaultValue: "Report integrity review" }),
   };
 
   return (

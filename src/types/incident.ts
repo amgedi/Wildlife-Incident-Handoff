@@ -308,11 +308,41 @@ export interface Incident {
   pinnedAt?: string | null;
   /** How the report was created: locally, or via the guided flow. */
   createdVia?: "form" | "guide" | null;
+  /** Report provenance (0.3, additive): where this report came from. Review
+   *  context only — NEVER proof of fraud or identity. */
+  provenance?: ReportProvenance | null;
+  /** Integrity review signals recorded for this report (0.3, additive).
+   *  Heuristic review hints, not accusations; professionals decide. */
+  integritySignals?: IntegritySignal[];
+  /** Signal keys the reviewer dismissed (kept so they do not resurface). */
+  integrityDismissed?: string[];
+  /** Local follow-up marks when contact was voluntarily provided (0.3). */
+  followUp?: ReporterFollowUp | null;
   /** Free-text "what happened" summary from creation. */
   summary: string | null;
   /** Short "next step" line shown on the overview. */
   nextStep: string | null;
 }
+
+export type ReportProvenance =
+  | "anonymous_local"
+  | "known_local_profile"
+  | "trusted_device"
+  | "partner_organization"
+  | "demo";
+
+export interface IntegritySignal {
+  key: string;
+  at: string;
+  detail?: string;
+}
+
+export type ReporterFollowUp =
+  | "contact_attempted"
+  | "more_info_requested"
+  | "confirmed_by_reporter"
+  | "unable_to_contact"
+  | null;
 
 export interface IncidentDraft {
   id: string;
