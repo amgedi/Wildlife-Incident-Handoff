@@ -874,10 +874,12 @@ body::after {
   --status-cancelled-border: #653834;
 }
 [data-theme="forest-night"] body::before {
+  background:
     radial-gradient(42% 38% at 30% 25%, rgb(30 82 52 / 0.42), transparent 70%),
     radial-gradient(36% 34% at 75% 70%, rgb(16 60 44 / 0.4), transparent 70%)
 }
 [data-theme="forest-night"] body::after {
+  background:
     radial-gradient(40% 36% at 70% 20%, rgb(217 154 78 / 0.10), transparent 70%),
     radial-gradient(44% 40% at 20% 80%, rgb(24 74 50 / 0.34), transparent 70%)
 }
@@ -958,10 +960,12 @@ body::after {
   --status-cancelled-border: #6f3934;
 }
 [data-theme="midnight-ops"] body::before {
+  background:
     radial-gradient(42% 38% at 30% 25%, rgb(28 70 130 / 0.45), transparent 70%),
     radial-gradient(36% 34% at 75% 70%, rgb(20 50 100 / 0.4), transparent 70%)
 }
 [data-theme="midnight-ops"] body::after {
+  background:
     radial-gradient(40% 36% at 70% 20%, rgb(57 194 212 / 0.10), transparent 70%),
     radial-gradient(44% 40% at 20% 80%, rgb(24 60 110 / 0.4), transparent 70%)
 }
@@ -1042,10 +1046,12 @@ body::after {
   --status-cancelled-border: #683f3c;
 }
 [data-theme="storm"] body::before {
+  background:
     radial-gradient(42% 38% at 30% 25%, rgb(70 80 140 / 0.35), transparent 70%),
     radial-gradient(36% 34% at 75% 70%, rgb(45 55 90 / 0.35), transparent 70%)
 }
 [data-theme="storm"] body::after {
+  background:
     radial-gradient(40% 36% at 70% 20%, rgb(150 130 220 / 0.10), transparent 70%),
     radial-gradient(44% 40% at 20% 80%, rgb(50 60 100 / 0.35), transparent 70%)
 }
@@ -1126,10 +1132,12 @@ body::after {
   --status-cancelled-border: #6a3934;
 }
 [data-theme="aurora"] body::before {
+  background:
     radial-gradient(42% 38% at 30% 25%, rgb(24 120 100 / 0.4), transparent 70%),
     radial-gradient(36% 34% at 75% 70%, rgb(60 90 160 / 0.3), transparent 70%)
 }
 [data-theme="aurora"] body::after {
+  background:
     radial-gradient(40% 36% at 70% 20%, rgb(120 90 220 / 0.14), transparent 70%),
     radial-gradient(44% 40% at 20% 80%, rgb(20 110 95 / 0.35), transparent 70%)
 }
