@@ -208,11 +208,18 @@ export function buildDemoIncidents(): Incident[] {
     occurredAt: minutesAgo(14),
     urgency: null,
     animal: { group: "mammal", species: null, description: "Completely normal squirrel doing squirrel activities", count: 1, speciesConfirmed: false, lifeStage: null, sex: null },
-    location: { description: "Plaza fountain (fictional demo street)", latitude: null, longitude: null, landmark: "Fountain" },
+    location: { description: "Plaza fountain (fictional demo street)", latitude: null, longitude: null, landmark: "Fountain", precision: "approximate" as const, address: null, notes: null },
     timeline: [ev("demo-spam-1", "incident_created", "Fictional demo report created", minutesAgo(14))],
+    observations: [],
+    hazards: null,
+    actions: [],
+    animalNow: null,
+    animalNowDescription: null,
+    contacts: [],
     custody: [],
     handoffs: [],
     attachments: [],
+    tags: [],
     archivedAt: null,
     deletedAt: null,
     shareProfile: "private",
@@ -220,6 +227,7 @@ export function buildDemoIncidents(): Incident[] {
     provenance: "demo",
     summary: null,
     nextStep: null,
+    notes: null,
   });
   const spamCopy = { ...spamBase, id: "demo-spam-2", humanReference: "WIH-2026-000106", createdAt: minutesAgo(11), occurredAt: minutesAgo(11), updatedAt: minutesAgo(11), provenance: "demo" as const };
 

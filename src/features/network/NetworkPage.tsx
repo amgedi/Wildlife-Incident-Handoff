@@ -61,7 +61,7 @@ const EMPTY_FILTERS: DashboardFilters = { status: "", animalGroup: "", incidentT
 type WidgetId =
   | "map" | "attention" | "activity" | "kpis" | "pipeline" | "performance"
   | "aging" | "trend" | "statusDist" | "animalDist" | "typeDist" | "workload"
-  | "integrity";
+  | "integrity" | "networkOrgs";
 
 const DASHBOARD_LAYOUT_KEY = "network-dashboard-layout";
 
@@ -219,10 +219,10 @@ export function NetworkPage() {
   // P80 — effective widget order: saved layout wins; otherwise role-recommended.
   const recommendedOrder: WidgetId[] =
     rolePriority === "attention-first"
-      ? ["attention", "map", "kpis", "activity", "pipeline", "performance", "aging", "trend", "integrity", "statusDist", "animalDist", "typeDist", "workload"]
+      ? ["attention", "map", "kpis", "activity", "pipeline", "performance", "aging", "trend", "integrity", "networkOrgs", "statusDist", "animalDist", "typeDist", "workload"]
       : rolePriority === "transfer-first"
-        ? ["map", "attention", "kpis", "activity", "pipeline", "aging", "performance", "trend", "integrity", "statusDist", "animalDist", "typeDist", "workload"]
-        : ["map", "attention", "kpis", "activity", "pipeline", "performance", "aging", "trend", "integrity", "statusDist", "animalDist", "typeDist", "workload"];
+        ? ["map", "attention", "kpis", "activity", "pipeline", "aging", "performance", "trend", "integrity", "networkOrgs", "statusDist", "animalDist", "typeDist", "workload"]
+        : ["map", "attention", "kpis", "activity", "pipeline", "performance", "aging", "trend", "integrity", "networkOrgs", "statusDist", "animalDist", "typeDist", "workload"];
   const widgetOrder: WidgetId[] = layout?.order ?? recommendedOrder;
   const hiddenWidgets = useMemo(() => new Set<WidgetId>(layout?.hidden ?? []), [layout]);
 
@@ -586,6 +586,45 @@ export function NetworkPage() {
     </div>
   );
 
+  // Response network (0.3): organizations + transfer relationships derived
+  // ONLY from real handoff records + local LAN trust. No invented capacity
+  // (no fake beds/staff/vehicles — spec 26).
+  const networkWidget = (
+    <div className="card ops-panel ops-span-6" data-testid="response-network">
+      <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
+        <Icons.handoff size={16} /> {t("networkOrgsTitle", { defaultValue: "Response network" })}
+      </h3>
+      <dl className="kv">
+        <dt>{t("networkOrgsCount", { defaultValue: "Organizations in your records" })}</dt>
+        <dd>{transfer.receivingOrganizations.length}</dd>
+        <dt>{t("networkAwaiting", { defaultValue: "Handoffs awaiting acceptance" })}</dt>
+        <dd>{attention.handoffWaiting.length}</dd>
+        <dt>{t("networkTransferredToday", { defaultValue: "Transferred today" })}</dt>
+        <dd>{transfer.transferredToday}</dd>
+      </dl>
+      {transfer.receivingOrganizations.length > 0 && (
+        <>
+          <h4 style={{ margin: "10px 0 4px", fontSize: "0.8rem", letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--c-ink-faint)" }}>
+            {t("networkTransferPartners", { defaultValue: "Transfer partners" })}
+          </h4>
+          <ul style={{ listStyle: "none", margin: 0, padding: 0, fontSize: "0.88rem" }}>
+            {transfer.receivingOrganizations.slice(0, 5).map((orgName) => (
+              <li key={orgName} className="row between" style={{ borderTop: "1px solid var(--c-border)", padding: "5px 0", gap: 8 }}>
+                <span>{orgName}</span>
+                <span className="hint" style={{ margin: 0 }}>
+                  {filtered.filter((i) => i.handoffs?.some((h) => h.toOrganization === orgName)).length} {t("networkCasesWith", { defaultValue: "case(s) with transfers" })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      <p className="hint" style={{ margin: "8px 0 0" }}>
+        {t("networkHonesty", { defaultValue: "Derived from your records and LAN trust — no live capacity, staffing or availability is invented." })}
+      </p>
+    </div>
+  );
+
   const widgetNodes: Record<WidgetId, JSX.Element | null> = {
     map: mapPanel,
     attention: attentionPanel,
@@ -600,6 +639,7 @@ export function NetworkPage() {
     typeDist: typeDistWidget,
     workload: workloadWidget,
     integrity: integrityWidget,
+    networkOrgs: networkWidget,
   };
 
   const widgetLabels: Record<WidgetId, string> = {
@@ -616,6 +656,7 @@ export function NetworkPage() {
     typeDist: t("incidentTypes", { defaultValue: "Incident types" }),
     workload: t("workload", { defaultValue: "Responder workload" }),
     integrity: t("integrityTitle", { defaultValue: "Report integrity review" }),
+    networkOrgs: t("networkOrgsTitle", { defaultValue: "Response network" }),
   };
 
   return (
