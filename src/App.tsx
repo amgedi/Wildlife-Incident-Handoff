@@ -20,6 +20,7 @@ import { NetworkPage } from "./features/network/NetworkPage";
 import { TutorialPage } from "./features/tutorial/TutorialPage";
 import { SpotlightTour } from "./features/tutorial/SpotlightTour";
 import { HelpPage } from "./features/help/HelpPage";
+import { ExamplesPage } from "./features/tutorial/ExamplesPage";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { NotificationBell } from "./components/NotificationCenter";
 import { registerNavigate } from "./app/routerNavigate";
@@ -199,7 +200,7 @@ export function App() {
           <Route path="/incidents" element={<ErrorBoundary><IncidentListPage /></ErrorBoundary>} />
           <Route path="/incidents/new" element={<ErrorBoundary><CreateIncidentPage /></ErrorBoundary>} />
           <Route path="/incidents/:id" element={<ErrorBoundary><IncidentDetailPage /></ErrorBoundary>} />
-          <Route path="/examples" element={<ErrorBoundary><HelpPage /></ErrorBoundary>} />
+          <Route path="/examples" element={<ErrorBoundary><ExamplesPage /></ErrorBoundary>} />
           <Route path="/help" element={<ErrorBoundary><HelpPage /></ErrorBoundary>} />
           <Route path="/tutorial" element={<ErrorBoundary><TutorialPage /></ErrorBoundary>} />
           <Route path="/network" element={<ErrorBoundary><NetworkPage /></ErrorBoundary>} />

@@ -385,6 +385,7 @@ export function IncidentListPage() {
           role="group"
           aria-label={t("professional:ccSummaryAria", { defaultValue: "Operational summary" })}
           data-testid="summary-band"
+          data-tour-id="incident-summary"
           style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-2)", padding: "var(--space-3)", marginBottom: "var(--space-3)", alignItems: "center" }}
         >
           {STAT_KEYS.map((key) => (
@@ -407,7 +408,7 @@ export function IncidentListPage() {
       )}
 
       <div className="row between" style={{ marginBottom: "var(--space-3)", flexWrap: "wrap", gap: 8 }}>
-        <div className="segmented" role="group" aria-label={t("professional:ccDisplay", { defaultValue: "Display" })}>
+        <div className="segmented" role="group" aria-label={t("professional:ccDisplay", { defaultValue: "Display" })} data-tour-id="view-mode">
           <button aria-pressed={viewMode === "list"} onClick={() => changeViewMode("list")}>
             {t("professional:ccModeList", { defaultValue: "List" })}
           </button>

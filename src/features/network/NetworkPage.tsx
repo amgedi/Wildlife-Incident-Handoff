@@ -346,12 +346,12 @@ export function NetworkPage() {
         {t("needsAttention", { defaultValue: "Needs attention" })}
       </h2>
       {attentionCards.length === 0 ? (
-        <div className="attn-band attn-clear" role="status">
+        <div className="attn-band attn-clear" role="status" data-tour-id="attn-band">
           <Icons.check size={16} />
           <span>{t("attentionClear", { defaultValue: "Nothing needs attention right now." })}</span>
         </div>
       ) : (
-        <div className="attn-band">
+        <div className="attn-band" data-tour-id="attn-band">
           {attentionCards.map((c) => (
             <button key={c.key} className={`attn-tile severity-${c.severity}`} onClick={() => navigate(c.to)}>
               <span className="attn-tile-icon" aria-hidden="true">{c.icon}</span>
@@ -664,7 +664,7 @@ export function NetworkPage() {
       {/* ---- Operations header (P42): compact command strip ---- */}
       <div className="ops-topbar fade-in">
         <div>
-          <h1 style={{ margin: 0, fontSize: "1.35rem" }}>
+          <h1 style={{ margin: 0, fontSize: "1.35rem" }} data-tour-id="ops-dashboard">
             {firstName
               ? t("opsGreeting", {
                   defaultValue: "Welcome, {{name}}",

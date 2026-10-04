@@ -620,7 +620,22 @@
     "findingFiltersTitle": "Filtros",
     "findingFiltersText": "Los filtros acotan la lista: por estado, tipo de incidente, grupo de animales y rango de fechas.",
     "findingSavedTitle": "Vistas guardadas",
-    "findingSavedText": "Ponle nombre a una combinación de filtros y pulsa Guardar vista para conservarla aquí como una vista de un clic."
+    "findingSavedText": "Ponle nombre a una combinación de filtros y pulsa Guardar vista para conservarla aquí como una vista de un clic.",
+    "tourDashboardTitle": "Su panel de operaciones",
+    "tourDashboardTextP": "Este es el panel: una imagen en vivo de todos los casos de este dispositivo, creada a partir de sus registros locales.",
+    "tourAttentionTitle": "Requieren atención",
+    "tourAttentionTextP": "Los casos que necesitan una decisión aparecen aquí — sin asignar, esperando traspaso o sin ubicación. Seleccione una tarjeta para actuar.",
+    "tourFlowTitle": "Flujo de respuesta",
+    "tourFlowTextP": "Cada caso está en una etapa de la respuesta. Seleccione una etapa para abrir su cajón de casos y trabajar con ellos.",
+    "tourSummaryTitle": "La lista de un vistazo",
+    "tourSummaryTextR": "Esta banda cuenta sus informes por estado — seleccione un número para filtrar la lista de abajo.",
+    "tourSummaryTextP": "Esta banda cuenta los casos por estado — seleccione un número para filtrar la lista y cambie entre Lista y Tabla cuando quiera.",
+    "tourContinueTitle": "Continúe donde lo dejó",
+    "tourContinueText": "Sus casos activos permanecen aquí, para que el siguiente paso esté siempre a un clic.",
+    "tourDevicesTitle": "Este dispositivo",
+    "tourDevicesText": "Ajustes → Dispositivos muestra la huella de identidad de esta instalación y los dispositivos de confianza por LAN. Las claves privadas nunca se muestran aquí.",
+    "findingViewTitle": "Lista o tabla",
+    "findingViewText": "Cambie entre una lista cómoda y una tabla densa — los mismos casos, con la disposición que prefiera."
   },
   "status": {
     "draft": "Borrador",

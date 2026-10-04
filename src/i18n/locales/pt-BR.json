@@ -506,7 +506,22 @@
     "findingFiltersTitle": "Filtros",
     "findingFiltersText": "Os filtros restringem a lista — por status, tipo de incidente, grupo de animais e período.",
     "findingSavedTitle": "Exibições salvas",
-    "findingSavedText": "Dê um nome a uma combinação de filtros e pressione Salvar exibição para guardá-la aqui como uma exibição de um clique."
+    "findingSavedText": "Dê um nome a uma combinação de filtros e pressione Salvar exibição para guardá-la aqui como uma exibição de um clique.",
+    "tourDashboardTitle": "Seu painel de operações",
+    "tourDashboardTextP": "Este é o painel: uma visão ao vivo de todos os casos deste dispositivo, criada a partir dos seus registros locais.",
+    "tourAttentionTitle": "Precisam de atenção",
+    "tourAttentionTextP": "Os casos que precisam de uma decisão aparecem aqui — sem responsável, aguardando transferência ou sem localização. Selecione um bloco para agir.",
+    "tourFlowTitle": "Fluxo de resposta",
+    "tourFlowTextP": "Cada caso está em uma etapa da resposta. Selecione uma etapa para abrir a gaveta de casos e trabalhar nela.",
+    "tourSummaryTitle": "A lista de relance",
+    "tourSummaryTextR": "Esta faixa conta seus relatos por estado — selecione um número para filtrar a lista abaixo.",
+    "tourSummaryTextP": "Esta faixa conta os casos por estado — selecione um número para filtrar a lista e alterne entre Lista e Tabela quando quiser.",
+    "tourContinueTitle": "Continue de onde parou",
+    "tourContinueText": "Seus casos ativos ficam aqui, para que o próximo passo esteja sempre a um clique.",
+    "tourDevicesTitle": "Este dispositivo",
+    "tourDevicesText": "Configurações → Dispositivos mostra a impressão de identidade desta instalação e os dispositivos confiáveis via LAN. Chaves privadas nunca são exibidas aqui.",
+    "findingViewTitle": "Lista ou tabela",
+    "findingViewText": "Alterne entre uma lista confortável e uma tabela densa — os mesmos casos, no layout que preferir."
   },
   "onboarding": {
     "tagline": "Informação clara. Passagens mais seguras.",

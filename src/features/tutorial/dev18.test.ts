@@ -85,12 +85,13 @@ describe("dev.18 tutorial trust contract", () => {
     }
   });
 
-  it("finding-reports tour teaches search, filters and saved views in both workspaces", () => {
+  it("finding-reports tour teaches display modes, search, filters and saved views in both workspaces", () => {
     for (const workspace of ["reporter", "professional"] as const) {
       const steps = buildFindingReportsTourSteps(workspace);
       expect(steps.map((s) => s.id)).toEqual([
         "finding-nav",
         "finding-open-list",
+        "finding-viewmode",
         "finding-search",
         "finding-filters",
         "finding-saved-views",
@@ -98,10 +99,25 @@ describe("dev.18 tutorial trust contract", () => {
       // navigates to the incidents page itself before teaching on it
       expect(steps[1]!.route).toBe("/incidents");
       const ids = steps.map((s) => s.tourId);
+      expect(ids).toContain("view-mode");
       expect(ids).toContain("incident-search");
       expect(ids).toContain("filters-button");
       expect(ids).toContain("saved-view-controls");
     }
+  });
+
+  it("0.3: the professional interface tour covers the ops dashboard and devices", async () => {
+    const pro = await buildInterfaceTourSteps("professional");
+    const ids = pro.map((s) => s.tourId);
+    expect(ids).toContain("ops-dashboard");
+    expect(ids).toContain("attn-band");
+    expect(ids).toContain("rflow-rail");
+    expect(ids).toContain("incident-summary");
+    expect(ids).toContain("device-center");
+    // the professional home has no guide-me card — it must not be a target
+    expect(ids).not.toContain("guide-me-card");
+    const rep = await buildInterfaceTourSteps("reporter");
+    expect(rep.map((s) => s.tourId)).toContain("device-center");
   });
 
   it("finding-reports has its own persistence key", () => {

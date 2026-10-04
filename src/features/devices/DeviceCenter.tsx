@@ -103,7 +103,7 @@ export function DeviceCenter() {
   };
 
   return (
-    <div className="stack">
+    <div className="stack" data-tour-id="device-center">
       <div className="card" data-testid="device-this-device">
         <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
           <Icons.monitor size={16} /> {t("devicesThisDevice", { defaultValue: "This device" })}

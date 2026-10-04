@@ -49,6 +49,11 @@ export function SpotlightTour({ steps, startIndex = 0, onFinish }: SpotlightProp
   const generationRef = useRef(0);
   // dev.18: a tour run is only "completed" when every target resolved.
   const autoSkippedRef = useRef<string[]>([]);
+  // openTarget controls are usually TOGGLES (popover buttons, stage rails).
+  // Re-visiting a step via Back must NOT click again or it would close what
+  // it opened. Once an openTarget has led to a resolved target, skip the
+  // click; Retry (failed phase) clears the entry so it clicks again.
+  const openTargetsShownRef = useRef<Set<string>>(new Set());
   const calloutHeadingRef = useRef<HTMLHeadingElement>(null);
   const nav = useNavigate();
   const { t } = useTranslation("guidance");
@@ -103,7 +108,9 @@ export function SpotlightTour({ steps, startIndex = 0, onFinish }: SpotlightProp
         }
 
         // Declarative pre-measure action: open a popover/panel if asked.
-        if (current.openTarget) {
+        // Skipped when this openTarget already resolved earlier in the run
+        // (Back navigation) — clicking a toggle again would CLOSE it.
+        if (current.openTarget && !openTargetsShownRef.current.has(current.openTarget)) {
           const open = Array.from(document.querySelectorAll(`[data-tour-id="${current.openTarget}"]`)).find((el) => {
             const r = el.getBoundingClientRect();
             return r.width > 0 || r.height > 0;
@@ -134,6 +141,7 @@ export function SpotlightTour({ steps, startIndex = 0, onFinish }: SpotlightProp
         }
 
         // Scroll into view, wait for layout to settle (double rAF), measure once.
+        if (current.openTarget) openTargetsShownRef.current.add(current.openTarget);
         (el as HTMLElement).scrollIntoView?.({ block: "center", behavior: "auto" });
         await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r(null))));
         if (generationRef.current !== gen) return;
@@ -271,7 +279,7 @@ export function SpotlightTour({ steps, startIndex = 0, onFinish }: SpotlightProp
             <div className="spotlight-footer">
               <button className="btn btn-quiet btn-sm" onClick={() => finish("skipped_by_user")}>{t("guideExit")}</button>
               <span style={{ flex: 1 }} />
-              <button className="btn btn-secondary btn-sm" onClick={() => runStep(index, ++generationRef.current)}>{t("retry", { ns: "common" })}</button>
+              <button className="btn btn-secondary btn-sm" onClick={() => { if (step.openTarget) openTargetsShownRef.current.delete(step.openTarget); runStep(index, ++generationRef.current); }}>{t("retry", { ns: "common" })}</button>
               {index < steps.length - 1 && (
                 <button
                   className="btn btn-primary btn-sm"

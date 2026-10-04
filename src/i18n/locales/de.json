@@ -506,7 +506,22 @@
     "findingFiltersTitle": "Filter",
     "findingFiltersText": "Filter grenzen die Liste ein — nach Status, Vorkommensart, Tiergruppe und Zeitraum.",
     "findingSavedTitle": "Gespeicherte Ansichten",
-    "findingSavedText": "Geben Sie einer Filterkombination einen Namen und drücken Sie Ansicht speichern, um sie hier als Klick-Ansicht zu behalten."
+    "findingSavedText": "Geben Sie einer Filterkombination einen Namen und drücken Sie Ansicht speichern, um sie hier als Klick-Ansicht zu behalten.",
+    "tourDashboardTitle": "Ihr Einsatztabel",
+    "tourDashboardTextP": "Das ist das Dashboard: ein Live-Bild aller Fälle auf diesem Gerät, aufgebaut aus Ihren lokalen Aufzeichnungen.",
+    "tourAttentionTitle": "Braucht Aufmerksamkeit",
+    "tourAttentionTextP": "Fälle, die eine Entscheidung brauchen, erscheinen hier — ohne Zuweisung, wartend auf Übergabe oder ohne Ort. Wählen Sie eine Kachel, um zu handeln.",
+    "tourFlowTitle": "Reaktionsablauf",
+    "tourFlowTextP": "Jeder Fall befindet sich in einer Phase der Reaktion. Wählen Sie eine Phase, um die Fallliste zu öffnen und sie abzuarbeiten.",
+    "tourSummaryTitle": "Die Liste auf einen Blick",
+    "tourSummaryTextR": "Diese Leiste zählt Ihre Meldungen nach Zustand — wählen Sie eine Zahl, um die Liste darunter zu filtern.",
+    "tourSummaryTextP": "Diese Leiste zählt Fälle nach Zustand — wählen Sie eine Zahl, um die Liste zu filtern, und wechseln Sie jederzeit zwischen Liste und Tabelle.",
+    "tourContinueTitle": "Weiter machen, wo Sie aufgehört haben",
+    "tourContinueText": "Ihre aktiven Fälle bleiben hier, damit der nächste Schritt immer einen Klick entfernt ist.",
+    "tourDevicesTitle": "Dieses Gerät",
+    "tourDevicesText": "Einstellungen → Geräte zeigt den Identitäts-Fingerabdruck dieser Installation und die über LAN vertrauten Geräte. Private Schlüssel werden hier nie angezeigt.",
+    "findingViewTitle": "Liste oder Tabelle",
+    "findingViewText": "Wechseln Sie zwischen einer übersichtlichen Liste und einer dichten Tabelle — dieselben Fälle, ganz wie es Ihnen passt."
   },
   "onboarding": {
     "tagline": "Klare Informationen. Sicherere Übergaben.",

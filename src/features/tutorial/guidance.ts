@@ -73,6 +73,35 @@ export async function buildInterfaceTourSteps(workspace: "reporter" | "professio
   const detail = incidentId ? `/incidents/${incidentId}` : "/incidents";
   const reporter = workspace === "reporter";
 
+  // 0.3: professionals land on the operations dashboard — teach it right
+  // after the greeting (needs-attention band, response-flow stage rail).
+  const dashboardSteps = reporter
+    ? []
+    : [
+        {
+          id: "interface-dashboard",
+          tourId: "ops-dashboard",
+          titleKey: "tourDashboardTitle",
+          textKey: "tourDashboardTextP",
+          route: "/network",
+          waitMs: 1200,
+        },
+        {
+          id: "interface-attention",
+          tourId: "attn-band",
+          titleKey: "tourAttentionTitle",
+          textKey: "tourAttentionTextP",
+          waitMs: 800,
+        },
+        {
+          id: "interface-rflow",
+          tourId: "rflow-rail",
+          titleKey: "tourFlowTitle",
+          textKey: "tourFlowTextP",
+          waitMs: 800,
+        },
+      ];
+
   const steps = [
     {
       id: "interface-home",
@@ -81,6 +110,7 @@ export async function buildInterfaceTourSteps(workspace: "reporter" | "professio
       textKeyR: "tourHomeReporter",
       textKeyP: "tourHomePro",
     },
+    ...dashboardSteps,
     {
       id: "interface-report",
       tourId: "nav-create",
@@ -96,6 +126,15 @@ export async function buildInterfaceTourSteps(workspace: "reporter" | "professio
       textKeyP: "tourReportsTextP",
       action: { labelKey: reporter ? "openMyReports" : "openIncidents", to: "/incidents", advance: true },
       waitMs: 800,
+    },
+    {
+      id: "interface-summary",
+      tourId: "incident-summary",
+      titleKey: "tourSummaryTitle",
+      textKeyR: "tourSummaryTextR",
+      textKeyP: "tourSummaryTextP",
+      route: "/incidents",
+      waitMs: 1000,
     },
     {
       id: "interface-report-header",
@@ -137,13 +176,32 @@ export async function buildInterfaceTourSteps(workspace: "reporter" | "professio
       route: `${detail}?tab=export`,
       waitMs: 900,
     },
+    // 0.3: the professional home has no guide-me card — it closes with the
+    // "continue working" list instead of a broken target.
+    reporter
+      ? {
+          id: "interface-guide",
+          tourId: "guide-me-card",
+          route: "/",
+          titleKey: "tourGuideTitle",
+          textKeyR: "tourGuideTextR",
+          textKeyP: "tourGuideTextP",
+        }
+      : {
+          id: "interface-guide",
+          tourId: "continue-working",
+          route: "/",
+          titleKey: "tourContinueTitle",
+          textKey: "tourContinueText",
+          waitMs: 800,
+        },
     {
-      id: "interface-guide",
-      tourId: "guide-me-card",
-      route: "/",
-      titleKey: "tourGuideTitle",
-      textKeyR: "tourGuideTextR",
-      textKeyP: "tourGuideTextP",
+      id: "interface-devices",
+      tourId: "device-center",
+      titleKey: "tourDevicesTitle",
+      textKey: "tourDevicesText",
+      route: "/settings?section=devices",
+      waitMs: 1000,
     },
     {
       id: "interface-settings",
@@ -205,6 +263,12 @@ export function buildFindingReportsTourSteps(workspace: "reporter" | "profession
       waitMs: 900,
       titleKey: "findingListTitle",
       textKeyR: reporter ? "findingListTextR" : "findingListTextRPro",
+    },
+    {
+      id: "finding-viewmode",
+      tourId: "view-mode",
+      titleKey: "findingViewTitle",
+      textKey: "findingViewText",
     },
     {
       id: "finding-search",

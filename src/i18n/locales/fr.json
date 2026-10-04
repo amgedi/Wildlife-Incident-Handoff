@@ -620,7 +620,22 @@
     "findingFiltersTitle": "Filtres",
     "findingFiltersText": "Les filtres restreignent la liste — par statut, type d'incident, groupe d'animaux et période.",
     "findingSavedTitle": "Vues enregistrées",
-    "findingSavedText": "Nommez une combinaison de filtres et appuyez sur Enregistrer la vue pour la conserver ici comme vue accessible en un clic."
+    "findingSavedText": "Nommez une combinaison de filtres et appuyez sur Enregistrer la vue pour la conserver ici comme vue accessible en un clic.",
+    "tourDashboardTitle": "Votre tableau de bord",
+    "tourDashboardTextP": "Voici le tableau de bord : une image en direct de tous les cas de cet appareil, construite à partir de vos données locales.",
+    "tourAttentionTitle": "Nécessite une attention",
+    "tourAttentionTextP": "Les cas qui demandent une décision apparaissent ici — non attribués, en attente de transfert ou sans localisation. Sélectionnez une tuile pour agir.",
+    "tourFlowTitle": "Flux de réponse",
+    "tourFlowTextP": "Chaque cas se trouve à une étape de la réponse. Sélectionnez une étape pour ouvrir son tiroir de cas et les traiter.",
+    "tourSummaryTitle": "La liste en un coup d'œil",
+    "tourSummaryTextR": "Cette bande compte vos signalements par état — sélectionnez un chiffre pour filtrer la liste en dessous.",
+    "tourSummaryTextP": "Cette bande compte les cas par état — sélectionnez un chiffre pour filtrer la liste, et passez de Liste à Tableau à tout moment.",
+    "tourContinueTitle": "Reprenez où vous en étiez",
+    "tourContinueText": "Vos cas actifs restent ici, pour que la prochaine étape soit toujours à un clic.",
+    "tourDevicesTitle": "Cet appareil",
+    "tourDevicesText": "Paramètres → Appareils affiche l'empreinte d'identité de cette installation et les appareils de confiance via LAN. Les clés privées ne sont jamais affichées ici.",
+    "findingViewTitle": "Liste ou tableau",
+    "findingViewText": "Passez d'une liste confortable à un tableau dense — les mêmes cas, selon la disposition qui vous convient."
   },
   "status": {
     "draft": "Brouillon",

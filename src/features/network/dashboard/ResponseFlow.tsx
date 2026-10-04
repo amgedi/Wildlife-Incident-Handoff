@@ -50,7 +50,7 @@ export function ResponseFlow({ scope }: { scope: Incident[] }) {
 
   return (
     <div className="rflow">
-      <div className="rflow-rail" ref={railRef} role="group" aria-label={t("pipelineTitle", { defaultValue: "Response flow" })} onKeyDown={onKeyDown}>
+      <div className="rflow-rail" ref={railRef} role="group" aria-label={t("pipelineTitle", { defaultValue: "Response flow" })} onKeyDown={onKeyDown} data-tour-id="rflow-rail">
         {stages.map((s, idx) => (
           <Fragment key={s.key}>
             {idx > 0 && <span className="rflow-link" aria-hidden="true" data-active={selected === s.key || stages[idx - 1]!.key === selected || undefined} />}
