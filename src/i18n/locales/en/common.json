@@ -26,5 +26,13 @@
   "skipToContent": "Skip to main content",
   "languageName": "English",
   "hide": "Hide",
-  "show": "Show"
+  "show": "Show",
+  "paletteTitle": "Command palette",
+  "palettePlaceholder": "Search incidents, views, settings, help…",
+  "paletteEmpty": "No matches",
+  "paletteGroupGo": "Go to",
+  "paletteGroupSettings": "Settings",
+  "paletteGroupIncidents": "Incidents",
+  "paletteSearch": "Search",
+  "paletteShortcut": "Search (Ctrl+K)"
 }

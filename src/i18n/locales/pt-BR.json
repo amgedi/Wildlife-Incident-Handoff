@@ -27,7 +27,15 @@
     "skipToContent": "Pular para o conteúdo principal",
     "languageName": "Português (Brasil)",
     "hide": "Ocultar",
-    "show": "Mostrar"
+    "show": "Mostrar",
+    "paletteTitle": "Paleta de comandos",
+    "palettePlaceholder": "Pesquisar incidentes, exibições, configurações, ajuda…",
+    "paletteEmpty": "Nenhuma correspondência",
+    "paletteGroupGo": "Ir para",
+    "paletteGroupSettings": "Configurações",
+    "paletteGroupIncidents": "Incidentes",
+    "paletteSearch": "Pesquisar",
+    "paletteShortcut": "Pesquisar (Ctrl+K)"
   },
   "titlebar": {
     "minimize": "Minimizar",

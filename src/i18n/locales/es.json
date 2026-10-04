@@ -27,7 +27,15 @@
     "skipToContent": "Ir al contenido principal",
     "languageName": "Español",
     "hide": "Ocultar",
-    "show": "Mostrar"
+    "show": "Mostrar",
+    "paletteTitle": "Paleta de comandos",
+    "palettePlaceholder": "Buscar incidentes, vistas, ajustes, ayuda…",
+    "paletteEmpty": "Sin coincidencias",
+    "paletteGroupGo": "Ir a",
+    "paletteGroupSettings": "Ajustes",
+    "paletteGroupIncidents": "Incidentes",
+    "paletteSearch": "Buscar",
+    "paletteShortcut": "Buscar (Ctrl+K)"
   },
   "titlebar": {
     "minimize": "Minimizar",
