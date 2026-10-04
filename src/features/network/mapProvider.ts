@@ -321,6 +321,14 @@ export function createMapLibreProvider(options?: {
   let selectFn: ((point: MapPoint) => void) | null = null;
   let currentPoints: MapPoint[] = [];
   let areaLayersAdded = false;
+  // 0.3.0-dev.3 MAP LOAD BUG ROOT CAUSE: the map could be initialized while
+  // its container was still 0-sized (lazy route mount / tab switch), and
+  // nothing resized it after layout settled — the canvas stayed blank until
+  // the basemap toggle recreated the style. A ResizeObserver + load-time
+  // resize + bounded style retry make recovery automatic.
+  let containerObserver: ResizeObserver | null = null;
+  let styleLoaded = false;
+  let styleRetryDone = false;
   const serviceArea = options?.serviceArea ?? null;
   const providerDescriptor = getMapProviderDescriptor(options?.providerId);
   return {
@@ -365,16 +373,41 @@ export function createMapLibreProvider(options?: {
         center,
         zoom,
       });
+      styleLoaded = false;
+      styleRetryDone = false;
+      // Any size change of the container (route mount settling, sidebar
+      // collapse, window resize, inspector opening, DPI/zoom change) now
+      // resizes the canvas automatically.
+      containerObserver?.disconnect();
+      containerObserver = new ResizeObserver(() => {
+        // ResizeObserver fires before first paint sometimes; guard on map.
+        try { map?.resize(); } catch { /* map already destroyed */ }
+      });
+      containerObserver.observe(container);
       // Attribution comes from the style source (descriptor) — MapLibre renders
       // it with its default attribution control; adding another duplicates it.
+      const mapRef = map;
       map.on("error", (e: unknown) => {
         recordMapError((e as { error?: unknown })?.error ?? e);
+        // Bounded auto-recovery: if the STYLE itself failed before ever
+        // loading, rebuild it once. Tile-level errors still surface the
+        // error state via errorFn (retryable in the UI) but do not rebuild.
+        if (!styleLoaded && !styleRetryDone) {
+          styleRetryDone = true;
+          try {
+            mapRef.setStyle(styleForProvider(providerDescriptor));
+          } catch { /* surfaced via errorFn */ }
+        }
         errorFn?.(true);
       });
       map.on("data", (e) => {
         if (e.dataType === "source" && errorFn) errorFn(false);
       });
       map.on("load", () => {
+        styleLoaded = true;
+        // The style is ready but the canvas may still be stale-sized if the
+        // container settled between creation and load — resize once more.
+        try { mapRef.resize(); } catch { /* destroyed */ }
         addServiceAreaLayers();
         updatePoints();
         loadFn?.();
@@ -389,6 +422,8 @@ export function createMapLibreProvider(options?: {
       map.on("moveend", () => updatePoints());
     },
     destroy() {
+      containerObserver?.disconnect();
+      containerObserver = null;
       markers.forEach((m) => m.remove());
       markers = [];
       map?.remove();
