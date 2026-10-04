@@ -15,7 +15,7 @@ import type { Incident } from "../types/incident";
 function inc(status: string): Incident {
   return {
     id: `a-${status}`, humanReference: `WIH-2026-00${status.length}0`, schemaVersion: 1,
-    status, incidentType: null,
+    status: status as Incident["status"], incidentType: null, urgency: null,
     animal: { group: "bird", species: null, speciesConfirmed: false, count: 1, lifeStage: null, sex: null, description: "Audit bird" },
     location: { description: null, precision: "approximate", landmark: null, address: null, latitude: null, longitude: null, notes: null },
     occurredAt: "2026-10-04T09:00:00Z", createdAt: "2026-10-04T09:00:00Z", updatedAt: "2026-10-04T09:00:00Z",
@@ -41,7 +41,7 @@ describe("response flow screen-reader contract (spec 25)", () => {
     fireEvent.click(pickup);
     expect(pickup.getAttribute("aria-pressed")).toBe("true");
     // drawer announces itself as a labelled region
-    const drawer = screen.getByRole("region", { label: /Pickup/i });
+    const drawer = screen.getByRole("region", { name: /Pickup/i });
     expect(drawer.textContent).toContain("2");
   });
 
