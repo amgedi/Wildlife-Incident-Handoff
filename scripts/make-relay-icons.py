@@ -1,10 +1,9 @@
-"""0.3: draw the new handoff-relay emblem (replaces the paw artwork) and
-generate public/icons + src-tauri/icons PNG family. Then run scripts/make-ico.py
-for the .ico. Colors match the default forest-dark brand tokens; the SVG-in-app
-mark stays theme-aware via tokens, these raster assets are the installer/
-taskbar/Start-menu family.
-Run: python scripts/make-relay-icons.py && python scripts/make-ico.py
-"""
+"""DEPRECATED for external branding (0.3.0-dev.2): the product owner kept the
+original paw artwork for OUTSIDE surfaces (exe/taskbar/installer/PWA) — the
+relay emblem is used ONLY inside the app (SVG AppMark). This script previously
+overwrote src-tauri/icons + public/icons with the relay mark; do NOT run it
+unless the owner explicitly changes direction. The paw family is regenerated
+from branding/ via scripts/make-brand-assets.py + scripts/make-ico.py."""
 from PIL import Image, ImageDraw
 import math
 

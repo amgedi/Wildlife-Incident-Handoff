@@ -180,7 +180,6 @@ export function openCommandPalette() {
 
 export function CommandPaletteBinding() {
   const [open, setOpen] = useState(false);
-  const { t } = useTranslation();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
@@ -200,15 +199,7 @@ export function CommandPaletteBinding() {
     <>
       <CommandPalette open={open} onClose={() => setOpen(false)} />
       {/* Search affordance for the titlebar */}
-      <button
-        className="btn btn-quiet btn-sm palette-open-btn"
-        data-testid="open-command-palette"
-        aria-label={t("paletteTitle", { defaultValue: "Command palette" })}
-        title={t("paletteShortcut", { defaultValue: "Search (Ctrl+K)" })}
-        onClick={() => setOpen(true)}
-      >
-        <Icons.search size={14} /> {t("paletteSearch", { defaultValue: "Search" })}
-      </button>
+
     </>
   );
 }
