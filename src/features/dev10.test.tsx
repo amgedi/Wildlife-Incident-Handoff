@@ -11,7 +11,8 @@ import { HelpPage } from "./help/HelpPage";
 import { AppProvider } from "../app/AppContext";
 import { selectableLanguages } from "../i18n";
 
-const root = "C:/Users/jiggy/Desktop/Wildlife Incident Handoff";
+// Repo-relative so CI (any checkout path) resolves the same files.
+const root = ".";
 
 // ---------- P13/P15: map architecture ----------
 

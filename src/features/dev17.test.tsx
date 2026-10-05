@@ -31,7 +31,8 @@ function RouteProbe() {
   return <div data-testid="route-probe">OPENED:{id}</div>;
 }
 
-const root = "C:/Users/jiggy/Desktop/Wildlife Incident Handoff";
+// Repo-relative so CI (any checkout path) resolves the same files.
+const root = ".";
 
 // ---------- Part XIV/XVII: camera decision logic ----------
 

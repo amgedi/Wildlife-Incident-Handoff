@@ -17,7 +17,8 @@ import { makeIncident } from "./export/exportService.test";
 import { i18n } from "../i18n";
 import type { Incident } from "../types/incident";
 
-const root = "C:/Users/jiggy/Desktop/Wildlife Incident Handoff";
+// Repo-relative so CI (any checkout path) resolves the same files.
+const root = ".";
 
 // ---------- P18/P19: map provider registry ----------
 

@@ -16,7 +16,8 @@ import { clusterPoints, getMapDiagnostics, type MapPoint } from "../features/net
 import { getPipelineCounts, getCountWithDelta } from "../features/network/incidentAnalytics";
 import type { Incident } from "../types/incident";
 
-const root = "C:/Users/jiggy/Desktop/Wildlife Incident Handoff";
+// Repo-relative so CI (any checkout path) resolves the same files.
+const root = ".";
 
 // ---------- P20–P26: languages ----------
 
