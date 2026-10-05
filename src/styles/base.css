@@ -1622,3 +1622,16 @@ button.ax-dist-row:hover { border-color: var(--c-border); background: var(--c-su
 }
 .ax5-drawer-window { font-weight: 650; margin: 0 0 var(--space-2); }
 .ax5-drawer-metric { display: flex; justify-content: space-between; border-bottom: 1px solid var(--c-border); padding: 6px 0; }
+
+/* ---------- 0.3.0-dev.5 concern model (Part XII) ---------- */
+.concern-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; margin: 6px 0; }
+.concern-option {
+  display: flex; flex-direction: column; gap: 4px; text-align: left;
+  padding: 10px 12px; border: 1px solid var(--c-border); border-radius: var(--radius-md);
+  background: transparent; color: var(--c-ink); cursor: pointer; font: inherit;
+}
+[data-motion="full"] .concern-option:hover { border-color: var(--c-primary); }
+.concern-option.selected { border-color: var(--c-primary); background: color-mix(in srgb, var(--c-primary) 9%, transparent); }
+.concern-option:focus-visible { outline: 2px solid var(--c-focus); outline-offset: 2px; }
+.concern-option strong { font-size: 0.92rem; }
+.concern-hint { font-size: 0.78rem; color: var(--c-ink-soft); }

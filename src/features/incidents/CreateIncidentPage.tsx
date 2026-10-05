@@ -28,6 +28,7 @@ import { createIncident } from "../../storage/incidentService";
 import { isoToLocalInput, localInputToIso, nowIso } from "../../utils/time";
 import { uuid } from "../../utils/id";
 import { cleanText } from "../../utils/text";
+import { CONCERN_TYPES, concernDescriptor, isAnimalConcern, type ConcernType } from "./concernTypes";
 
 const STEP_KEYS = ["s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9", "s10"] as const;
 
@@ -36,6 +37,8 @@ const SAFETY_NOTE =
 
 interface DraftState {
   occurredAt: string;
+  /** 0.3.0-dev.5: top-level concern type (spec Part XII). */
+  concernType: ConcernType;
   incidentType: IncidentType | null;
   summary: string;
   animal: {
@@ -85,6 +88,7 @@ interface DraftState {
 function emptyDraft(): DraftState {
   return {
     occurredAt: nowIso(),
+    concernType: "wildlife_animal",
     incidentType: null,
     summary: "",
     animal: { group: null, subgroup: null, species: "", count: "", lifeStage: null, sex: null, description: "" },
@@ -216,6 +220,7 @@ export function CreateIncidentPage() {
     const s = stateRef.current;
     const incidentData = {
       status: "reported" as const,
+      concernType: s.concernType,
       incidentType: s.incidentType,
       occurredAt: localInputToIso(isoToLocalInput(s.occurredAt)) ?? s.occurredAt,
       urgency: s.urgency,
@@ -450,10 +455,32 @@ export function CreateIncidentPage() {
 type StepProps = { state: DraftState; update: <K extends keyof DraftState>(k: K, v: DraftState[K]) => void };
 
 function StepWhatHappened({ state, update }: StepProps) {
+  const concern = concernDescriptor(state.concernType);
   return (
     <div className="fade-in">
+      <div className="field" role="radiogroup" aria-label="What kind of concern is this?">
+        <span className="field-label">What kind of concern is this?</span>
+        <div className="concern-grid">
+          {CONCERN_TYPES.map((c) => (
+            <button
+              key={c.value}
+              type="button"
+              role="radio"
+              aria-checked={state.concernType === c.value}
+              className={`concern-option${state.concernType === c.value ? " selected" : ""}`}
+              onClick={() => update("concernType", c.value)}
+            >
+              <strong>{c.label}</strong>
+              <span className="concern-hint">{c.hint}</span>
+            </button>
+          ))}
+        </div>
+        {concern.focus && (
+          <p className="hint" style={{ margin: "6px 0 0" }}>{concern.focus}</p>
+        )}
+      </div>
       <DateTimeField
-        label="When was the animal found?"
+        label={concern.requiresAnimal ? "When was the animal found?" : "When did you observe this?"}
         value={state.occurredAt}
         onChange={(iso) => update("occurredAt", iso || nowIso())}
         hint="Defaults to now — quick chips cover the common cases, and manual entry is always available."
@@ -479,6 +506,66 @@ function StepWhatHappened({ state, update }: StepProps) {
 }
 
 function StepAnimal({ state, update, detail }: StepProps & { detail: string }) {
+  const animalRequired = isAnimalConcern(state.concernType);
+  const [animalDetailsOpen, setAnimalDetailsOpen] = useState(state.animal.group != null);
+  if (!animalRequired) {
+    // Non-animal concerns: focus on the observation itself; animal details stay
+    // available for cases like "hazard affected wildlife" but are optional.
+    return (
+      <div className="fade-in">
+        <p className="hint" style={{ marginTop: 0 }}>
+          {concernDescriptor(state.concernType).focus}
+        </p>
+        <TextField
+          label="Wildlife observed affected (optional)"
+          value={state.animal.description}
+          onChange={(v) => update("animal", { ...state.animal, description: v })}
+          optional
+          placeholder='e.g. "gulls near the spill", "no animals seen"'
+          hint="If any animals were affected, describe them here — species identification is never required."
+        />
+        <button type="button" className="btn btn-quiet btn-sm" onClick={() => setAnimalDetailsOpen((o) => !o)}>
+          {animalDetailsOpen ? "Hide animal details" : "Add animal details"}
+        </button>
+        {animalDetailsOpen && (
+          <div style={{ marginTop: 10 }}>
+            <SearchableCombobox
+              label="Animal type"
+              value={state.animal.group}
+              options={ANIMAL_GROUPS.map((g) => ({ value: g.value, label: g.label }))}
+              onChange={(v) => update("animal", { ...state.animal, group: v as AnimalGroup, subgroup: null })}
+              optional
+              hint="“Not sure” is a perfectly good answer. Search by typing."
+            />
+            <TextField
+              label="Species (if known)"
+              value={state.animal.species}
+              onChange={(v) => update("animal", { ...state.animal, species: v })}
+              optional
+              placeholder="Leave empty if unknown"
+            />
+            <div className="grid-2">
+              <TextField
+                label="Approximate number of animals"
+                type="number"
+                min={1}
+                value={state.animal.count}
+                onChange={(v) => update("animal", { ...state.animal, count: v })}
+                optional
+              />
+              <Select
+                label="Life stage"
+                value={state.animal.lifeStage}
+                options={LIFE_STAGES}
+                onChange={(v) => update("animal", { ...state.animal, lifeStage: v as LifeStage })}
+                optional
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
   return (
     <div className="fade-in">
       <SearchableCombobox
@@ -1159,6 +1246,12 @@ function StepReview({ state, update }: { state: DraftState; update: StepProps["u
         Check the summary below. Clearly <em>Unknown</em> or <em>Not provided</em> information is shown — you can still go back and fill it, or leave it honestly unknown.
       </p>
       <div className="stack">
+        <div className="card" style={{ boxShadow: "none", padding: "var(--space-4)" }}>
+          <h3>Concern</h3>
+          <dl style={{ margin: 0 }}>
+            <ReviewRow label="Concern type" value={concernDescriptor(state.concernType).label} unknown={false} />
+          </dl>
+        </div>
         <div className="card" style={{ boxShadow: "none", padding: "var(--space-4)" }}>
           <h3>Animal</h3>
           <dl style={{ margin: 0 }}>

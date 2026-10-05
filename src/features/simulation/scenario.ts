@@ -591,6 +591,14 @@ function buildIncident(ctx: BuildContext, slot: { statusOverride?: IncidentStatu
     createdAt: iso(createdAt),
     updatedAt: iso(Math.min(updatedAt, baseNow)),
     status,
+    // 0.3.0-dev.5 spec 71: simulated work environment mixes concern types
+    // realistically (mostly animal incidents, plus habitat/hazard/conflict).
+    concernType: pick(rng, [
+      "wildlife_animal", "wildlife_animal", "wildlife_animal", "wildlife_animal",
+      "wildlife_animal", "wildlife_animal",
+      "habitat_site", "environmental_hazard", "infrastructure_hazard",
+      "human_wildlife_conflict", "other",
+    ] as const),
     incidentType: type,
     occurredAt: iso(createdAt),
     urgency,

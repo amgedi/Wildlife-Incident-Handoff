@@ -37,6 +37,7 @@ import { AgingStrip, BarDistribution } from "./dashboard/opsCharts";
 import { IncidentQueueRow } from "./dashboard/IncidentQueueRow";
 import { ResponseFlow } from "./dashboard/ResponseFlow";
 import { LiveActivityFeed } from "./dashboard/LiveActivityFeed";
+import { CONCERN_TYPES, concernOf } from "../incidents/concernTypes";
 import { DuplicateReview } from "./dashboard/DuplicateReview";
 import { SimulationCard } from "../simulation/SimulationCard";
 import { type SimulationRole, type SimulationIntensity } from "../simulation/scenario";
@@ -228,6 +229,19 @@ export function NetworkPage() {
   const aging = useMemo(() => analytics.getAgingBuckets(filtered, now), [filtered, now]);
   const statusDist = useMemo(() => analytics.getStatusDistribution(filtered), [filtered]);
   const animalDist = useMemo(() => analytics.getAnimalDistribution(filtered), [filtered]);
+  // 0.3.0-dev.5 concern model: when non-animal concerns exist in scope the
+  // "Animal groups" card becomes "Concern mix" (spec 123).
+  const concernDist = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const i of filtered) {
+      const c = concernOf(i);
+      counts.set(c, (counts.get(c) ?? 0) + 1);
+    }
+    return [...counts.entries()]
+      .map(([value, n]) => ({ label: CONCERN_TYPES.find((c) => c.value === value)?.label ?? value, count: n, key: value }))
+      .sort((a, b) => b.count - a.count);
+  }, [filtered]);
+  const hasNonAnimalConcerns = useMemo(() => filtered.some((i) => concernOf(i) !== "wildlife_animal"), [filtered]);
   const typeDist = useMemo(() => analytics.getIncidentTypeDistribution(filtered), [filtered]);
   const transfer = useMemo(() => analytics.getTransferMetrics(filtered), [filtered]);
   const workload = useMemo(() => analytics.getResponderWorkload(filtered), [filtered]);
@@ -546,7 +560,7 @@ export function NetworkPage() {
 
   const animalDistWidget = (
     <div className="card ops-panel ops-span-4">
-      <h3 style={{ marginTop: 0 }}>{t("animalGroups", { defaultValue: "Animal groups" })}</h3>
+      <h3 style={{ marginTop: 0 }}>{hasNonAnimalConcerns ? t("concernMix", { defaultValue: "Concern mix" }) : t("animalGroups", { defaultValue: "Animal groups" })}</h3>
       {animalUnknownDominant ? (
         <div>
           <p style={{ fontSize: "0.8rem", letterSpacing: "0.06em", color: "var(--c-warn)", textTransform: "uppercase", margin: "0 0 6px" }}>
@@ -560,6 +574,8 @@ export function NetworkPage() {
             {t("reviewMissingData", { defaultValue: "Review missing data" })}
           </button>
         </div>
+      ) : hasNonAnimalConcerns ? (
+        <BarDistribution entries={concernDist} onPick={() => navigate("/incidents")} />
       ) : (
         <BarDistribution entries={animalDist} onPick={() => navigate("/incidents")} />
       )}

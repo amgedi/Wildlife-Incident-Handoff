@@ -28,6 +28,7 @@ import { matchesSearch } from "../../utils/text";
 import { getAllDrafts, deleteDraft } from "../../storage/repositories";
 import type { DraftRecord } from "../../storage/db";
 import { STATUS_LABELS_BY_KEY, INCIDENT_TYPES, ANIMAL_GROUPS } from "./labels";
+import { CONCERN_TYPES } from "./concernTypes";
 import { animalLabel } from "../export/exportService";
 import { formatDateTime, relativeTime } from "../../utils/time";
 import { isOpen } from "../network/incidentAnalytics";
@@ -129,6 +130,8 @@ export function IncidentListPage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>(() => (searchParams.get("status") as string) ?? "all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  // 0.3.0-dev.5 concern model (Part XII).
+  const [concernFilter, setConcernFilter] = useState<string>("all");
   const [groupFilter, setGroupFilter] = useState<string>("all");
   // 0.3.0-dev.5: from/to deep links let analytics drilldown open pre-filtered.
   const [dateFrom, setDateFrom] = useState(() => searchParams.get("from") ?? "");
@@ -176,7 +179,7 @@ export function IncidentListPage() {
   // P82 — new filter context restarts the bounded render window.
   useEffect(() => {
     setRenderLimit(RENDER_STEP);
-  }, [statusFilter, typeFilter, groupFilter, dateFrom, dateTo, query, view, statFilter, sort]);
+  }, [statusFilter, typeFilter, groupFilter, concernFilter, dateFrom, dateTo, query, view, statFilter, sort]);
 
   // Escape closes the inspector (unless a modal dialog owns the keystroke).
   useEffect(() => {
@@ -239,11 +242,12 @@ export function IncidentListPage() {
     const chips: { key: string; label: string; clear: () => void }[] = [];
     if (statusFilter !== "all") chips.push({ key: "status", label: STATUS_LABELS_BY_KEY[statusFilter as IncidentStatus] ?? statusFilter, clear: () => setStatusFilter("all") });
     if (typeFilter !== "all") chips.push({ key: "type", label: INCIDENT_TYPES.find((t) => t.value === typeFilter)?.label ?? typeFilter, clear: () => setTypeFilter("all") });
+    if (concernFilter !== "all") chips.push({ key: "concern", label: CONCERN_TYPES.find((c) => c.value === concernFilter)?.label ?? concernFilter, clear: () => setConcernFilter("all") });
     if (groupFilter !== "all") chips.push({ key: "group", label: ANIMAL_GROUPS.find((g) => g.value === groupFilter)?.label ?? groupFilter, clear: () => setGroupFilter("all") });
     if (dateFrom) chips.push({ key: "from", label: `From ${dateFrom}`, clear: () => setDateFrom("") });
     if (dateTo) chips.push({ key: "to", label: `Until ${dateTo}`, clear: () => setDateTo("") });
     return chips;
-  }, [statusFilter, typeFilter, groupFilter, dateFrom, dateTo]);
+  }, [statusFilter, typeFilter, groupFilter, concernFilter, dateFrom, dateTo]);
 
   // Shared "now" so stat counts and quick filtering agree.
   const now = useMemo(() => Date.now(), [incidents]);
@@ -258,6 +262,7 @@ export function IncidentListPage() {
     if (categoryStatuses) list = list.filter((i) => categoryStatuses.includes(i.status));
     else if (statusFilter !== "all") list = list.filter((i) => i.status === statusFilter);
     if (typeFilter !== "all") list = list.filter((i) => i.incidentType === typeFilter);
+    if (concernFilter !== "all") list = list.filter((i) => (i.concernType ?? "wildlife_animal") === concernFilter);
     if (groupFilter !== "all") list = list.filter((i) => i.animal.group === groupFilter);
     if (dateFrom) list = list.filter((i) => (i.occurredAt ?? i.createdAt) >= dateFrom);
     if (dateTo) {
@@ -287,7 +292,7 @@ export function IncidentListPage() {
       );
     }
     return list.sort((a, b) => (b.pinnedAt ?? "").localeCompare(a.pinnedAt ?? "") || b.updatedAt.localeCompare(a.updatedAt));
-  }, [incidents, view, statusFilter, typeFilter, groupFilter, dateFrom, dateTo, query, statFilter, now, categoryStatuses]);
+  }, [incidents, view, statusFilter, typeFilter, groupFilter, concernFilter, dateFrom, dateTo, query, statFilter, now, categoryStatuses]);
 
   const sorted = useMemo(() => {
     if (!sort) return filtered;
@@ -475,6 +480,13 @@ export function IncidentListPage() {
                   <select id="filter-type" className="input" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
                     <option value="all">{t("reports:allTypes")}</option>
                     {INCIDENT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
+                </div>
+                <div className="field">
+                  <label htmlFor="filter-concern">Concern type</label>
+                  <select id="filter-concern" className="input" value={concernFilter} onChange={(e) => setConcernFilter(e.target.value)}>
+                    <option value="all">All concerns</option>
+                    {CONCERN_TYPES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
                   </select>
                 </div>
                 <div className="field">

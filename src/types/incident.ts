@@ -322,6 +322,10 @@ export interface Incident {
   summary: string | null;
   /** Short "next step" line shown on the overview. */
   nextStep: string | null;
+  /** 0.3.0-dev.5 concern model: top-level concern category. Absent on legacy
+   *  records, which are wildlife-animal incidents by definition (see
+   *  features/incidents/concernTypes.ts). */
+  concernType?: "wildlife_animal" | "habitat_site" | "environmental_hazard" | "infrastructure_hazard" | "human_wildlife_conflict" | "other" | null;
 }
 
 export type ReportProvenance =

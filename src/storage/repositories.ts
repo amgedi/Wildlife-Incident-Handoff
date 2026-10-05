@@ -10,13 +10,36 @@ export async function putIncident(incident: Incident): Promise<void> {
 
 export async function getIncident(id: string): Promise<Incident | undefined> {
   const db = await getDb();
-  return db.get("incidents", id);
+  const inc = await db.get("incidents", id);
+  // 0.3.0-dev.5 concern migration: legacy records are wildlife-animal incidents.
+  return inc && inc.concernType == null ? { ...inc, concernType: "wildlife_animal" } : inc;
 }
 
 export async function getAllIncidents(): Promise<Incident[]> {
   const db = await getDb();
   const all = await db.getAll("incidents");
-  return all;
+  // 0.3.0-dev.5 concern migration (spec 67/141): records without a concernType
+  // migrate as "wildlife_animal" — no facts change, no record loss. The
+  // normalization is written back once so the on-disk form converges.
+  let migrated = false;
+  const out = all.map((i) => {
+    if (i.concernType == null) {
+      migrated = true;
+      return { ...i, concernType: "wildlife_animal" as const };
+    }
+    return i;
+  });
+  if (migrated && out.length > 0) {
+    try {
+      const tx = db.transaction("incidents", "readwrite");
+      await Promise.all(out.map((i) => tx.store.put(i)));
+      await tx.done;
+    } catch {
+      // Read-only contexts (e.g. backup import previews) still see the
+      // normalized values; the write-back is an optimization, not required.
+    }
+  }
+  return out;
 }
 
 export async function deleteIncidentRecord(id: string): Promise<void> {
