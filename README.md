@@ -163,5 +163,3 @@ Beginner-friendly contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.
 > Historical note: versions up to and including v0.1.0 were distributed under the MIT license; those historical copies remain available under the license that accompanied them. The development line from 0.2.0 onward is AGPL-3.0-only.
 
 ---
-
-*Wildlife Incident Handoff — "I know what happened. I know who has the animal now. I can safely pass this record to the next person."*
