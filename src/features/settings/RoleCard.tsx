@@ -120,7 +120,7 @@ export function RoleCard({ entry, isActive, canDeactivate }: { entry: Profession
         <div style={{ border: "1px solid var(--c-border)", borderRadius: "var(--radius-sm)", padding: 12, display: "grid", gap: 10 }}>
           <p className="hint" style={{ margin: 0 }}>
             {t("verifBlurbHonest", {
-              defaultValue: "Evidence stays on this device until you explicitly submit it through a future connected verification service — none exists today, so nothing can be submitted or verified from here.",
+              defaultValue: "Connected verification is not available yet — there is no reviewer to receive evidence. Your evidence stays on this device until a future connected verification service exists; nothing can be submitted or verified from here.",
             })}
           </p>
           <div className="grid-2">

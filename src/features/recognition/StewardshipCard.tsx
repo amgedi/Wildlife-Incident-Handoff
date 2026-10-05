@@ -142,21 +142,22 @@ export function StewardshipCard({ incidents, actor, tutorialsCompleted, priorEar
               </span>
             ))}
           </div>
-          <button
-            className="btn btn-primary btn-sm"
-            style={{ marginTop: 10 }}
-            onClick={() =>
-              updateSettings({
-                recognition: { ...(settings.recognition ?? { enabled: false, privacy: "private" as const }), enabled: true },
-              })
-            }
-          >
-            {t("stewardEnable", { defaultValue: "Enable Wildlife Stewardship" })}
-          </button>
-          <p className="hint" style={{ margin: "8px 0 0" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: "0.9rem", marginTop: 10 }}>
+            <input
+              type="checkbox"
+              checked={enabled}
+              onChange={(e) =>
+                updateSettings({
+                  recognition: { ...(settings.recognition ?? { enabled: false, privacy: "private" as const }), enabled: e.target.checked },
+                })
+              }
+            />
+            {t("stewardOptIn", { defaultValue: "Recognize my contributions (opt-in)" })}
+          </label>
+          <p className="hint" style={{ margin: "6px 0 0" }}>
             {t("stewardPrivacy", {
               defaultValue:
-                "Private by default: milestones come only from your own records on this device — no public leaderboard, nothing ranked by speed or volume.",
+                "Recognition is off, and it stays private by default. If you turn it on, milestones are computed only from your own records on this device — there is no public leaderboard, and nothing is ranked by speed or volume.",
             })}
           </p>
         </>

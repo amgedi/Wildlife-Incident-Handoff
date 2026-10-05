@@ -1797,7 +1797,6 @@ button.ax-dist-row:hover { border-color: var(--c-border); background: var(--c-su
   background: var(--c-surface); border: 1px solid var(--c-border);
   border-radius: var(--radius-md); box-shadow: var(--shadow-lg);
   padding: 5px; display: grid; gap: 1px;
-  backdrop-filter: var(--material-blur, none);
 }
 .ctx-item {
   display: flex; align-items: center; gap: 9px;
