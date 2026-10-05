@@ -4,239 +4,669 @@
 <meta charset="utf-8" />
 <title>Wildlife Incident Handoff</title>
 <style>
+  /* Theme tokens follow the app's canonical catalog (themeCatalog.ts):
+     swatch = [background, primary, ink]. Surface/border derive via color-mix
+     so the launcher stays in the same family for all 16 themes. */
   :root {
     --bg: #0a120d;
-    --surface: rgb(18 28 21 / 0.72);
-    --border: rgb(120 160 130 / 0.18);
-    --ink: #dde8de;
-    --ink-soft: #9db5a4;
-    --ink-faint: #6d8577;
     --primary: #4e9d6f;
-    --warn: #d97706;
-    --ok: #4f9d6e;
+    --ink: #dde8de;
     --radius: 12px;
   }
-  [data-theme="midnight-ops"] { --bg:#070c14; --surface: rgb(14 24 38 / 0.72); --border: rgb(110 150 200/0.18); --ink:#dbe6f2; --ink-soft:#93a9c4; --ink-faint:#5f7189; --primary:#3d8bff; }
-  [data-theme="storm"]       { --bg:#0d0f13; --surface: rgb(24 27 34 / 0.72); --border: rgb(150 160 190/0.18); --ink:#dfe3ea; --ink-soft:#9aa3b5; --ink-faint:#646d80; --primary:#7c8cf8; }
-  [data-theme="aurora"]      { --bg:#060b0d; --surface: rgb(12 26 26 / 0.72); --border: rgb(90 170 160/0.18); --ink:#d8e8e6; --ink-soft:#8fb0ab; --ink-faint:#5b7571; --primary:#2fbf9b; }
-  [data-theme="forest-dark"] { --bg:#152218; --surface: rgb(31 61 43 / 0.72); --border: rgb(140 180 150/0.18); --ink:#f0f3ec; --ink-soft:#b4c7b7; --ink-faint:#7d9484; --primary:#3f7d54; }
+  [data-theme="forest-night"]        { --bg:#0a120d; --primary:#4e9d6f; --ink:#dde8de; }
+  [data-theme="forest-dark"]         { --bg:#1f3d2b; --primary:#2f5d3f; --ink:#f0f3ec; --primary-boost:#4e9d6f; }
+  [data-theme="forest-light"]        { --bg:#e3ead9; --primary:#2f5d3f; --ink:#1c2a20; }
+  [data-theme="midnight"]            { --bg:#10151d; --primary:#4f9d6e; --ink:#e2e8ee; }
+  [data-theme="midnight-ops"]        { --bg:#070c14; --primary:#3d8bff; --ink:#dbe6f2; }
+  [data-theme="storm"]               { --bg:#0d0f13; --primary:#7c8cf8; --ink:#dfe3ea; }
+  [data-theme="aurora"]              { --bg:#060b0d; --primary:#2fbf9b; --ink:#d8e8e6; }
+  [data-theme="warm-field"]          { --bg:#4a3b28; --primary:#7a5a2e; --ink:#f7f2e8; --primary-boost:#b58a4a; }
+  [data-theme="moss"]                { --bg:#3f5233; --primary:#55702f; --ink:#eceee4; --primary-boost:#8fb060; }
+  [data-theme="ocean"]               { --bg:#123a5c; --primary:#1c6e8c; --ink:#e9eff4; --primary-boost:#3f9dbf; }
+  [data-theme="slate"]               { --bg:#2d3748; --primary:#4a6285; --ink:#eef0f2; --primary-boost:#7c9cc5; }
+  [data-theme="sand"]                { --bg:#6b4f2a; --primary:#9a6b2f; --ink:#f6f1e7; --primary-boost:#d8a860; }
+  [data-theme="arctic"]              { --bg:#1c4a5e; --primary:#23708f; --ink:#eef3f6; --primary-boost:#5aa8c5; }
+  [data-theme="high-contrast-dark"]  { --bg:#000000; --primary:#7fb7ff; --ink:#ffffff; }
+  [data-theme="mono-dark"]           { --bg:#000000; --primary:#e8e8e8; --ink:#f2f2f2; }
+  [data-theme="mono-light"]          { --bg:#111111; --primary:#171717; --ink:#fafafa; --primary-boost:#8a8a8a; --on-primary:#f2f2f2; }
+
+  :root {
+    --surface: color-mix(in srgb, var(--bg) 78%, var(--ink) 8%);
+    --border: color-mix(in srgb, var(--ink) 16%, transparent);
+    --ink-soft: color-mix(in srgb, var(--ink) 72%, transparent);
+    --ink-faint: color-mix(in srgb, var(--ink) 48%, transparent);
+    --ok: #4f9d6e;
+    --warn: #d97706;
+    --err: #dc6b5a;
+    --on-primary: #0a120d;
+    --primary-strong: var(--primary-boost, var(--primary));
+  }
+  [data-theme="forest-light"] { --on-primary:#f2f6ef; }
+  [data-theme="high-contrast-dark"], [data-theme="mono-dark"], [data-theme="mono-light"] { --on-primary:#0a0a0a; }
 
   * { box-sizing: border-box; }
   html, body { height: 100%; }
   body {
-    margin: 0; color: var(--ink); font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+    margin: 0; color: var(--ink);
+    font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
     background: var(--bg); overflow: hidden; user-select: none; font-size: 14px;
+    border-radius: 10px;
   }
-  /* Ambient: two slow gradient pools on their own compositor planes. */
+
+  /* ---------- titlebar ---------- */
+  .titlebar {
+    position: fixed; top: 0; left: 0; right: 0; height: 38px; z-index: 50;
+    display: flex; align-items: center; gap: 8px; padding: 0 6px 0 12px;
+    background: color-mix(in srgb, var(--bg) 88%, var(--ink) 6%);
+    border-bottom: 1px solid var(--border);
+  }
+  .titlebar img { width: 18px; height: 18px; border-radius: 5px; pointer-events: none; }
+  .titlebar .t { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.02em; color: var(--ink-soft); flex: 1; pointer-events: none; }
+  .tb-btn {
+    width: 40px; height: 32px; display: grid; place-items: center; border: none; background: transparent;
+    color: var(--ink-soft); cursor: pointer; border-radius: 8px; transition: background 100ms ease, color 100ms ease;
+  }
+  .tb-btn:hover { background: color-mix(in srgb, var(--ink) 10%, transparent); color: var(--ink); }
+  .tb-btn.close:hover { background: #c2453a; color: #fff; }
+  .tb-btn svg { width: 11px; height: 11px; }
+
+  /* ---------- ambient ---------- */
   .ambient { position: fixed; inset: -25%; z-index: 0; pointer-events: none; transform: translateZ(0); will-change: transform; backface-visibility: hidden; }
-  .ambient.a { background: radial-gradient(42% 38% at 30% 25%, rgb(78 157 111 / 0.30), transparent 70%); animation: drift-a 90s ease-in-out infinite; }
-  .ambient.b { background: radial-gradient(44% 40% at 70% 75%, rgb(181 101 29 / 0.10), transparent 70%), radial-gradient(40% 36% at 20% 80%, rgb(58 110 82 / 0.22), transparent 70%); animation: drift-b 110s ease-in-out infinite; }
+  .ambient.a { background: radial-gradient(42% 38% at 30% 25%, color-mix(in srgb, var(--primary-strong) 30%, transparent), transparent 70%); animation: drift-a 90s ease-in-out infinite; }
+  .ambient.b { background: radial-gradient(40% 36% at 20% 80%, color-mix(in srgb, var(--primary-strong) 18%, transparent), transparent 70%); animation: drift-b 110s ease-in-out infinite; }
   @keyframes drift-a { 0%,100% { transform: translate3d(0,0,0) scale(1.04); } 50% { transform: translate3d(2.5%,1.5%,0) scale(1); } }
   @keyframes drift-b { 0%,100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(-2.5%,2%,0) scale(1.05); } }
 
-  .wrap { position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column; padding: 22px 22px 18px; gap: 14px; overflow-y: auto; }
-
-  header { display: flex; align-items: center; gap: 12px; }
-  .logo {
-    width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
-    background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 70%, #000), var(--primary));
-    display: grid; place-items: center; box-shadow: 0 4px 14px rgb(0 0 0 / 0.4);
+  .wrap {
+    position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column;
+    padding: 50px 20px 14px; gap: 12px; overflow-y: auto;
   }
-  h1 { font-size: 1.02rem; margin: 0; letter-spacing: 0.02em; }
-  .sub { font-size: 0.78rem; color: var(--ink-soft); }
+
+  /* ---------- hero ---------- */
+  .hero { display: flex; align-items: center; gap: 12px; }
+  .hero img.emblem { width: 46px; height: 46px; border-radius: 12px; box-shadow: 0 4px 14px rgb(0 0 0 / 0.35); }
+  .hero h1 { font-size: 1rem; margin: 0; letter-spacing: 0.03em; }
+  .hero .sub { font-size: 0.78rem; color: var(--ink-soft); }
+  .chip {
+    display: inline-block; margin-top: 3px; font-size: 0.64rem; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--ink-faint);
+    border: 1px solid var(--border); border-radius: 99px; padding: 1px 8px;
+  }
 
   .card {
     background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 14px 16px; backdrop-filter: blur(16px) saturate(1.3);
+    padding: 12px 14px; backdrop-filter: blur(16px) saturate(1.3);
+    transition: border-color 140ms ease, box-shadow 140ms ease;
   }
-  .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 0; }
-  .row + .row { border-top: 1px solid var(--border); }
-  .k { color: var(--ink-soft); font-size: 0.84rem; }
-  .v { font-weight: 600; font-variant-numeric: tabular-nums; font-size: 0.86rem; }
-  .ok { color: var(--ok); }
-  .warn { color: var(--warn); }
+  .card-title { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 6px; }
 
+  /* ---------- workbench identity ---------- */
+  .wb-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .wb-version { font-size: 1.12rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .wb-fresh { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; }
+  .wb-fresh.ok { color: var(--ok); } .wb-fresh.warn { color: var(--warn); } .wb-fresh.err { color: var(--err); }
+  .wb-rows { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 10px; }
+  .wb-cell { border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; background: color-mix(in srgb, var(--bg) 40%, transparent); }
+  .wb-cell .k { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-faint); }
+  .wb-cell .v { font-size: 0.84rem; font-weight: 600; margin-top: 2px; }
+  .wb-cell .v.ok { color: var(--ok); } .wb-cell .v.warn { color: var(--warn); } .wb-cell .v.err { color: var(--err); }
+  .fresh-note { font-size: 0.75rem; color: var(--ink-faint); margin: 8px 0 0; line-height: 1.4; }
+
+  /* ---------- buttons ---------- */
   .primary-btn {
     width: 100%; padding: 13px 16px; border: none; border-radius: var(--radius);
-    background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 88%, #000), var(--primary));
-    color: #0a120d; font: inherit; font-weight: 700; font-size: 0.98rem; cursor: pointer;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--primary-strong) 86%, #000), var(--primary-strong));
+    color: var(--on-primary); font: inherit; font-weight: 700; font-size: 0.98rem; cursor: pointer;
     transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
-    box-shadow: 0 6px 18px rgb(78 157 111 / 0.25);
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--primary-strong) 28%, transparent);
   }
-  .primary-btn:hover { filter: brightness(1.07); box-shadow: 0 8px 22px rgb(78 157 111 / 0.35); }
+  .primary-btn:hover { filter: brightness(1.07); box-shadow: 0 8px 22px color-mix(in srgb, var(--primary-strong) 38%, transparent); }
   .primary-btn:active { transform: translateY(1px) scale(0.995); }
   .primary-btn:disabled { opacity: 0.55; cursor: default; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .btn {
     padding: 9px 10px; border-radius: 10px; border: 1px solid var(--border);
-    background: color-mix(in srgb, var(--primary) 8%, transparent); color: var(--ink);
-    font: inherit; font-size: 0.86rem; cursor: pointer; transition: background 120ms ease, border-color 120ms ease;
+    background: color-mix(in srgb, var(--primary-strong) 8%, transparent); color: var(--ink);
+    font: inherit; font-size: 0.86rem; cursor: pointer;
+    transition: background 120ms ease, border-color 120ms ease, transform 100ms ease;
+    text-align: center;
   }
-  .btn:hover { border-color: var(--primary); }
-  .btn:disabled { opacity: 0.5; cursor: default; }
+  .btn:hover { border-color: var(--primary-strong); }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.5; cursor: default; transform: none; }
+  .btn.small { padding: 6px 10px; font-size: 0.78rem; border-radius: 8px; }
 
+  /* ---------- build timeline ---------- */
   .build { display: none; }
   .build.active { display: block; }
-  .stage { font-size: 0.84rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-  .spinner { width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--primary); animation: spin 0.9s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  .timeline { list-style: none; margin: 2px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  .timeline li { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--ink-faint); transition: color 150ms ease; }
+  .timeline li .dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); display: grid; place-items: center; flex-shrink: 0; transition: all 150ms ease; }
+  .timeline li.active { color: var(--ink); font-weight: 600; }
+  .timeline li.active .dot { border-color: var(--primary-strong); animation: pulse 1.1s ease-in-out infinite; }
+  .timeline li.done { color: var(--ink-soft); }
+  .timeline li.done .dot { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 25%, transparent); }
+  .timeline li.done .dot::after { content: "✓"; font-size: 8px; color: var(--ok); font-weight: 700; }
+  .timeline li.failed { color: var(--err); font-weight: 600; }
+  .timeline li.failed .dot { border-color: var(--err); }
+  .timeline li.failed .dot::after { content: "!"; font-size: 9px; color: var(--err); font-weight: 700; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary-strong) 45%, transparent); } 50% { box-shadow: 0 0 0 5px transparent; } }
+  .details-toggle { margin-top: 8px; background: none; border: none; color: var(--ink-faint); font: inherit; font-size: 0.74rem; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; padding: 0; }
+  .details-toggle:hover { color: var(--ink-soft); }
   .log {
-    margin-top: 8px; font-family: Consolas, monospace; font-size: 0.68rem; color: var(--ink-faint);
-    max-height: 90px; overflow-y: auto; white-space: pre-wrap; user-select: text;
+    display: none; margin-top: 6px; font-family: Consolas, monospace; font-size: 0.68rem; color: var(--ink-faint);
+    max-height: 110px; overflow-y: auto; white-space: pre-wrap; user-select: text;
+    background: color-mix(in srgb, var(--bg) 55%, transparent); border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px;
   }
-  .fail { color: var(--warn); }
-  .note { font-size: 0.78rem; color: var(--ink-faint); line-height: 1.45; }
+  .log.open { display: block; }
+  .fail { color: var(--err); }
+  .note { font-size: 0.76rem; color: var(--ink-faint); line-height: 1.45; margin: 0; }
 
-  footer { margin-top: auto; display: flex; justify-content: space-between; align-items: center; color: var(--ink-faint); font-size: 0.72rem; }
-  select { background: rgb(0 0 0 / 0.25); color: var(--ink); border: 1px solid var(--border); border-radius: 8px; font: inherit; font-size: 0.76rem; padding: 3px 6px; }
+  /* ---------- status panels (updates / errors) ---------- */
+  .panel { display: none; }
+  .panel.active { display: block; animation: rise 180ms ease; }
+  @keyframes rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  .panel .p-title { font-size: 0.88rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .panel .p-detail { font-size: 0.78rem; color: var(--ink-soft); margin: 4px 0 8px; line-height: 1.45; }
+  .panel .p-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .commits { font-variant-numeric: tabular-nums; font-family: Consolas, monospace; font-size: 0.76rem; color: var(--ink-soft); }
 
-  [data-motion="reduced"] .ambient, [data-motion="reduced"] .spinner { animation: none !important; }
-  @media (prefers-reduced-motion: reduce) { .ambient, .spinner { animation: none !important; } .primary-btn, .btn { transition: none; } }
+  /* ---------- diagnostics ---------- */
+  .diag { display: none; }
+  .diag.active { display: block; }
+  .diag .row { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; border-bottom: 1px dashed color-mix(in srgb, var(--border) 60%, transparent); }
+  .diag .row:last-of-type { border-bottom: none; }
+  .diag .k { color: var(--ink-faint); font-size: 0.76rem; flex-shrink: 0; }
+  .diag .v { font-size: 0.76rem; text-align: right; word-break: break-all; user-select: text; font-variant-numeric: tabular-nums; }
+
+  /* ---------- footer / theme combobox ---------- */
+  footer { margin-top: auto; display: flex; justify-content: space-between; align-items: center; color: var(--ink-faint); font-size: 0.72rem; gap: 8px; }
+  .combo { position: relative; }
+  .combo-btn {
+    display: flex; align-items: center; gap: 7px; padding: 5px 9px; border-radius: 9px;
+    border: 1px solid var(--border); background: color-mix(in srgb, var(--bg) 50%, transparent);
+    color: var(--ink); font: inherit; font-size: 0.76rem; cursor: pointer;
+    transition: border-color 120ms ease, background 120ms ease;
+  }
+  .combo-btn:hover, .combo-btn[aria-expanded="true"] { border-color: var(--primary-strong); }
+  .combo-btn .sw { width: 12px; height: 12px; border-radius: 4px; border: 1px solid var(--border); background: linear-gradient(135deg, var(--sw-bg) 55%, var(--sw-ac) 55%); }
+  .combo-btn .arrow { font-size: 0.6rem; color: var(--ink-faint); transition: transform 140ms ease; }
+  .combo-btn[aria-expanded="true"] .arrow { transform: rotate(180deg); }
+  .combo-pop {
+    position: absolute; bottom: calc(100% + 8px); right: 0; width: 220px; max-height: 320px; overflow-y: auto;
+    background: color-mix(in srgb, var(--bg) 86%, var(--ink) 6%); backdrop-filter: blur(20px) saturate(1.4);
+    border: 1px solid var(--border); border-radius: 12px; padding: 6px; z-index: 60;
+    box-shadow: 0 12px 34px rgb(0 0 0 / 0.45);
+    opacity: 0; transform: translateY(4px) scale(0.98); pointer-events: none;
+    transition: opacity 140ms ease, transform 140ms ease;
+  }
+  .combo-pop.open { opacity: 1; transform: none; pointer-events: auto; }
+  .combo-opt {
+    display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: 8px; cursor: pointer;
+    font-size: 0.8rem; color: var(--ink-soft); border: none; background: none; width: 100%; text-align: left; font: inherit;
+  }
+  .combo-opt:hover, .combo-opt.focused { background: color-mix(in srgb, var(--primary-strong) 14%, transparent); color: var(--ink); }
+  .combo-opt .sw { width: 14px; height: 14px; border-radius: 5px; border: 1px solid var(--border); flex-shrink: 0; background: linear-gradient(135deg, var(--sw-bg) 55%, var(--sw-ac) 55%); }
+  .combo-opt .check { margin-left: auto; color: var(--ok); font-weight: 700; visibility: hidden; }
+  .combo-opt[aria-selected="true"] { color: var(--ink); font-weight: 600; }
+  .combo-opt[aria-selected="true"] .check { visibility: visible; }
+
+  [data-motion="reduced"] .ambient, [data-motion="reduced"] .timeline li.active .dot { animation: none !important; }
+  @media (prefers-reduced-motion: reduce) {
+    .ambient, .timeline li.active .dot { animation: none !important; }
+    .primary-btn, .btn, .combo-pop, .panel.active { transition: none; animation: none; }
+  }
 </style>
 </head>
 <body>
   <div class="ambient a"></div>
   <div class="ambient b"></div>
+
+  <!-- custom integrated titlebar -->
+  <div class="titlebar" data-tauri-drag-region id="titlebar">
+    <img src="emblem-32.png" alt="" data-tauri-drag-region />
+    <span class="t" data-tauri-drag-region>Wildlife Incident Handoff</span>
+    <button class="tb-btn" id="tbMin" aria-label="Minimize" title="Minimize">
+      <svg viewBox="0 0 10 10"><path d="M0 5h10" stroke="currentColor" stroke-width="1.2"/></svg>
+    </button>
+    <button class="tb-btn" id="tbMax" aria-label="Maximize" title="Maximize / Restore">
+      <svg viewBox="0 0 10 10"><rect x="0.6" y="0.6" width="8.8" height="8.8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>
+    </button>
+    <button class="tb-btn close" id="tbClose" aria-label="Close" title="Close">
+      <svg viewBox="0 0 10 10"><path d="M0.5 0.5l9 9M9.5 0.5l-9 9" stroke="currentColor" stroke-width="1.2"/></svg>
+    </button>
+  </div>
+
   <div class="wrap">
-    <header>
-      <div class="logo" aria-hidden="true">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#eef3e9" stroke-width="2" stroke-linecap="round">
-          <path d="M3 17c3-1 5-4 5-8M9 19c4-1 6-5 6-10" opacity="0.85"/>
-          <circle cx="19" cy="7" r="2.4" fill="#eef3e9" stroke="none"/>
-        </svg>
-      </div>
+    <header class="hero">
+      <img class="emblem" src="emblem.png" alt="Wildlife Incident Handoff emblem" />
       <div>
         <h1>WILDLIFE INCIDENT HANDOFF</h1>
         <div class="sub">Clear information. Safer handoffs.</div>
+        <span class="chip">Development workspace</span>
       </div>
     </header>
 
-    <section class="card" id="identity">
-      <div class="row"><span class="k">Current source</span><span class="v" id="srcVersion">…</span></div>
-      <div class="row"><span class="k">Commit</span><span class="v" id="srcCommit">…</span></div>
-      <div class="row"><span class="k">Desktop build</span><span class="v" id="desktopState">…</span></div>
-      <div class="row"><span class="k">Web build</span><span class="v ok" id="webState">From same source ✓</span></div>
+    <section class="card" id="workbench" aria-live="polite">
+      <div class="card-title">Current workbench</div>
+      <div class="wb-head">
+        <span class="wb-version" id="wbVersion">…</span>
+        <span class="wb-fresh" id="wbFresh">checking…</span>
+      </div>
+      <div class="wb-rows">
+        <div class="wb-cell"><div class="k">Desktop</div><div class="v" id="cellDesktop">…</div></div>
+        <div class="wb-cell"><div class="k">Web</div><div class="v" id="cellWeb">…</div></div>
+        <div class="wb-cell"><div class="k">Source</div><div class="v" id="cellSource">…</div></div>
+      </div>
+      <p class="fresh-note" id="freshNote"></p>
     </section>
 
     <button class="primary-btn" id="launch">Launch Wildlife Incident Handoff</button>
+    <button class="btn" id="launchPrev" style="display:none"></button>
 
     <div class="grid2">
-      <button class="btn" id="webPreview">Launch Web Preview</button>
+      <button class="btn" id="webPreview">Web Preview</button>
       <button class="btn" id="build">Build</button>
-      <button class="btn" id="updates">Check for updates</button>
+      <button class="btn" id="updates">Updates</button>
       <button class="btn" id="diagnostics">Diagnostics</button>
     </div>
 
+    <!-- build progress -->
     <section class="card build" id="buildCard">
-      <div class="stage" id="buildStage"><span class="spinner"></span><span>Preparing…</span></div>
-      <div class="log" id="buildLog"></div>
+      <div class="card-title">Build progress</div>
+      <ul class="timeline" id="timeline"></ul>
+      <button class="details-toggle" id="logToggle" aria-expanded="false">View build details</button>
+      <div class="log" id="buildLog" role="log" aria-label="Build log"></div>
     </section>
 
-    <p class="note" id="note">The launcher reads your local workspace — it never installs anything from the internet and never overwrites uncommitted work.</p>
+    <!-- update states -->
+    <section class="card panel" id="updatePanel" role="status">
+      <div class="p-title" id="updTitle"></div>
+      <div class="p-detail" id="updDetail"></div>
+      <div class="p-actions" id="updActions"></div>
+    </section>
+
+    <!-- error note -->
+    <p class="note fail" id="note" hidden></p>
+
+    <!-- diagnostics -->
+    <section class="card diag" id="diagCard">
+      <div class="card-title">Diagnostics <button class="btn small" id="copyDiag" style="float:right">Copy</button></div>
+      <div id="diagRows"></div>
+    </section>
 
     <footer>
-      <span id="footerInfo">Launcher 0.3.0-dev.5</span>
-      <label>Theme
-        <select id="themeSel">
-          <option value="forest-night">Forest Night</option>
-          <option value="forest-dark">Forest Dark</option>
-          <option value="midnight-ops">Midnight Ops</option>
-          <option value="storm">Storm</option>
-          <option value="aurora">Aurora</option>
-        </select>
-      </label>
+      <span id="footerInfo">Launcher…</span>
+      <div class="combo">
+        <button class="combo-btn" id="themeBtn" aria-haspopup="listbox" aria-expanded="false">
+          <span class="sw" id="themeSwatch" style="--sw-bg:#0a120d; --sw-ac:#4e9d6f"></span>
+          <span id="themeLabel">Theme · Forest Night</span>
+          <span class="arrow">▼</span>
+        </button>
+        <div class="combo-pop" id="themePop" role="listbox" aria-label="Theme"></div>
+      </div>
     </footer>
   </div>
 
 <script>
   const invoke = window.__TAURI__.core.invoke;
+  const curWin = window.__TAURI__.window.getCurrentWindow();
   const $ = (id) => document.getElementById(id);
   let identity = null;
+  let lastLaunchIntent = false; // Build & Launch flow
 
-  function set(el, text, cls) { $(el).textContent = text; $(el).className = "v " + (cls || ""); }
+  /* ---------------- titlebar ---------------- */
+  $("tbMin").addEventListener("click", () => curWin.minimize());
+  $("tbMax").addEventListener("click", () => curWin.toggleMaximize());
+  $("tbClose").addEventListener("click", () => curWin.close());
+  // Double-click the drag region toggles maximize (native titlebar behavior).
+  $("titlebar").addEventListener("dblclick", (e) => {
+    if (e.target.closest(".tb-btn")) return;
+    curWin.toggleMaximize();
+  });
+
+  /* ---------------- themes ---------------- */
+  const THEMES = [
+    ["forest-night","Forest Night","#0a120d","#4e9d6f"],
+    ["forest-dark","Forest Dark","#1f3d2b","#4e9d6f"],
+    ["forest-light","Forest Light","#e3ead9","#2f5d3f"],
+    ["midnight","Midnight","#10151d","#4f9d6e"],
+    ["midnight-ops","Midnight Ops","#070c14","#3d8bff"],
+    ["storm","Storm","#0d0f13","#7c8cf8"],
+    ["aurora","Aurora","#060b0d","#2fbf9b"],
+    ["warm-field","Warm Field","#4a3b28","#b58a4a"],
+    ["moss","Moss","#3f5233","#8fb060"],
+    ["ocean","Ocean","#123a5c","#3f9dbf"],
+    ["slate","Slate","#2d3748","#7c9cc5"],
+    ["sand","Sand","#6b4f2a","#d8a860"],
+    ["arctic","Arctic","#1c4a5e","#5aa8c5"],
+    ["high-contrast-dark","High Contrast Dark","#000000","#7fb7ff"],
+    ["mono-dark","Monochrome Dark","#000000","#e8e8e8"],
+    ["mono-light","Monochrome Light","#111111","#8a8a8a"],
+  ];
+  let themeOpen = false, themeIdx = 0;
+  const themePop = $("themePop");
+
+  function swatchStyle(bg, ac) { return `--sw-bg:${bg}; --sw-ac:${ac}`; }
+
+  function renderThemePop() {
+    themePop.innerHTML = "";
+    const current = document.documentElement.dataset.theme;
+    THEMES.forEach(([id, label, bg, ac], i) => {
+      const b = document.createElement("button");
+      b.className = "combo-opt";
+      b.setAttribute("role", "option");
+      b.setAttribute("aria-selected", id === current ? "true" : "false");
+      b.innerHTML = `<span class="sw" style="${swatchStyle(bg, ac)}"></span><span>${label}</span><span class="check">✓</span>`;
+      b.addEventListener("click", () => pickTheme(id));
+      themePop.appendChild(b);
+    });
+  }
+
+  function setThemeUi(id) {
+    const t = THEMES.find((t) => t[0] === id) || THEMES[0];
+    document.documentElement.dataset.theme = t[0];
+    $("themeLabel").textContent = "Theme · " + t[1];
+    $("themeSwatch").style.cssText = swatchStyle(t[2], t[3]);
+  }
+
+  async function pickTheme(id) {
+    setThemeUi(id);
+    closeTheme();
+    try { await invoke("set_theme", { theme: id }); } catch { /* keep UI theme */ }
+  }
+
+  function openTheme() {
+    renderThemePop();
+    themeOpen = true;
+    themePop.classList.add("open");
+    $("themeBtn").setAttribute("aria-expanded", "true");
+    const cur = THEMES.findIndex((t) => t[0] === document.documentElement.dataset.theme);
+    focusThemeOpt(cur >= 0 ? cur : 0);
+  }
+  function closeTheme() {
+    themeOpen = false;
+    themePop.classList.remove("open");
+    $("themeBtn").setAttribute("aria-expanded", "false");
+    $("themeBtn").focus();
+  }
+  function focusThemeOpt(i) {
+    themeIdx = Math.max(0, Math.min(THEMES.length - 1, i));
+    const opts = themePop.querySelectorAll(".combo-opt");
+    opts.forEach((o) => o.classList.remove("focused"));
+    if (opts[themeIdx]) { opts[themeIdx].classList.add("focused"); opts[themeIdx].scrollIntoView({ block: "nearest" }); }
+  }
+  $("themeBtn").addEventListener("click", () => (themeOpen ? closeTheme() : openTheme()));
+  document.addEventListener("click", (e) => { if (themeOpen && !e.target.closest(".combo")) closeTheme(); });
+  document.addEventListener("keydown", (e) => {
+    if (!themeOpen) return;
+    if (e.key === "Escape") { e.preventDefault(); closeTheme(); }
+    else if (e.key === "ArrowDown") { e.preventDefault(); focusThemeOpt(themeIdx + 1); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); focusThemeOpt(themeIdx - 1); }
+    else if (e.key === "Home") { e.preventDefault(); focusThemeOpt(0); }
+    else if (e.key === "End") { e.preventDefault(); focusThemeOpt(THEMES.length - 1); }
+    else if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pickTheme(THEMES[themeIdx][0]); }
+  });
+
+  /* ---------------- identity ---------------- */
+  const FRESH_LABEL = {
+    "current": ["CURRENT", "ok"],
+    "source-changed": ["SOURCE CHANGED", "warn"],
+    "source-dirty": ["SOURCE DIRTY", "warn"],
+    "version-mismatch": ["VERSION MISMATCH", "err"],
+    "desktop-missing": ["DESKTOP MISSING", "warn"],
+    "not-git": ["NOT A GIT CHECKOUT", "warn"],
+  };
+
+  function setNote(msg) {
+    const n = $("note");
+    if (!msg) { n.hidden = true; return; }
+    n.hidden = false;
+    n.textContent = msg;
+  }
 
   async function refresh() {
     try {
       identity = await invoke("get_identity");
-      set("srcVersion", identity.version + " · " + identity.frontend_build_id.slice(0, 8));
-      set("srcCommit", identity.commit);
-      if (identity.desktop) {
-        const d = identity.desktop;
-        if (!d.commit) {
-          set("desktopState", d.version + " (identity manifest missing)", "warn");
-        } else if (identity.desktop_stale) {
-          set("desktopState", "Out of date — " + d.version + " @ " + d.commit, "warn");
-        } else {
-          set("desktopState", "Up to date ✓ " + d.version, "ok");
-        }
+      const f = identity.freshness || "current";
+      const [label, cls] = FRESH_LABEL[f] || [f.toUpperCase(), "warn"];
+      $("wbVersion").textContent = identity.version;
+      const wf = $("wbFresh");
+      wf.textContent = label;
+      wf.className = "wb-fresh " + cls;
+      $("freshNote").textContent = identity.freshness_detail || "";
+      const d = identity.desktop;
+      const cd = $("cellDesktop");
+      if (!d) { cd.textContent = "Not built"; cd.className = "v warn"; }
+      else if (!d.exe_exists) { cd.textContent = d.version + " · missing exe"; cd.className = "v err"; }
+      else if (f === "current") { cd.textContent = "Current ✓"; cd.className = "v ok"; }
+      else { cd.textContent = d.version; cd.className = "v warn"; }
+      const cw = $("cellWeb");
+      if (d && d.manifest_ok && d.web_build_id) { cw.textContent = "Built ✓"; cw.className = "v ok"; }
+      else { cw.textContent = "Not packaged"; cw.className = "v warn"; }
+      const cs = $("cellSource");
+      if (f === "source-dirty") { cs.textContent = "Unbuilt changes"; cs.className = "v warn"; }
+      else if (identity.git_dirty) { cs.textContent = "Clean for build ✓"; cs.className = "v ok"; }
+      else if (f === "current") { cs.textContent = "Clean ✓"; cs.className = "v ok"; }
+      else { cs.textContent = "—"; cs.className = "v"; }
+
+      // Primary action / previous build
+      const launchable = d && d.exe_exists && (f === "current" || f === "source-changed");
+      const missing = !d || !d.exe_exists;
+      const primary = $("launch");
+      if (missing) {
+        primary.textContent = "Build & Launch Wildlife Incident Handoff";
       } else {
-        set("desktopState", "Not built yet", "warn");
+        primary.textContent = "Launch Wildlife Incident Handoff";
       }
-      $("note").textContent = "Workspace: " + identity.root + (identity.git_dirty ? " · uncommitted changes present" : "");
+      primary.dataset.mode = missing ? "build-launch" : "launch";
+      primary.disabled = false;
+      const prev = $("launchPrev");
+      if (identity.previous && identity.previous.version) {
+        prev.style.display = "";
+        prev.textContent = "Launch previous verified build · " + identity.previous.version;
+      } else {
+        prev.style.display = "none";
+      }
+      setNote("");
     } catch (e) {
-      set("srcVersion", "unavailable", "warn");
-      set("srcCommit", "—", "");
-      set("desktopState", "—", "");
-      $("note").textContent = String(e);
+      $("wbVersion").textContent = "unavailable";
+      $("wbFresh").textContent = "—"; $("wbFresh").className = "wb-fresh err";
+      setNote(String(e));
     }
   }
 
-  $("launch").addEventListener("click", async () => {
-    $("launch").disabled = true;
-    try { await invoke("launch_app"); window.close(); }
-    catch (e) { $("note").textContent = String(e); $("note").classList.add("fail"); $("launch").disabled = false; }
+  /* ---------------- launch ---------------- */
+  async function doLaunch() {
+    const p = $("launch");
+    p.disabled = true;
+    p.textContent = "Launching…";
+    try {
+      await invoke("launch_app");
+      window.close();
+    } catch (e) {
+      setNote(String(e));
+      p.disabled = false;
+      await refresh();
+    }
+  }
+  async function doBuildLaunch() {
+    const p = $("launch");
+    p.disabled = true;
+    p.textContent = "Building…";
+    lastLaunchIntent = true;
+    await startBuild();
+  }
+  $("launch").addEventListener("click", () => {
+    if ($("launch").dataset.mode === "build-launch") void doBuildLaunch();
+    else void doLaunch();
+  });
+  $("launchPrev").addEventListener("click", async () => {
+    $("launchPrev").disabled = true;
+    try { await invoke("launch_previous"); window.close(); }
+    catch (e) { setNote(String(e)); $("launchPrev").disabled = false; }
+  });
+  $("webPreview").addEventListener("click", async () => {
+    try { await invoke("launch_web"); } catch (e) { setNote(String(e)); }
   });
 
-  $("webPreview").addEventListener("click", async () => {
-    try { await invoke("launch_web"); } catch (e) { $("note").textContent = String(e); }
-  });
+  /* ---------------- build ---------------- */
+  const stageList = $("timeline");
+  function renderTimeline(stages, index, running, failed, doneOk) {
+    stageList.innerHTML = "";
+    stages.forEach((s, i) => {
+      const li = document.createElement("li");
+      const dot = document.createElement("span");
+      dot.className = "dot";
+      li.appendChild(dot);
+      li.appendChild(document.createTextNode(s));
+      if (failed && i === index) li.classList.add("failed");
+      else if (i < index || (doneOk && i === index)) li.classList.add("done");
+      else if (i === index) li.classList.add("active");
+      stageList.appendChild(li);
+    });
+  }
+  renderTimeline(["Preparing","Testing","Building frontend","Building desktop","Packaging","Verifying","Updating release/current","Ready."], 0, false, false, false);
 
   let poll = null;
-  $("build").addEventListener("click", async () => {
+  async function startBuild() {
     try {
       await invoke("build_app");
-      $("buildCard").classList.add("active");
-      $("build").disabled = true;
-      poll = setInterval(async () => {
-        const st = await invoke("get_build_status");
-        $("buildStage").lastChild.textContent = st.stage;
-        $("buildLog").textContent = st.lines.join("\n");
-        $("buildLog").scrollTop = $("buildLog").scrollHeight;
-        if (!st.running) {
-          clearInterval(poll);
-          $("build").disabled = false;
-          if (st.done) { await refresh(); $("buildCard").classList.remove("active"); }
-          else $("buildStage").classList.add("fail");
+    } catch (e) { setNote(String(e)); $("launch").disabled = false; return; }
+    // Immediate feedback: card + stage 0 visible the same interaction frame.
+    $("buildCard").classList.add("active");
+    $("build").disabled = true;
+    setNote("");
+    renderTimeline(["Preparing","Testing","Building frontend","Building desktop","Packaging","Verifying","Updating release/current","Ready."], 0, true, false, false);
+    poll = setInterval(async () => {
+      const st = await invoke("get_build_status");
+      renderTimeline(st.stages, st.stage_index, st.running, !st.running && st.done === false, st.done === true);
+      $("buildLog").textContent = st.lines.join("\n");
+      $("buildLog").scrollTop = $("buildLog").scrollHeight;
+      if (!st.running) {
+        clearInterval(poll); poll = null;
+        $("build").disabled = false;
+        if (st.done) {
+          await refresh();
+          if (lastLaunchIntent) {
+            lastLaunchIntent = false;
+            setTimeout(() => void doLaunch(), 350);
+          } else {
+            setTimeout(() => $("buildCard").classList.remove("active"), 1600);
+          }
         }
-      }, 700);
-    } catch (e) { $("note").textContent = String(e); }
+      }
+    }, 350);
+  }
+  $("build").addEventListener("click", async () => {
+    lastLaunchIntent = false;
+    await startBuild();
+  });
+  $("logToggle").addEventListener("click", () => {
+    const log = $("buildLog");
+    const open = log.classList.toggle("open");
+    $("logToggle").setAttribute("aria-expanded", open ? "true" : "false");
+    $("logToggle").textContent = open ? "Hide build details" : "View build details";
   });
 
-  $("updates").addEventListener("click", async () => {
-    $("updates").disabled = true;
-    try { const u = await invoke("check_updates"); $("note").textContent = u.detail; }
-    catch (e) { $("note").textContent = String(e); }
-    $("updates").disabled = false;
-  });
+  /* ---------------- updates ---------------- */
+  const UPD_UI = {
+    "no-remote":    { icon: "ℹ", cls: "",      title: "Updates unavailable",
+      detail: "No Git remote is configured for this source checkout.", actions: ["details"] },
+    "offline":      { icon: "⚡", cls: "warn", title: "You're offline",
+      detail: "Update checking will be available when a connection returns.", actions: ["retry"] },
+    "remote-error": { icon: "⚠", cls: "warn", title: "Couldn't check for updates",
+      detail: "", actions: ["retry", "details"] },
+    "auth":         { icon: "🔒", cls: "warn", title: "Repository access required",
+      detail: "Update check requires repository access (authentication failed).", actions: ["retry"] },
+    "up-to-date":   { icon: "✓", cls: "ok",   title: "You're up to date",
+      detail: "", actions: [] },
+    "available":    { icon: "⬇", cls: "ok",   title: "Source update available",
+      detail: "", actions: [] },
+    "dirty-tree":   { icon: "✎", cls: "warn", title: "Local source has uncommitted changes",
+      detail: "Commit or stash them before updating. Nothing was touched.", actions: [] },
+    "error":        { icon: "⚠", cls: "err",  title: "Update check failed", detail: "", actions: ["retry"] },
+  };
+  function showUpdate(u) {
+    const panel = $("updatePanel");
+    const ui = UPD_UI[u.status] || UPD_UI["error"];
+    $("updTitle").innerHTML = `<span class="${ui.cls}">${ui.icon}</span> ${ui.title}`;
+    let detail = u.detail || ui.detail;
+    if (u.status === "up-to-date" && u.local_commit) detail = `${u.local_commit} — matches ${u.remote_commit || "the remote"}.`;
+    if (u.status === "available") detail = `${u.detail}\nLocal ${u.local_commit} → Remote ${u.remote_commit}. Pull from your terminal; the launcher never overwrites your work.`;
+    $("updDetail").textContent = detail;
+    const acts = $("updActions");
+    acts.innerHTML = "";
+    if (ui.actions.includes("retry")) {
+      const b = document.createElement("button");
+      b.className = "btn small"; b.textContent = "Retry";
+      b.addEventListener("click", () => void doUpdateCheck());
+      acts.appendChild(b);
+    }
+    if (ui.actions.includes("details")) {
+      const b = document.createElement("button");
+      b.className = "btn small"; b.textContent = "Details";
+      b.addEventListener("click", () => void showDiagnostics());
+      acts.appendChild(b);
+    }
+    panel.classList.add("active");
+    $("footerInfo").textContent = u.status === "up-to-date" ? "Up to date ✓" :
+      u.status === "available" ? `Update available (${u.behind})` :
+      u.status === "offline" ? "Offline" :
+      u.status === "no-remote" ? "Remote not configured" : "Update check error";
+  }
+  async function doUpdateCheck() {
+    const btn = $("updates");
+    btn.disabled = true;
+    btn.textContent = "Checking…";
+    $("updTitle").textContent = "Checking…";
+    try {
+      const u = await invoke("check_updates");
+      showUpdate(u);
+    } catch (e) { showUpdate({ status: "error", detail: String(e) }); }
+    btn.disabled = false;
+    btn.textContent = "Updates";
+  }
+  $("updates").addEventListener("click", () => void doUpdateCheck());
 
+  /* ---------------- diagnostics ---------------- */
+  async function showDiagnostics() {
+    try {
+      const d = await invoke("get_diagnostics");
+      const rows = [
+        ["Launcher version", d.launcher_version],
+        ["Source version", d.source_version],
+        ["Source commit", d.source_commit || "—"],
+        ["Dirty state", d.git_dirty ? "uncommitted changes" : "clean"],
+        ["Desktop version", d.desktop_version],
+        ["Desktop commit", d.desktop_commit || "—"],
+        ["Desktop path", d.desktop_path],
+        ["Web build id", d.web_build_id || "—"],
+        ["release/current", d.release_current_path],
+        ["Git remote", (d.git_remote || "").split("\n")[0] || "none configured"],
+        ["Last build", d.last_build_result],
+      ];
+      $("diagRows").innerHTML = rows.map(([k, v]) => `<div class="row"><span class="k">${k}</span><span class="v"></span></div>`).join("");
+      document.querySelectorAll("#diagRows .row .v").forEach((el, i) => (el.textContent = rows[i][1]));
+      $("diagCard").classList.add("active");
+      window.__diagData = rows;
+    } catch (e) { setNote(String(e)); }
+  }
   $("diagnostics").addEventListener("click", () => {
-    if (!identity) return;
-    const d = identity.desktop || {};
-    $("note").textContent =
-      `Source: ${identity.version} @ ${identity.commit} (frontend ${identity.frontend_build_id}) · ` +
-      `Desktop: ${d.version ?? "not built"} @ ${d.commit || "?"} · dirty: ${identity.git_dirty ? "yes" : "no"}`;
+    if ($("diagCard").classList.contains("active")) { $("diagCard").classList.remove("active"); return; }
+    void showDiagnostics();
+  });
+  $("copyDiag").addEventListener("click", async () => {
+    const text = (window.__diagData || []).map(([k, v]) => `${k}: ${v}`).join("\n");
+    try { await navigator.clipboard.writeText(text); $("copyDiag").textContent = "Copied ✓"; setTimeout(() => ($("copyDiag").textContent = "Copy"), 1400); }
+    catch { /* clipboard denied */ }
   });
 
-  $("themeSel").addEventListener("change", async (e) => {
-    const t = e.target.value;
-    document.documentElement.dataset.theme = t;
-    try { await invoke("set_theme", { theme: t }); } catch { /* keep UI theme */ }
-  });
-
+  /* ---------------- boot ---------------- */
   (async () => {
     const pref = await invoke("get_theme").catch(() => ({ theme: "forest-night" }));
-    document.documentElement.dataset.theme = pref.theme;
-    $("themeSel").value = pref.theme;
+    setThemeUi(pref.theme || "forest-night");
+    $("footerInfo").textContent = "Launcher 0.3.0-dev.7";
     await refresh();
   })();
 </script>

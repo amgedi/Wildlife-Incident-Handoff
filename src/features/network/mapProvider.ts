@@ -561,6 +561,9 @@ export function createMapLibreProvider(options?: {
       const el = document.createElement("div");
       el.className = "map-marker";
       el.dataset.state = p.state;
+      // 0.3.0-dev.7: stable hook for list<->marker selection sync and the
+      // selected-marker emphasis state.
+      el.dataset.refId = String(p.refId);
       el.title = p.label;
       el.style.cssText = markerElementStyle(p.state);
       el.textContent = STATUS_MARKER_STYLES[p.state]?.glyph ?? STATUS_MARKER_SHAPES[p.state] ?? "●";

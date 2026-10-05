@@ -38,6 +38,7 @@ import { IncidentQueueRow } from "./dashboard/IncidentQueueRow";
 import { ResponseFlow } from "./dashboard/ResponseFlow";
 import { LiveActivityFeed } from "./dashboard/LiveActivityFeed";
 import { CONCERN_TYPES, concernOf } from "../incidents/concernTypes";
+import { BookmarkButton } from "../incidents/BookmarkButton";
 import { AppContextMenu, useAppContextMenu, type ContextMenuItem } from "../incidents/ContextMenu";
 import { withBookmarkToggled, isBookmarked } from "../incidents/bookmarks";
 import { DuplicateReview } from "./dashboard/DuplicateReview";
@@ -115,6 +116,18 @@ export function NetworkPage() {
   const [simConfig, setSimConfig] = useState<{ role: SimulationRole; intensity: SimulationIntensity; seed: number; now: string } | null>(null);
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [confirmHideAttention, setConfirmHideAttention] = useState(false);
+  // 0.3.0-dev.7 (Part XII): map-side list selection. Single click = select +
+  // fly to the incident on the map (stays on Map); double click / explicit
+  // "Open incident" action opens the full record.
+  const [mapSelectedId, setMapSelectedId] = useState<string | null>(null);
+
+  // Marker → list sync (Part 51): when the selection changes from the map
+  // side, keep the corresponding row scrolled into view.
+  useEffect(() => {
+    if (!mapSelectedId) return;
+    const row = document.querySelector<HTMLElement>(`.map-side-item[data-incident-id="${mapSelectedId}"]`);
+    if (row && typeof row.scrollIntoView === "function") row.scrollIntoView({ block: "nearest" });
+  }, [mapSelectedId]);
   const org = LOCAL_ORG_REGISTRY[0];
   const firstName = (settings.professionalProfile?.name || settings.displayName || "").trim().split(/\s+/)[0];
   const isVerified = getAuthorizationState().status === "verified";
@@ -1085,28 +1098,98 @@ export function NetworkPage() {
                 full
                 serviceArea={area}
                 fitMode="service-area"
+                selectedId={mapSelectedId}
+                onSelectedChange={setMapSelectedId}
                 onSelect={(incident) => navigate(`/incidents/${incident.id}`)}
               />
             </Suspense>
             <aside className="card" style={{ padding: 0, maxHeight: "calc(100dvh - 240px)", overflowY: "auto" }} aria-label={t("mapSidePanel", { defaultValue: "Incidents in view" })}>
-              <div style={{ padding: "10px var(--space-3)", borderBottom: "1px solid var(--c-border)", position: "sticky", top: 0, background: "var(--c-surface)" }}>
+              <div style={{ padding: "10px var(--space-3)", borderBottom: "1px solid var(--c-border)", position: "sticky", top: 0, background: "var(--c-surface)", zIndex: 1 }}>
                 <strong>{t("mapSidePanel", { defaultValue: "Incidents in view" })}</strong>
-                <span className="hint" style={{ display: "block", margin: 0 }}>{inArea.length}</span>
+                <span className="hint" style={{ display: "block", margin: 0 }}>
+                  {t("mapSidePanelHint", { defaultValue: "Click: show on map · Double-click: open" })}
+                </span>
               </div>
-              <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-                {inArea.map((i) => (
-                  <li key={i.id} style={{ borderTop: "1px solid var(--c-border)" }}>
-                    <Link to={`/incidents/${i.id}`} className="map-side-item" style={{ display: "block", padding: "9px var(--space-3)" }}>
-                      <span style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center" }}>
-                        <strong style={{ fontSize: "0.88rem" }}>{animalLabel(i)}</strong>
-                        <StatusBadge status={i.status} />
-                      </span>
-                      <span className="hint" style={{ display: "block", margin: "2px 0 0" }}>
-                        {i.humanReference} · {relativeTime(i.occurredAt ?? i.createdAt)}{i.location.description ? ` · ${i.location.description}` : ""}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
+              <ul
+                style={{ listStyle: "none", margin: 0, padding: 0 }}
+                role="listbox"
+                aria-label={t("mapSidePanel", { defaultValue: "Incidents in view" })}
+                onKeyDown={(e) => {
+                  const rows = Array.from(e.currentTarget.querySelectorAll<HTMLElement>(".map-side-item"));
+                  const idx = rows.indexOf(document.activeElement as HTMLElement);
+                  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                    e.preventDefault();
+                    const next = e.key === "ArrowDown" ? Math.min(rows.length - 1, idx + 1) : Math.max(0, idx - 1);
+                    rows[next]?.focus();
+                  } else if (e.key === "Enter" && !e.ctrlKey && !e.metaKey) {
+                    e.preventDefault();
+                    const row = rows[idx >= 0 ? idx : 0];
+                    const id = row?.getAttribute("data-incident-id");
+                    if (id) setMapSelectedId(id);
+                  } else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault();
+                    const row = rows[idx >= 0 ? idx : 0];
+                    const id = row?.getAttribute("data-incident-id");
+                    if (id) navigate(`/incidents/${id}`);
+                  }
+                }}
+              >
+                {inArea.map((i, idx) => {
+                  const selected = mapSelectedId === i.id;
+                  return (
+                    <li key={i.id} role="option" aria-selected={selected} style={{ borderTop: "1px solid var(--c-border)" }}>
+                      <div
+                        className={`map-side-item${selected ? " selected" : ""}`}
+                        data-incident-id={i.id}
+                        data-testid="map-side-row"
+                        tabIndex={idx === 0 || selected ? 0 : -1}
+                        style={{ display: "block", padding: "9px var(--space-3)", cursor: "pointer" }}
+                        onClick={(e) => {
+                          // Inner actions (Open/Bookmark) keep their own behavior.
+                          if ((e.target as HTMLElement).closest("a,button")) return;
+                          setMapSelectedId(i.id);
+                        }}
+                        onDoubleClick={(e) => {
+                          if ((e.target as HTMLElement).closest("a,button")) return;
+                          navigate(`/incidents/${i.id}`);
+                        }}
+                        onContextMenu={(ev) => {
+                          const items: ContextMenuItem[] = [
+                            { icon: "chevronRight", label: "Open incident", onSelect: () => navigate(`/incidents/${i.id}`) },
+                            { icon: "map", label: "View on map", onSelect: () => setMapSelectedId(i.id) },
+                            {
+                              icon: "book",
+                              label: isBookmarked(i) ? "Remove bookmark" : "Bookmark incident",
+                              onSelect: () => void putIncident(withBookmarkToggled(i)).then(() => refresh()),
+                            },
+                            { icon: "list", label: "Copy reference", onSelect: () => void navigator.clipboard?.writeText(i.humanReference).catch(() => undefined) },
+                            { icon: "download", label: "Export", onSelect: () => navigate(`/incidents/${i.id}?tab=export`) },
+                          ];
+                          openCtx(ev, items);
+                        }}
+                      >
+                        <span style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center" }}>
+                          <strong style={{ fontSize: "0.88rem" }}>{animalLabel(i)}</strong>
+                          <StatusBadge status={i.status} />
+                        </span>
+                        <span className="hint" style={{ display: "block", margin: "2px 0 0" }}>
+                          {i.humanReference} · {relativeTime(i.occurredAt ?? i.createdAt)}
+                        </span>
+                        {i.location.description && (
+                          <span className="hint" style={{ display: "block", margin: "1px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {i.location.description}
+                          </span>
+                        )}
+                        <span className="row" style={{ gap: 6, marginTop: 5, flexWrap: "wrap" }}>
+                          <Link className="btn btn-secondary btn-sm" to={`/incidents/${i.id}`} aria-label={t("openIncident", { defaultValue: "Open incident" }) + ": " + animalLabel(i)}>
+                            {t("openIncident", { defaultValue: "Open incident" })}
+                          </Link>
+                          <BookmarkButton incident={i} size={14} />
+                        </span>
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             </aside>
           </div>

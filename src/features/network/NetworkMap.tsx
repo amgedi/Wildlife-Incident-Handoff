@@ -20,6 +20,7 @@ import {
   type CameraMemoryStore, type ClusterSummary, type MapV4Prefs, type Units,
 } from "./map/v4";
 import { disableTerrain, easePitch, enableTerrain, queryElevationM, resetCompass, setMeasureLine } from "./map/v4Map";
+import { selectionCameraDecision } from "./map/mapSelection";
 import { CONCERN_TYPES } from "../incidents/concernTypes";
 import { BookmarkButton } from "../incidents/BookmarkButton";
 
@@ -47,6 +48,8 @@ export function NetworkMap({
   full = false,
   offline = false,
   units = "metric",
+  selectedId = undefined,
+  onSelectedChange,
 }: {
   incidents: Incident[];
   privacy: MapPrivacy;
@@ -62,6 +65,10 @@ export function NetworkMap({
   offline?: boolean;
   /** v4 (spec 25): measure distance unit. Metric (km) by default. */
   units?: Units;
+  /** 0.3.0-dev.7 (Part XII): controlled selection — the map-side list sets
+   *  this to select + fly to an incident WITHOUT navigating away. */
+  selectedId?: string | null;
+  onSelectedChange?: (id: string | null) => void;
 }) {
   const { t } = useTranslation("professional");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -172,8 +179,12 @@ export function NetworkMap({
     });
     // Marker elements are recreated on re-render; selection flows through the
     // provider with a stable refId so clicks survive camera moves.
+    // 0.3.0-dev.7: marker clicks also lift the selection to the page (list
+    // sync) and never navigate away from the Map.
     provider.setSelectHandler((point) => {
       setInspected(point.refId ?? null);
+      const inc = point.refId != null ? visibleIncidents[point.refId] : undefined;
+      if (inc) onSelectedChange?.(inc.id);
     });
     const points = visibleIncidents
       .map((i, idx) => {
@@ -292,6 +303,78 @@ export function NetworkMap({
     const pos = markerPositionFor(inspectedIncident, effectivePrivacy(inspectedIncident, privacy));
     setLensElevation(pos ? queryElevationM(map, pos.lon, pos.lat) : null);
   }, [mapReady, mode, inspectedIncident, privacy]);
+
+  // ---- Selection from the map-side list (0.3.0-dev.7 Part XII–XIV) ----------
+  // The controlled selectedId prop selects + shows the incident on the map:
+  // marker emphasized, camera moved with the SAME privacy-safe position the
+  // marker uses, inspector opened, user stays on the Map page. The previous
+  // camera is remembered once per selection so "Back to previous view" can
+  // restore it (Part XIII); Reset view keeps working regardless.
+  const prevCameraRef = useRef<{ zoom: number; center: { lat: number; lng: number }; bearing: number; pitch: number } | null>(null);
+  const [hasPrevCamera, setHasPrevCamera] = useState(false);
+
+  useEffect(() => {
+    if (selectedId === undefined) return; // not controlled
+    if (selectedId == null) {
+      setInspected(null);
+      prevCameraRef.current = null;
+      setHasPrevCamera(false);
+      return;
+    }
+    const idx = visibleIncidents.findIndex((i) => i.id === selectedId);
+    setInspected(idx >= 0 ? idx : null);
+    if (idx < 0) {
+      // Selected incident was filtered out — clear gracefully (Part XV).
+      onSelectedChange?.(null);
+      return;
+    }
+    const incident = visibleIncidents[idx]!;
+    const pos = markerPositionFor(incident, effectivePrivacy(incident, privacy));
+    const map = mapReady ? providerRef.current?.getMap() : null;
+    if (!pos || !map) return;
+    // Camera target = the exact marker position (privacy-safe by construction).
+    let decision: ReturnType<typeof selectionCameraDecision>;
+    try {
+      const b = map.getBounds();
+      decision = selectionCameraDecision(pos, { north: b.getNorth(), south: b.getSouth(), east: b.getEast(), west: b.getWest() }, map.getZoom());
+    } catch {
+      decision = { mode: "fly", zoom: 12.5 };
+    }
+    if (decision.mode === "fly") {
+      // Remember where the user was — once per selection chain.
+      if (!prevCameraRef.current) {
+        try {
+          const c = map.getCenter();
+          prevCameraRef.current = { zoom: map.getZoom(), center: { lat: c.lat, lng: c.lng }, bearing: map.getBearing(), pitch: map.getPitch() };
+          setHasPrevCamera(true);
+        } catch { /* map gone */ }
+      }
+      map.flyTo({ center: [pos.lon, pos.lat], zoom: decision.zoom, duration: 900, essential: true });
+    } else {
+      map.easeTo({ center: [pos.lon, pos.lat], duration: 500, essential: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId, mapReady]);
+
+  // Selected marker emphasis: the DOM markers carry data-ref-id; toggle
+  // data-selected so the marker visibly corresponds to the selected row.
+  const selectedIndex = selectedId !== undefined && selectedId != null ? visibleIncidents.findIndex((i) => i.id === selectedId) : inspected;
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    container.querySelectorAll<HTMLElement>(".map-marker[data-ref-id]").forEach((el) => {
+      el.dataset.selected = el.dataset.refId === String(selectedIndex) ? "true" : "false";
+    });
+  }, [selectedIndex, visibleIncidents, mapReady, state]);
+
+  const backToPreviousView = () => {
+    const map = providerRef.current?.getMap();
+    const prev = prevCameraRef.current;
+    if (!map || !prev) return;
+    map.flyTo({ center: [prev.center.lng, prev.center.lat], zoom: prev.zoom, bearing: prev.bearing, pitch: prev.pitch, duration: 700, essential: true });
+    prevCameraRef.current = null;
+    setHasPrevCamera(false);
+  };
 
   // ---- Compass + camera (spec 99/100) ---------------------------------------
   const resetCompassView = () => {
@@ -495,6 +578,11 @@ export function NetworkMap({
             <button className="btn btn-quiet btn-sm mv4-ctl" onClick={resetView} aria-label={t("mv4ResetView", { defaultValue: "Reset view" })} title={t("mv4ResetView", { defaultValue: "Reset view" })}>
               <Icons.refresh size={14} /> {t("mv4ResetView", { defaultValue: "Reset view" })}
             </button>
+            {hasPrevCamera && (
+              <button className="btn btn-quiet btn-sm mv4-ctl" onClick={backToPreviousView} aria-label={t("mv4PrevView", { defaultValue: "Back to previous view" })} title={t("mv4PrevView", { defaultValue: "Back to previous view" })}>
+                <Icons.undo size={14} /> {t("mv4PrevView", { defaultValue: "Back to previous view" })}
+              </button>
+            )}
           </div>
           {layerPanelOpen && (
             <aside className="card mv4-panel" aria-label={t("mv4Layers", { defaultValue: "Layers" })} style={{ position: "absolute", top: 118, right: 10, width: 240, maxWidth: "calc(100% - 20px)", zIndex: 25, padding: "var(--space-3)", boxShadow: "var(--shadow-lg)", display: "grid", gap: 10 }}>
@@ -636,14 +724,14 @@ export function NetworkMap({
                 position: "absolute", top: 12, right: 12, width: 300, minWidth: 264, maxWidth: "calc(100% - 24px)",
                 zIndex: 30, padding: "var(--space-3)", boxShadow: "var(--shadow-lg)", display: "grid", gap: 6,
               }}
-              onKeyDown={(e) => { if (e.key === "Escape") setInspected(null); }}
+              onKeyDown={(e) => { if (e.key === "Escape") { setInspected(null); onSelectedChange?.(null); } }}
             >
               <button
                 className="btn btn-quiet btn-sm"
                 style={{ position: "absolute", top: 8, right: 8, width: 28, height: 28, padding: 0, justifyContent: "center", zIndex: 2 }}
                 title={t("inspectorClose", { defaultValue: "Close" })}
                 aria-label={t("inspectorClose", { defaultValue: "Close" })}
-                onClick={() => setInspected(null)}
+                onClick={() => { setInspected(null); onSelectedChange?.(null); }}
               >
                 <Icons.x size={14} />
               </button>
