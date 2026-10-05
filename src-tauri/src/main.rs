@@ -9,6 +9,7 @@
 
 mod lan_crypto;
 mod lan_sync;
+mod window_geometry;
 
 fn main() {
     // Multi-profile support (0.2.0-dev.19): launching with WIH_PROFILE=<name>
@@ -40,21 +41,45 @@ fn main() {
             // The main window is created here (not in tauri.conf.json) so a
             // named profile can redirect the WebView2 user-data directory.
             let data_dir = app.path().app_data_dir()?;
-            let window = tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::default())
+            // 0.3.0-dev.5 Part II: restore the remembered window geometry
+            // (size/position/maximized) when it is still visible on some
+            // monitor; otherwise fall back to the sane default.
+            let monitors: window_geometry::MonitorBounds = app
+                .available_monitors()
+                .map(|ms| {
+                    ms.iter()
+                        .map(|m| {
+                            let sz = m.size();
+                            let ps = m.position();
+                            let sf = m.scale_factor();
+                            ((ps.x as f64) / sf, (ps.y as f64) / sf, (sz.width as f64) / sf, (sz.height as f64) / sf)
+                        })
+                        .collect()
+                })
+                .unwrap_or_default();
+            let restored = window_geometry::load_and_validate(&data_dir, &monitors);
+            let mut builder = tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::default())
                 .title("Wildlife Incident Handoff")
                 .inner_size(1180.0, 760.0)
-                .min_inner_size(420.0, 560.0)
-                .center()
+                // Minimum usable workstation size (spec: nothing below it may
+                // break navigation, titlebar, dialogs or map controls).
+                .min_inner_size(1024.0, 700.0)
                 .decorations(false);
+            builder = match &restored {
+                Some(g) if g.maximized => builder.maximized(true),
+                Some(g) => builder.inner_size(g.width, g.height).position(g.x, g.y),
+                None => builder.center(),
+            };
             let window = match &profile {
                 Some(p) => {
                     let dir = data_dir.join(p);
                     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-                    window.data_directory(dir)
+                    builder.data_directory(dir)
                 }
-                None => window,
+                None => builder,
             };
-            window.build()?;
+            let win = window.build()?;
+            window_geometry::install_tracking(&win, data_dir);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

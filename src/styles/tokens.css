@@ -282,6 +282,15 @@ body::after {
   pointer-events: none;
   opacity: 0;
   transition: opacity 600ms ease;
+  /* 0.3.0-dev.5 scroll-blanking fix (Part III): these two animated layers sit
+     behind the whole app. Without their own compositor planes, WebView2
+     recomposited them against every scrolling frame and frosted panels
+     re-blurred them per frame — fast scrolls showed briefly blank regions.
+     Promoting each to its own GPU layer keeps the animation off the main
+     paint path; the page content then scrolls over a stable backdrop. */
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 /* Forest Dark (default): deep green / teal pools */
