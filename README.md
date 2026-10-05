@@ -1,18 +1,18 @@
 <div align="center">
 
-<img src="branding/wildlife-incident-handoff-emblem.png" alt="Wildlife Incident Handoff — bear-paw emblem over a mountain forest" width="160">
+<img src="branding/wildlife-incident-handoff-emblem.png" alt="Wildlife Incident Handoff, bear-paw emblem over a mountain forest" width="160">
 
 # Wildlife Incident Handoff
 
 **Clear information. Safer handoffs.**
 
-An open-source, local-first desktop application for recording wildlife incidents and preserving context as information moves between reporters, responders, transporters, rehabilitation organizations and other wildlife professionals.
+An open-source, local-first desktop app for recording wildlife incidents, built so context survives the trip from reporter to responder to rehabilitator.
 
-> Record what was observed. Keep uncertainty visible. Do not invent what is not known.
+> Record what was observed. Keep uncertainty visible. Don't invent what isn't known.
 
-**Current release: 0.3.0-rc.2 (release candidate — Tester channel).** See [Releases](https://github.com/amgedi/Wildlife-Incident-Handoff/releases) for the installer, portable build and launcher. Use fictional/test data first; see [KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md).
+**Current release: 0.3.0-rc.2 (release candidate, Tester channel).** Grab the installer, portable build or launcher from [Releases](https://github.com/amgedi/Wildlife-Incident-Handoff/releases). Test with fictional data first, and check [KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md) before you start.
 
-[![Version](https://img.shields.io/badge/version-0.3.0--rc.1-green)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.3.0--rc.2-green)](CHANGELOG.md)
 [![License: AGPL-3.0-only](https://img.shields.io/badge/License-AGPL--3.0--only-blue)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-647%20passing-brightgreen)](#development)
 
@@ -20,146 +20,99 @@ An open-source, local-first desktop application for recording wildlife incidents
 
 ---
 
-When someone finds injured wildlife, the important details end up scattered across phone calls, text messages, handwritten notes, photos, and memory. By the time the animal reaches a rehabilitator or vet, half the story is missing.
+Here's the problem this app exists for: someone finds an injured animal, and the important details scatter across phone calls, texts, photos, sticky notes and memory. By the time the animal actually reaches a rehabilitator or vet, half the story is gone.
 
-**Wildlife Incident Handoff** turns that scattered story into a clear, chronological, traceable incident record that can be passed from person to person without losing context:
+**Wildlife Incident Handoff** keeps that story in one clear, chronological, traceable record that can be passed person to person without losing anything:
 
 > **Observe · Record · Hand off · Preserve context**
 
-## HOW TO GET THE APP
+## Getting the app
 
-- **Testers / normal users:** download the installer or portable EXE from [Releases](https://github.com/amgedi/Wildlife-Incident-Handoff/releases). No build tools needed.
-- **Companion launcher:** the `Launch Wildlife Incident Handoff` launcher EXE is attached to each release (it is built locally, never committed to Git — binaries belong in Releases, not source history).
-- **Source:** `src/` (frontend) · `src-tauri/` (desktop shell) · `launcher/` (the launcher's own Tauri project).
-- **Documentation:** `docs/` · **Folder map:** `PROJECT_STRUCTURE.md`.
+- **Everyone:** download the installer or portable EXE from [Releases](https://github.com/amgedi/Wildlife-Incident-Handoff/releases). No build tools, no account, nothing to sign up for.
+- **The launcher:** each release also ships `wih-launcher.exe`, a little companion app that opens the workbench, keeps it up to date and switches themes. Binaries live in Releases, not in the source tree.
+- **For developers:** `src/` is the frontend, `src-tauri/` the desktop shell, `launcher/` the launcher's own Tauri project. Folder map in `PROJECT_STRUCTURE.md`, docs in `docs/`.
 
-The launcher never installs anything from the internet and never overwrites
-uncommitted work. RC releases are clearly labeled as pre-releases.
-
-For the installed application: download
-`Wildlife-Incident-Handoff-Setup-0.3.0-rc.2.exe` from
-[Releases](https://github.com/amgedi/Wildlife-Incident-Handoff/releases), run
-it once, then launch "Wildlife Incident Handoff" from the Start Menu. A
-portable EXE sits beside it in the same download.
+To install: download `Wildlife-Incident-Handoff-Setup-0.3.0-rc.2.exe` from [Releases](https://github.com/amgedi/Wildlife-Incident-Handoff/releases), run it once, then open **Wildlife Incident Handoff** from the Start Menu. Prefer no install? Use the portable EXE from the same release. RC releases are labeled as pre-releases, and uninstalling never deletes your incident data.
 
 ## What it is (and isn't)
 
-This app records **what people actually observed** and supports **responsible handoff**. It is deliberately *not*:
+This app records **what people actually observed** and supports **responsible handoff**. It's deliberately not:
 
 - veterinary diagnostic software or medical advice
 - a replacement for licensed wildlife professionals
 - a capture guide or treatment planner
 
-Where relevant, the app encourages safe behavior: observe from a distance, avoid unnecessary handling, keep people and pets away, and contact an appropriate licensed wildlife professional.
+It nudges safe behavior where it matters: keep your distance, don't handle the animal more than you must, keep pets away, and get a licensed pro involved.
 
 ## Highlights
 
-- **Unknown is valid** — species, age, sex, cause: never required, never faked. Observations like *"right wing hangs lower than left"* are preferred over diagnoses like *"broken wing"*.
-- **Guided 10-step creation wizard** with autosaved drafts, draft recovery, and a review screen that distinguishes *Known / Unknown / Not provided*. Optional permission-gated current-location capture; denied permission never breaks the form.
-- **Append-only timeline** — every observation, photo, status change, correction, and handoff becomes chronological history. Original entries are never overwritten; corrections record previous and new values with an optional reason.
-- **Handoff & custody workflow** — record transfers of responsibility (from one responder to the next, method, condition, items transferred) and see the full custody chain at a glance. Reporter contact is by choice: anonymous by default.
-- **Response operations dashboard** — service-area map, needs-attention queue, response flow, network pulse, live activity and deterministic analytics over local incidents. Nothing is transmitted (see [docs/NETWORK_ARCHITECTURE.md](docs/NETWORK_ARCHITECTURE.md)).
-- **Map with location privacy** — 2D / satellite / terrain basemaps (MapLibre), incident side-list with single-click fly-to, cluster-aware camera, and measure tool. Approximate reports are fuzzed to ~1 km; sensitive reports never show a precise point.
-- **Privacy-aware exports** — shareable summaries exclude precise coordinates, personal contacts, and private notes by default; internal exports include everything, by explicit choice.
-- **Local-first storage** — everything lives on this device. No account, no cloud, no tracking. Versioned JSON backups with safe, staged restore.
-- **Test View** — realistic fictional incidents (role × intensity × seed, reproducible) for training and demos, clearly labeled and safe to reset.
-- **Accessible by design** — keyboard navigation, focus management, labeled forms, status never by color alone, reduced-motion support; works in short windows and narrow layouts.
-- **Guide me, onboarding, product tour and tutorial** — deterministic coaching through a real report (no AI, no chatbot), plus clearly-labeled fictional demo cases.
-- **Sixteen themes** — Forest Night (default), Aurora, Midnight Ops, Storm, Sand, Arctic, monochrome and high-contrast options; shared across app and launcher.
-- **Native desktop app (Tauri 2)** — no terminal, no localhost; signed auto-update infrastructure and a companion launcher.
+- **Unknown is valid.** Species, age, sex, cause: never required, never faked. "Right wing hangs lower than left" beats "broken wing" every time.
+- **A guided 10-step wizard** with autosaved drafts and a review screen that separates Known / Unknown / Not provided. Optional current-location capture, permission gated; saying no never breaks the form.
+- **Append-only timeline.** Every observation, photo, status change, correction and handoff becomes history you can scroll. Nothing gets overwritten; corrections keep the old value and the reason.
+- **Handoff and custody tracking.** Who had the animal, when, in what condition, and what came with it. Reporter contact is opt-in, anonymous by default.
+- **An operations dashboard** with a service-area map, needs-attention queue, response flow, network pulse, live activity and analytics, all from local records. Nothing is transmitted (see [docs/NETWORK_ARCHITECTURE.md](docs/NETWORK_ARCHITECTURE.md)).
+- **A map that respects location privacy.** 2D, satellite and terrain basemaps (MapLibre), incident side-list with single-click fly-to, cluster-aware camera, measure tool. Approximate reports get fuzzed to about 1 km, and sensitive reports never show a precise point anywhere.
+- **Exports that know what they're for.** Shareable summaries leave out precise coordinates, contacts and private notes by default; full exports exist but are your explicit choice.
+- **Local-first storage.** Everything lives on your device. No account, no cloud, no tracking. JSON backups with a safe, staged restore.
+- **Test View.** Fills the workspace with realistic fictional incidents (reproducible by seed) so you can explore without touching real data. One click to reset.
+- **Accessible by design.** Keyboard navigation, focus management, labeled forms, status never by color alone, reduced motion support, and layouts that survive short and narrow windows.
+- **Guide me, onboarding, tour, tutorial.** Step-by-step coaching through a real report, no AI involved, plus clearly-labeled fictional demo cases.
+- **Sixteen themes.** Forest Night by default, plus Aurora, Midnight Ops, Storm, Sand, Arctic, monochrome and high-contrast options. The launcher matches the app.
+- **A real desktop app** (Tauri 2). No terminal, no localhost window, with signed auto-updates and the companion launcher.
 
 ## Screenshots
 
-| Operations dashboard (desktop) | Map — incident selected from the side list |
+| Operations dashboard (desktop) | Map, incident picked from the side list |
 | --- | --- |
 | ![Operations dashboard](screenshots/current/rc2-app-sidebar-maximized.png) | ![Map selection](screenshots/current/v030-dev7-map/map-row-selected-camera.png) |
-| **Companion launcher — Home** | **Launcher — theme gallery** |
+| **Companion launcher, Home** | **Launcher theme gallery** |
 | ![Launcher home](screenshots/current/rc2-launcher-home.png) | ![Launcher themes](screenshots/current/rc2-launcher-settings-themes.png) |
 
 *(All screenshots use fictional demo data.)*
 
-## v0.1.0 Features
+## Privacy and data safety
 
-- Onboarding with experience modes (presentation presets only — never permissions)
-- Guided incident creation: what happened, animal, location, observations, hazards, actions taken, current situation, contacts, photos, review
-- Incident workspace: Overview, Timeline, Observations, Attachments, People & handoffs, Incident details, Export
-- Status system (Reported  …  Released/Closed) with status-change history
-- Handoff/transfer recording with custody history and consistency warnings
-- Corrections with preserved history ("append, don't erase")
-- Search & filters; Archive and Trash with restore + undo
-- Export: printable handoff summary (browser print  PDF), text, HTML; JSON backup export/import with validation
-- Fictional demo incidents, product tour, guided tutorial, contextual help
-- Settings: appearance (4 themes, density, motion), accessibility, incident defaults, privacy, storage & backups, and more
-- Installable PWA; core workflows work offline
-
-## Privacy & data safety
-
-- **All incident data is stored locally in your browser.** Nothing is uploaded, synced, or tracked — there is no server.
-- Clearing browser data can delete local records; backups are recommended (Settings  Storage & backups).
-- Exports never happen automatically. Shareable exports deliberately exclude sensitive information; precise wildlife locations can be marked *Sensitive* and are redacted by default.
-- Personal contact details are marked private and excluded from shareable exports unless explicitly included.
-
-## Installing & running (normal users)
-
-**Web / PWA:** open the deployed site or serve the `dist/` folder with any static file server; install as a PWA from your browser menu. All data stays in your browser.
-
-**Windows desktop:** download `Wildlife-Incident-Handoff-Setup-x.y.z.exe` from Releases, install, and launch **Wildlife Incident Handoff** from the Start Menu — a native window, no terminal, no local server. Uninstalling does not delete your incident data without an explicit, warned choice. (The desktop build is prepared via Tauri 2 — see the release assets.)
+- **All incident data stays on your device.** Nothing is uploaded, synced or tracked. There is no server.
+- Clearing app data deletes records, so take backups (Settings → Data).
+- Exports never happen automatically, and the shareable ones leave out sensitive info by design. Locations can be marked *Sensitive* and get redacted by default.
+- Contact details are private by default and excluded from shareable exports unless you say otherwise.
 
 ## Support development
 
-If this project helps you, consider supporting it:
+If this project is useful to you, you can support it here:
 [GitHub Sponsors](https://github.com/sponsors/amgedi) ·
 [Ko-fi](https://ko-fi.com/openfhs) ·
 [Buymeacoffee](https://buymeacoffee.com/openfhs).
-Links live here and in the app's About/Help — never inside wildlife workflows.
+These links live here and in the app's About page, never inside wildlife workflows.
 
-## Development (developers)
+## Development
 
-Requirements: **Node.js 20+** and npm. The desktop build additionally requires the Rust toolchain.
+Requirements: **Node.js 20+** and npm, plus the Rust toolchain for the desktop build.
 
 ```bash
 npm install        # install dependencies
-npm run dev        # start the dev server (http://localhost:5173)
-npm test           # run the test suite (Vitest)
+npm run dev        # dev server (http://localhost:5173)
+npm test           # test suite (Vitest)
 npm run typecheck  # strict TypeScript check
 npm run build      # typecheck + production build into dist/
 npm run preview    # serve the production build locally
+npm run launcher:deploy  # build + deploy the companion launcher to the repo root
 ```
 
-The production build in `dist/` is a fully offline-capable PWA. Serve it with any static file server (or `npm run preview`).
+The build in `dist/` is an offline-capable PWA, serve it with any static file server. Pull requests are welcome and are accepted under AGPL-3.0-only; see [CONTRIBUTING.md](CONTRIBUTING.md). Security or privacy issues go to [SECURITY.md](SECURITY.md).
 
 ## Data format
 
-Incidents are stored under a versioned schema (`schemaVersion: 1`) with a migration path established for future versions. Backups are JSON with `schemaVersion`, `applicationVersion`, and `exportedAt` metadata. Importing never silently overwrites existing incidents — ID conflicts are skipped and reported.
+Incidents use a versioned schema (`schemaVersion: 1`) with a migration path for future versions. Backups are JSON with `schemaVersion`, `applicationVersion` and `exportedAt` metadata, and importing never silently overwrites anything (ID conflicts are skipped and reported).
 
-See [docs/HOW_THIS_APP_WORKS.md](docs/HOW_THIS_APP_WORKS.md) for a plain-English tour of the architecture, and [docs/GIT_AND_GITHUB.md](docs/GIT_AND_GITHUB.md) for the Git commands used in this repository.
-
-## Limitations (v0.1)
-
-- Single-device, single-browser: no synchronization (by design; optional sync is a future consideration).
-- "Current browser" storage means clearing site data deletes records without a backup.
-- Species identification is never verified automatically; no taxonomic lookup yet.
-- Exports are human-readable documents, not an interchange standard.
-- Not a substitute for professional wildlife care — see the safety boundary above.
+For a plain-English tour of how this all works, see [docs/HOW_THIS_APP_WORKS.md](docs/HOW_THIS_APP_WORKS.md).
 
 ## Roadmap
 
-Restrained by design. Candidate areas for v0.2+:
-
-- richer organization workflows and configurable intake forms
-- optional secure synchronization / organization accounts
-- improved map tools and optional taxonomic lookup
-- rescue-directory integration, structured professional outcome fields
-- richer attachments and interoperability
-
-## Contributing
-
-Beginner-friendly contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, conventions, and the project's accessibility and privacy expectations. Security/privacy issues: [SECURITY.md](SECURITY.md).
+Deliberately restrained. Possible later: richer organization workflows, optional secure sync between trusted devices, more map tools, taxonomic lookup, rescue-directory integration. Nothing here is promised, and no wildlife workflow will ever be interrupted by upsells.
 
 ## License
 
-[AGPL-3.0-only](LICENSE) (GNU Affero General Public License v3.0 only). The license grants software rights only and implies nothing about veterinary authorization.
+[AGPL-3.0-only](LICENSE) (GNU Affero General Public License v3.0 only). The license covers software rights and implies nothing about veterinary authorization.
 
-> Historical note: versions up to and including v0.1.0 were distributed under the MIT license; those historical copies remain available under the license that accompanied them. The development line from 0.2.0 onward is AGPL-3.0-only.
-
----
+> Historical note: versions up to and including v0.1.0 were MIT licensed; those copies remain under the license that came with them. Everything from 0.2.0 onward is AGPL-3.0-only.
