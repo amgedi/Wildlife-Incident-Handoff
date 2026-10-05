@@ -1,0 +1,23 @@
+name: Tester feedback (RC)
+description: General feedback from testing a release candidate.
+labels: ["tester-feedback"]
+body:
+  - type: input
+    id: version
+    attributes: { label: RC version tested, description: "e.g. 0.3.0-rc.2" }
+    validations: { required: true }
+  - type: textarea
+    id: worked
+    attributes: { label: What worked well }
+  - type: textarea
+    id: confusing
+    attributes: { label: What was confusing or slow }
+  - type: dropdown
+    id: blankmap
+    attributes: { label: Did the Map ever appear blank?, options: ["No", "Yes", "Not tested"] }
+  - type: textarea
+    id: privacy
+    attributes: { label: Privacy concerns, description: "Anything that made you worry data might leave the device?" }
+  - type: textarea
+    id: else
+    attributes: { label: Anything else }

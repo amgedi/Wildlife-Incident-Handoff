@@ -18,7 +18,8 @@
     "release:all": "node scripts/release-all.mjs",
     "postbuild": "node scripts/fix-maplibre-worker.mjs",
     "launcher:build": "cd launcher/ui && npx vite build && cd ../../launcher/src-tauri && cargo build --release",
-    "launcher:deploy": "npm run launcher:build && node -e \"require('fs').copyFileSync('launcher/src-tauri/target/release/wih-launcher.exe', 'Launch Wildlife Incident Handoff.exe')\""
+    "launcher:deploy": "npm run launcher:build && node -e \"require('fs').copyFileSync('launcher/src-tauri/target/release/wih-launcher.exe', 'Launch Wildlife Incident Handoff.exe')\"",
+    "tauri": "tauri"
   },
   "dependencies": {
     "@floating-ui/dom": "^1.8.0",

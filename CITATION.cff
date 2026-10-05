@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+title: Wildlife Incident Handoff
+message: >-
+  If you use this software, please cite it using the metadata from this file.
+type: software
+authors:
+  - name: amgedi
+repository-code: "https://github.com/amgedi/Wildlife-Incident-Handoff"
+license: AGPL-3.0-only

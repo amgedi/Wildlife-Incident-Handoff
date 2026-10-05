@@ -4,7 +4,13 @@
 
 # Wildlife Incident Handoff
 
-**An open-source, local-first tool for creating clear and traceable wildlife incident handoffs.**
+**Clear information. Safer handoffs.**
+
+An open-source, local-first desktop application for recording wildlife incidents and preserving context as information moves between reporters, responders, transporters, rehabilitation organizations and other wildlife professionals.
+
+> Record what was observed. Keep uncertainty visible. Do not invent what is not known.
+
+**Current release: 0.3.0-rc.1 / 0.3.0-rc.2 (release candidate — Tester channel).** See [release notes](https://github.com/amgedi/Wildlife-Incident-Handoff/releases). Use fictional/test data first; see KNOWN_LIMITATIONS.md.
 
 [![Version](https://img.shields.io/badge/version-0.3.0--rc.1-green)](CHANGELOG.md)
 [![License: AGPL-3.0-only](https://img.shields.io/badge/License-AGPL--3.0--only-blue)](LICENSE)
@@ -70,7 +76,7 @@ Where relevant, the app encourages safe behavior: observe from a distance, avoid
 - ♿ **Accessible by design** — keyboard navigation, focus management, labeled forms, status never by color alone, reduced-motion support.
 - 📱 **Mobile-friendly** — genuinely usable field reporting, not a shrunken desktop.
 - 🎓 **Onboarding, product tour, guided tutorial, and clearly-labeled fictional demo cases.**
-- 🌲 **Four curated themes** — Forest Dark (default), Forest Light, Midnight, Warm Field.
+- 🌲 **Sixteen themes** — Forest Night (default), Aurora, Midnight Ops, Storm, Sand, Arctic, monochrome and high-contrast options; shared across app and launcher.
 
 ## Screenshots
 
@@ -108,6 +114,14 @@ Where relevant, the app encourages safe behavior: observe from a distance, avoid
 **Web / PWA:** open the deployed site or serve the `dist/` folder with any static file server; install as a PWA from your browser menu. All data stays in your browser.
 
 **Windows desktop:** download `Wildlife-Incident-Handoff-Setup-x.y.z.exe` from Releases, install, and launch **Wildlife Incident Handoff** from the Start Menu — a native window, no terminal, no local server. Uninstalling does not delete your incident data without an explicit, warned choice. (The desktop build is prepared via Tauri 2 — see the release assets.)
+
+## Support development
+
+If this project helps you, consider supporting it:
+[GitHub Sponsors](https://github.com/sponsors/amgedi) ·
+[Ko-fi](https://ko-fi.com/openfhs) ·
+[Buymeacoffee](https://buymeacoffee.com/openfhs).
+Links live here and in the app's About/Help — never inside wildlife workflows.
 
 ## Development (developers)
 

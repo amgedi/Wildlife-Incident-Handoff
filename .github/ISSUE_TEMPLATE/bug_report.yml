@@ -1,0 +1,28 @@
+name: Bug report
+description: Something is broken or behaves unexpectedly.
+labels: ["bug"]
+body:
+  - type: input
+    id: version
+    attributes: { label: App version, description: "Settings → About → Version (e.g. 0.3.0-rc.2)" }
+    validations: { required: true }
+  - type: input
+    id: windows
+    attributes: { label: Windows version, description: "e.g. Windows 11 23H2" }
+    validations: { required: true }
+  - type: input
+    id: scaling
+    attributes: { label: Display scaling, description: "e.g. 100% / 125% / 150%" }
+  - type: dropdown
+    id: role
+    attributes: { label: Workspace role, options: ["Reporter", "Professional / operations", "Both", "Not sure"] }
+  - type: textarea
+    id: steps
+    attributes: { label: Steps to reproduce, description: "What you did, what you expected, what happened." }
+    validations: { required: true }
+  - type: textarea
+    id: diagnostics
+    attributes: { label: Diagnostics, description: "Settings → About → Copy diagnostics (versions only — no private data)." }
+  - type: textarea
+    id: screenshots
+    attributes: { label: Screenshots, description: "Optional. ⚠️ Never publish real sensitive wildlife coordinates or personal data — fictional/demo data only." }
