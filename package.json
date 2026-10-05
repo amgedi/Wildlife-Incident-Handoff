@@ -15,7 +15,8 @@
     "set-version": "node scripts/set-version.mjs",
     "prebuild": "node scripts/gen-build-identity.mjs",
     "desktop:release": "node scripts/desktop-release.mjs",
-    "release:all": "node scripts/release-all.mjs"
+    "release:all": "node scripts/release-all.mjs",
+    "postbuild": "node scripts/fix-maplibre-worker.mjs"
   },
   "dependencies": {
     "@floating-ui/dom": "^1.8.0",
