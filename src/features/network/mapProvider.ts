@@ -419,6 +419,9 @@ export function createMapLibreProvider(options?: {
       });
       styleLoaded = false;
       styleRetryDone = false;
+      // QA hook: the map instance for runtime drivers (qa/dev5-qa.mjs). Map
+      // object only — no incident data is exposed through it.
+      (window as unknown as { __wihMap?: unknown }).__wihMap = map;
       // Any size change of the container (route mount settling, sidebar
       // collapse, window resize, inspector opening, DPI/zoom change) now
       // resizes the canvas automatically.
