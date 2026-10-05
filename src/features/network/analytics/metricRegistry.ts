@@ -77,6 +77,8 @@ export interface AnalyticsBucket extends BucketCounts {
   incidentRefs: string[];
   /** IDs for drilldown. */
   incidentIds: string[];
+  /** 0.3.0-dev.6 (Part VIII): the incidents themselves for rich drawer rows. */
+  incidents: Incident[];
   /** Median minutes from report to first assignment for incidents in this bucket (null when none). */
   medianAssignmentMinutes: number | null;
 }
@@ -192,6 +194,7 @@ export function computeBuckets(incidents: Incident[], opts: BucketOptions): Anal
       closed: 0,
       incidentRefs: [],
       incidentIds: [],
+      incidents: [],
       medianAssignmentMinutes: null,
     };
   });
@@ -206,6 +209,7 @@ export function computeBuckets(incidents: Incident[], opts: BucketOptions): Anal
       b.reported += 1;
       b.incidentRefs.push(inc.humanReference);
       b.incidentIds.push(inc.id);
+      b.incidents.push(inc);
     }
     const at = firstAssignmentTime(inc);
     if (at != null) {

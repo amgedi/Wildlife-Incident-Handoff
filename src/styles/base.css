@@ -1713,3 +1713,58 @@ button.ax-dist-row:hover { border-color: var(--c-border); background: var(--c-su
 .rflow-stage.is-selected .rflow-label { color: var(--c-ink); font-weight: 650; }
 .rflow-stage.is-zero .rflow-node { border-color: var(--c-border); color: var(--c-ink-faint); box-shadow: none; }
 .rflow-link { background: linear-gradient(90deg, var(--c-border), var(--c-border)); }
+
+/* ---------- 0.3.0-dev.6 bookmarks (Part VI) ---------- */
+.bookmark-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 8px;
+  border: 1px solid transparent; background: transparent; color: var(--c-ink-faint);
+  cursor: pointer; flex-shrink: 0;
+}
+[data-motion="full"] .bookmark-btn:hover { color: var(--c-warn); border-color: var(--c-border); }
+.bookmark-btn.active { color: var(--c-warn); }
+.bookmark-btn:focus-visible { outline: 2px solid var(--c-focus); outline-offset: 1px; }
+
+/* ---------- 0.3.0-dev.6 analytics drawer V6 (Part VIII) ---------- */
+.ax5-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.ax5-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 0.76rem; padding: 3px 9px; border-radius: 999px;
+  border: 1px solid var(--c-border); color: var(--c-ink-soft);
+}
+.ax5-chip strong { color: var(--c-ink); font-variant-numeric: tabular-nums; }
+.ax5-drawer-sub { margin: 10px 0 4px; font-size: 0.76rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--c-ink-faint); }
+.ax5-rows { display: grid; gap: 2px; }
+.ax5-row + .ax5-row { border-top: 1px solid var(--c-border); }
+.ax5-row-btn {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 7px 6px; border: none; background: transparent; color: var(--c-ink);
+  font: inherit; text-align: left; cursor: pointer; border-radius: var(--radius-sm);
+}
+[data-motion="full"] .ax5-row-btn:hover { background: var(--c-surface-alt); }
+.ax5-row-btn:focus-visible { outline: 2px solid var(--c-focus); outline-offset: -2px; }
+.ax5-status { width: 18px; text-align: center; flex-shrink: 0; }
+.ax5-row-main { display: grid; gap: 1px; min-width: 0; flex: 1; }
+.ax5-row-ref { font-weight: 600; font-variant-numeric: tabular-nums; font-size: 0.86rem; }
+.ax5-row-sub { font-size: 0.78rem; color: var(--c-ink-faint); overflow-wrap: anywhere; }
+
+/* ---------- 0.3.0-dev.6 Duplicate Review V6 (Part IX) ---------- */
+.dup6-summary { border-left: 3px solid color-mix(in srgb, var(--c-warn) 55%, var(--c-border)); }
+.dup6-group { border-top: 1px solid var(--c-border); padding-top: 10px; }
+.dup6-confidence {
+  font-size: 0.72rem; font-weight: 750; letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--c-warn); border: 1px solid color-mix(in srgb, var(--c-warn) 45%, transparent);
+  background: color-mix(in srgb, var(--c-warn) 8%, transparent); border-radius: 4px; padding: 2px 8px;
+}
+.dup6-compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.dup6-report {
+  border: 1px solid var(--c-border); border-radius: var(--radius-md); padding: 10px 12px;
+  display: grid; gap: 3px; background: color-mix(in srgb, var(--c-primary) 3%, transparent);
+  min-width: 0;
+}
+.dup6-report-label { font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-ink-faint); }
+.dup6-report-ref { border: none; background: none; color: var(--c-primary); font: inherit; font-weight: 650; font-variant-numeric: tabular-nums; text-align: left; cursor: pointer; padding: 0; text-decoration: underline; text-decoration-color: var(--c-border-strong); }
+[data-motion="full"] .dup6-report-ref:hover { text-decoration-color: var(--c-primary); }
+.dup6-report-ref:focus-visible { outline: 2px solid var(--c-focus); outline-offset: 2px; }
+.dup6-report-row { font-size: 0.84rem; overflow-wrap: anywhere; }
+.dup6-report-status { font-size: 0.8rem; font-weight: 600; }

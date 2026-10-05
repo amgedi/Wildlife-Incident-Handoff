@@ -28,9 +28,10 @@ export interface SavedView {
 }
 
 const BUILTIN_PINNED: Array<{ id: string; label: string; to: string }> = [
+  { id: "pinned-bookmarked", label: "Bookmarked", to: "/incidents?bookmark=1" },
   { id: "pinned-unassigned", label: "Unassigned", to: "/incidents?category=awaiting" },
-  { id: "pinned-waiting", label: "Waiting >2h", to: "/incidents?category=active" },
-  { id: "pinned-handoffs", label: "Handoffs", to: "/incidents?category=active" },
+  { id: "pinned-waiting", label: "Waiting >2h", to: "/incidents?category=awaiting&stat=waiting2h" },
+  { id: "pinned-handoffs", label: "Handoffs", to: "/incidents?category=active&stat=handoff" },
 ];
 
 export async function loadSidebarPrefs(): Promise<SidebarPrefs> {

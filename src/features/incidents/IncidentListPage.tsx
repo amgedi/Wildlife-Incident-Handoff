@@ -122,7 +122,12 @@ export function IncidentListPage() {
   // Command-center display state (persisted locally).
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [density, setDensity] = useState<Density>("comfortable");
-  const [statFilter, setStatFilter] = useState<StatKey | null>(null);
+  const [statFilter, setStatFilter] = useState<StatKey | null>(() => {
+    const v = searchParams.get("stat");
+    return v && STAT_KEYS.includes(v as StatKey) ? (v as StatKey) : null;
+  });
+  // 0.3.0-dev.6 (Part VI): Bookmarked deep link / filter.
+  const [bookmarkOnly, setBookmarkOnly] = useState(() => searchParams.get("bookmark") === "1");
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir } | null>(null);
   const [inspectorId, setInspectorId] = useState<string | null>(null);
 
@@ -244,6 +249,7 @@ export function IncidentListPage() {
     if (typeFilter !== "all") chips.push({ key: "type", label: INCIDENT_TYPES.find((t) => t.value === typeFilter)?.label ?? typeFilter, clear: () => setTypeFilter("all") });
     if (concernFilter !== "all") chips.push({ key: "concern", label: CONCERN_TYPES.find((c) => c.value === concernFilter)?.label ?? concernFilter, clear: () => setConcernFilter("all") });
     if (groupFilter !== "all") chips.push({ key: "group", label: ANIMAL_GROUPS.find((g) => g.value === groupFilter)?.label ?? groupFilter, clear: () => setGroupFilter("all") });
+    if (bookmarkOnly) chips.push({ key: "bookmark", label: "Bookmarked", clear: () => setBookmarkOnly(false) });
     if (dateFrom) chips.push({ key: "from", label: `From ${dateFrom}`, clear: () => setDateFrom("") });
     if (dateTo) chips.push({ key: "to", label: `Until ${dateTo}`, clear: () => setDateTo("") });
     return chips;
@@ -271,6 +277,7 @@ export function IncidentListPage() {
       list = list.filter((i) => (i.occurredAt ?? i.createdAt) <= to.toISOString());
     }
     if (statFilter) list = list.filter((i) => statPredicate(statFilter, i, now));
+    if (bookmarkOnly) list = list.filter((i) => i.bookmarkedAt != null);
     if (query.trim()) {
       list = list.filter((i) =>
         matchesSearch(

@@ -8,6 +8,7 @@ import { Icons } from "../../components/Icons";
 import { Dialog } from "../../components/Dialog";
 import { Select } from "../../components/Select";
 import { StatusBadge, ContextHelp } from "../../components/ui";
+import { BookmarkButton } from "./BookmarkButton";
 import { getIncident, getAttachmentsForIncident } from "../../storage/repositories";
 import type { Incident, IncidentStatus } from "../../types/incident";
 import { STATUS_LABELS_BY_KEY } from "./labels";
@@ -129,6 +130,7 @@ export function IncidentDetailPage() {
             </p>
           </div>
           <div className="row" style={{ gap: 8 }}>
+            <BookmarkButton incident={incident} size={17} />
             {settings.workspace === "reporter" && (
               <button className="btn btn-primary btn-sm" onClick={() => setUpdateDialog(true)}>
                 <Icons.edit size={15} />

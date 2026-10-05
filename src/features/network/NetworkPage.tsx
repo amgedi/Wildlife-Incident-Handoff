@@ -540,6 +540,11 @@ export function NetworkPage() {
         bucket={bucketSelected != null ? analyticsBuckets[bucketSelected] ?? null : null}
         metrics={chartMetrics}
         onClose={() => setBucketSelected(null)}
+        onOpenIncident={(id) => {
+          setBucketSelected(null);
+          navigate(`/incidents/${id}`);
+        }}
+        onChanged={() => void refresh()}
         onOpenIncidents={(b) => {
           const from = new Date(b.startISO);
           const to = new Date(b.endISO);

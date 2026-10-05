@@ -6,7 +6,7 @@
 import type { Incident } from "../../types/incident";
 import { fuzzCoordinates } from "../network/mapProvider";
 import { formatDateTime } from "../../utils/time";
-import { escapeHtml } from "../../utils/text";
+import { escapeHtml, safeFileName } from "../../utils/text";
 import { saveFile } from "../../utils/platformFile";
 import { labelFor, STATUS_LABELS_BY_KEY, ANIMAL_LOCATIONS, URGENCIES, HAZARDS, LOCATION_PRECISIONS } from "../incidents/labels";
 
@@ -241,14 +241,41 @@ ul{margin:.2rem 0;padding-left:1.1rem}li{margin:.15rem 0}footer{margin-top:2rem;
 <footer>Generated ${escapeHtml(formatDateTime(new Date().toISOString()))} — Wildlife Incident Handoff</footer></body></html>`;
 }
 
+/**
+ * 0.3.0-dev.6 (Part VII): predictable, date-aware export filenames.
+ * Format: WIH-2026-000137_2026-10-04_Red-tailed-hawk.pdf — the date is the
+ * INCIDENT's reported date (occurredAt, falling back to createdAt), never
+ * silently the current date; the descriptive tail falls back to the concern
+ * type, then "Unknown-wildlife". Sanitized for Windows filesystems.
+ */
+export function exportFileName(incident: Incident, ext: string): string {
+  const reported = incident.occurredAt ?? incident.createdAt;
+  const d = new Date(reported);
+  const datePart = Number.isFinite(d.getTime())
+    ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+    : "unknown-date";
+  const concernLabels: Record<string, string> = {
+    wildlife_animal: "Wildlife-animal",
+    habitat_site: "Habitat-site",
+    environmental_hazard: "Environmental-hazard",
+    infrastructure_hazard: "Infrastructure-hazard",
+    human_wildlife_conflict: "Human-wildlife-conflict",
+    other: "Wildlife-concern",
+  };
+  const descriptive =
+    animalLabel(incident).replace(/\s+/g, "-").replace(/[^A-Za-z0-9-]/g, "").slice(0, 60) ||
+    (incident.concernType ? concernLabels[incident.concernType] ?? "Wildlife-concern" : "Unknown-wildlife");
+  return safeFileName(`${incident.humanReference}_${datePart}_${descriptive || "Unknown-wildlife"}${ext}`);
+}
+
 export async function downloadPlainText(incident: Incident, options: ExportOptions): Promise<"saved" | "cancelled" | "browser"> {
   const text = buildPlainText(incident, options);
-  return downloadTextFile(`handoff-${incident.humanReference}.txt`, text, "text/plain");
+  return downloadTextFile(exportFileName(incident, ".txt"), text, "text/plain");
 }
 
 export async function downloadHtml(incident: Incident, options: ExportOptions): Promise<"saved" | "cancelled" | "browser"> {
   const html = buildHtml(incident, options);
-  return downloadTextFile(`handoff-${incident.humanReference}.html`, html, "text/html");
+  return downloadTextFile(exportFileName(incident, ".html"), html, "text/html");
 }
 
 export async function downloadTextFile(fileName: string, content: string, mimeType: string): Promise<"saved" | "cancelled" | "browser"> {

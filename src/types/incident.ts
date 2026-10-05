@@ -322,6 +322,9 @@ export interface Incident {
   summary: string | null;
   /** Short "next step" line shown on the overview. */
   nextStep: string | null;
+  /** 0.3.0-dev.6 bookmark (Part VI): purely personal local metadata — never
+   *  changes incident status and is never included in shareable exports. */
+  bookmarkedAt?: string | null;
   /** 0.3.0-dev.5 concern model: top-level concern category. Absent on legacy
    *  records, which are wildlife-animal incidents by definition (see
    *  features/incidents/concernTypes.ts). */

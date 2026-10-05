@@ -115,7 +115,8 @@ describe("chart interaction", () => {
     fireEvent.keyDown(svg, { key: "ArrowRight" });
     fireEvent.keyDown(svg, { key: "Enter" });
     expect(container.querySelector(".ax5-drawer")).toBeTruthy();
-    expect(container.querySelector(".ax5-drawer-window")?.textContent).toBe(buckets[0]!.windowLabel);
+    // V6: window label lives in the drawer header (h3).
+    expect(container.querySelector(".ax5-drawer h3")?.textContent).toContain(buckets[0]!.windowLabel);
   });
 
   it("drawer shows the window label, metric rows and drilldown action", () => {
