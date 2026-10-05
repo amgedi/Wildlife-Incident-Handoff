@@ -30,6 +30,7 @@ import type { DraftRecord } from "../../storage/db";
 import { STATUS_LABELS_BY_KEY, INCIDENT_TYPES, ANIMAL_GROUPS } from "./labels";
 import { CONCERN_TYPES } from "./concernTypes";
 import { AppContextMenu, useAppContextMenu, type ContextMenuItem } from "./ContextMenu";
+import { BookmarkButton } from "./BookmarkButton";
 import { withBookmarkToggled, isBookmarked } from "./bookmarks";
 import { animalLabel } from "../export/exportService";
 import { formatDateTime, relativeTime } from "../../utils/time";
@@ -650,7 +651,7 @@ export function IncidentListPage() {
         />
       ) : (
         <div className="card-list" onContextMenu={(e) => {
-          const card = (e.target as HTMLElement).closest(".incident-card, [data-incident-ref]");
+          const card = (e.target as HTMLElement).closest("[data-incident-id]");
           if (!card) return;
           const id = card.getAttribute("data-incident-id");
           const inc = sorted.find((x) => x.id === id);
@@ -670,6 +671,7 @@ export function IncidentListPage() {
               onUnarchive={() => rowActions.onUnarchive(i)}
               onRestore={() => rowActions.onRestore(i)}
               onDeleteForever={() => rowActions.onDeleteForever(i)}
+              onChanged={() => refresh()}
             />
             </div>
           ))}
@@ -1034,8 +1036,15 @@ function InspectorPanel({ incident, onClose }: { incident: Incident; onClose: ()
 
 /** Compact report card: body opens the case inspector; ⋯ menu for secondary
  *  actions; status in the footer. Compact density shows two structured rows. */
+/** Local-shadow bookmark star for a report card (0.3.0-dev.6 Part VI). */
+function ReportBookmark({ incident, onChanged }: { incident: Incident; onChanged?: () => void }) {
+  const [shadow, setShadow] = useState(incident);
+  const current = shadow.updatedAt === incident.updatedAt ? shadow : incident;
+  return <BookmarkButton incident={current} onChanged={(next) => { setShadow(next); onChanged?.(); }} />;
+}
+
 function ReportCard({
-  incident, view, density, onOpen, onPin, onArchive, onTrash, onUnarchive, onRestore, onDeleteForever,
+  incident, view, density, onOpen, onPin, onArchive, onTrash, onUnarchive, onRestore, onDeleteForever, onChanged,
 }: {
   incident: Incident;
   view: View;
@@ -1047,6 +1056,7 @@ function ReportCard({
   onUnarchive: () => void;
   onRestore: () => void;
   onDeleteForever: () => void;
+  onChanged?: () => void;
 }) {
   const { t } = useTranslation();
   const last = lastUpdateOf(incident);
@@ -1063,6 +1073,7 @@ function ReportCard({
       <div className="rc-top">
         <div className="rc-title-row">
           <p className="ic-title">{animalLabel(incident)}</p>
+          <ReportBookmark incident={incident} onChanged={onChanged} />
           <span className="badge" data-status={incident.status}>{t(incident.status, { ns: "status" })}</span>
         </div>
         <RowActionsMenu
