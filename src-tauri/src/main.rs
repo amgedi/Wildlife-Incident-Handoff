@@ -11,6 +11,23 @@ mod lan_crypto;
 mod lan_sync;
 mod window_geometry;
 
+/// 0.3.0-dev.5 (spec 112): share the visual preference with the native
+/// launcher (launcher-theme.json in the shared app config dir). Only the
+/// theme id is stored — never incident data.
+#[tauri::command]
+fn write_launcher_theme(theme: String, motion: String, material: String) -> Result<(), String> {
+    let dir = app_data_config_dir()?;
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let payload = serde_json::json!({ "theme": theme, "motion": motion, "material": material });
+    std::fs::write(dir.join("launcher-theme.json"), payload.to_string()).map_err(|e| e.to_string())
+}
+
+fn app_data_config_dir() -> Result<std::path::PathBuf, String> {
+    // Matches the launcher's own lookup: %APPDATA%\org.wildlifeincidenthandoff.app
+    let appdata = std::env::var("APPDATA").map_err(|_| "no APPDATA".to_string())?;
+    Ok(std::path::PathBuf::from(appdata).join("org.wildlifeincidenthandoff.app"))
+}
+
 fn main() {
     // Multi-profile support (0.2.0-dev.19): launching with WIH_PROFILE=<name>
     // gives that instance its own app-data directory (identity, trust store,
@@ -83,6 +100,7 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            write_launcher_theme,
             lan_sync::lan_sync_start,
             lan_sync::lan_sync_stop,
             lan_sync::lan_sync_set_snapshot,

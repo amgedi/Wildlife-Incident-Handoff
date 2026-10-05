@@ -1,54 +1,18 @@
 @echo off
-title Wildlife Incident Handoff Launcher
+rem 0.3.0-dev.5 compatibility shim (spec 88): the native launcher is the real
+rem entry point. This shim only opens it; the legacy menu lives in
+rem scripts\legacy\launch-wih-legacy.cmd.
 setlocal
 cd /d "%~dp0"
-
-echo.
-echo   ================================================
-echo    Wildlife Incident Handoff
-echo   ================================================
-echo.
-echo    1. Desktop app  (installed or portable EXE - recommended)
-echo    2. Web app      (runs a local dev server, opens your browser)
-echo    3. Exit
-echo.
-choice /c 123 /n /m "   Choose 1, 2 or 3: "
-if errorlevel 3 exit /b 0
-if errorlevel 2 goto web
-goto desktop
-
-:desktop
-rem Prefer the newest portable EXE in release\desktop
-set "EXE="
-for /f "delims=" %%f in ('dir /b /o-n "release\desktop\Wildlife-Incident-Handoff-Portable-*.exe" 2^>nul') do (
-  if not defined EXE set "EXE=release\desktop\%%f"
-)
-if defined EXE (
-  echo.
-  echo   Starting: %EXE%
-  start "" "%EXE%"
+if exist "Wildlife Incident Handoff Launcher.exe" (
+  start "" "%~dp0Wildlife Incident Handoff Launcher.exe"
   exit /b 0
 )
-rem Fall back to an installed copy in its default location
-if exist "%LOCALAPPDATA%\Wildlife Incident Handoff\Wildlife Incident Handoff.exe" (
-  echo.
-  echo   Starting installed app...
-  start "" "%LOCALAPPDATA%\Wildlife Incident Handoff\Wildlife Incident Handoff.exe"
+if exist "release\current\Wildlife Incident Handoff Launcher.exe" (
+  start "" "%~dp0release\current\Wildlife Incident Handoff Launcher.exe"
   exit /b 0
 )
-echo.
-echo   No desktop EXE found.
-echo   Build one with:  npx tauri build
-echo   (output lands in release\desktop\)
-echo.
+echo Wildlife Incident Handoff Launcher.exe not found.
+echo Build it with: cargo build --release --manifest-path launcher\src-tauri\Cargo.toml
+echo Legacy launcher menu: scripts\legacy\launch-wih-legacy.cmd
 pause
-exit /b 1
-
-:web
-echo.
-echo   Starting web app on http://localhost:5173 ...
-echo   (keep this window open; close it to stop the server)
-echo.
-start "" /b cmd /c "timeout /t 4 >nul & start http://localhost:5173"
-npx vite
-exit /b 0

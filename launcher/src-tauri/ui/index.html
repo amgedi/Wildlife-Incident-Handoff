@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en" data-motion="full">
+<head>
+<meta charset="utf-8" />
+<title>Wildlife Incident Handoff</title>
+<style>
+  :root {
+    --bg: #0a120d;
+    --surface: rgb(18 28 21 / 0.72);
+    --border: rgb(120 160 130 / 0.18);
+    --ink: #dde8de;
+    --ink-soft: #9db5a4;
+    --ink-faint: #6d8577;
+    --primary: #4e9d6f;
+    --warn: #d97706;
+    --ok: #4f9d6e;
+    --radius: 12px;
+  }
+  [data-theme="midnight-ops"] { --bg:#070c14; --surface: rgb(14 24 38 / 0.72); --border: rgb(110 150 200/0.18); --ink:#dbe6f2; --ink-soft:#93a9c4; --ink-faint:#5f7189; --primary:#3d8bff; }
+  [data-theme="storm"]       { --bg:#0d0f13; --surface: rgb(24 27 34 / 0.72); --border: rgb(150 160 190/0.18); --ink:#dfe3ea; --ink-soft:#9aa3b5; --ink-faint:#646d80; --primary:#7c8cf8; }
+  [data-theme="aurora"]      { --bg:#060b0d; --surface: rgb(12 26 26 / 0.72); --border: rgb(90 170 160/0.18); --ink:#d8e8e6; --ink-soft:#8fb0ab; --ink-faint:#5b7571; --primary:#2fbf9b; }
+  [data-theme="forest-dark"] { --bg:#152218; --surface: rgb(31 61 43 / 0.72); --border: rgb(140 180 150/0.18); --ink:#f0f3ec; --ink-soft:#b4c7b7; --ink-faint:#7d9484; --primary:#3f7d54; }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; color: var(--ink); font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+    background: var(--bg); overflow: hidden; user-select: none; font-size: 14px;
+  }
+  /* Ambient: two slow gradient pools on their own compositor planes. */
+  .ambient { position: fixed; inset: -25%; z-index: 0; pointer-events: none; transform: translateZ(0); will-change: transform; backface-visibility: hidden; }
+  .ambient.a { background: radial-gradient(42% 38% at 30% 25%, rgb(78 157 111 / 0.30), transparent 70%); animation: drift-a 90s ease-in-out infinite; }
+  .ambient.b { background: radial-gradient(44% 40% at 70% 75%, rgb(181 101 29 / 0.10), transparent 70%), radial-gradient(40% 36% at 20% 80%, rgb(58 110 82 / 0.22), transparent 70%); animation: drift-b 110s ease-in-out infinite; }
+  @keyframes drift-a { 0%,100% { transform: translate3d(0,0,0) scale(1.04); } 50% { transform: translate3d(2.5%,1.5%,0) scale(1); } }
+  @keyframes drift-b { 0%,100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(-2.5%,2%,0) scale(1.05); } }
+
+  .wrap { position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column; padding: 22px 22px 18px; gap: 14px; overflow-y: auto; }
+
+  header { display: flex; align-items: center; gap: 12px; }
+  .logo {
+    width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 70%, #000), var(--primary));
+    display: grid; place-items: center; box-shadow: 0 4px 14px rgb(0 0 0 / 0.4);
+  }
+  h1 { font-size: 1.02rem; margin: 0; letter-spacing: 0.02em; }
+  .sub { font-size: 0.78rem; color: var(--ink-soft); }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px 16px; backdrop-filter: blur(16px) saturate(1.3);
+  }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 0; }
+  .row + .row { border-top: 1px solid var(--border); }
+  .k { color: var(--ink-soft); font-size: 0.84rem; }
+  .v { font-weight: 600; font-variant-numeric: tabular-nums; font-size: 0.86rem; }
+  .ok { color: var(--ok); }
+  .warn { color: var(--warn); }
+
+  .primary-btn {
+    width: 100%; padding: 13px 16px; border: none; border-radius: var(--radius);
+    background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 88%, #000), var(--primary));
+    color: #0a120d; font: inherit; font-weight: 700; font-size: 0.98rem; cursor: pointer;
+    transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+    box-shadow: 0 6px 18px rgb(78 157 111 / 0.25);
+  }
+  .primary-btn:hover { filter: brightness(1.07); box-shadow: 0 8px 22px rgb(78 157 111 / 0.35); }
+  .primary-btn:active { transform: translateY(1px) scale(0.995); }
+  .primary-btn:disabled { opacity: 0.55; cursor: default; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .btn {
+    padding: 9px 10px; border-radius: 10px; border: 1px solid var(--border);
+    background: color-mix(in srgb, var(--primary) 8%, transparent); color: var(--ink);
+    font: inherit; font-size: 0.86rem; cursor: pointer; transition: background 120ms ease, border-color 120ms ease;
+  }
+  .btn:hover { border-color: var(--primary); }
+  .btn:disabled { opacity: 0.5; cursor: default; }
+
+  .build { display: none; }
+  .build.active { display: block; }
+  .stage { font-size: 0.84rem; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .spinner { width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--primary); animation: spin 0.9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .log {
+    margin-top: 8px; font-family: Consolas, monospace; font-size: 0.68rem; color: var(--ink-faint);
+    max-height: 90px; overflow-y: auto; white-space: pre-wrap; user-select: text;
+  }
+  .fail { color: var(--warn); }
+  .note { font-size: 0.78rem; color: var(--ink-faint); line-height: 1.45; }
+
+  footer { margin-top: auto; display: flex; justify-content: space-between; align-items: center; color: var(--ink-faint); font-size: 0.72rem; }
+  select { background: rgb(0 0 0 / 0.25); color: var(--ink); border: 1px solid var(--border); border-radius: 8px; font: inherit; font-size: 0.76rem; padding: 3px 6px; }
+
+  [data-motion="reduced"] .ambient, [data-motion="reduced"] .spinner { animation: none !important; }
+  @media (prefers-reduced-motion: reduce) { .ambient, .spinner { animation: none !important; } .primary-btn, .btn { transition: none; } }
+</style>
+</head>
+<body>
+  <div class="ambient a"></div>
+  <div class="ambient b"></div>
+  <div class="wrap">
+    <header>
+      <div class="logo" aria-hidden="true">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#eef3e9" stroke-width="2" stroke-linecap="round">
+          <path d="M3 17c3-1 5-4 5-8M9 19c4-1 6-5 6-10" opacity="0.85"/>
+          <circle cx="19" cy="7" r="2.4" fill="#eef3e9" stroke="none"/>
+        </svg>
+      </div>
+      <div>
+        <h1>WILDLIFE INCIDENT HANDOFF</h1>
+        <div class="sub">Clear information. Safer handoffs.</div>
+      </div>
+    </header>
+
+    <section class="card" id="identity">
+      <div class="row"><span class="k">Current source</span><span class="v" id="srcVersion">…</span></div>
+      <div class="row"><span class="k">Commit</span><span class="v" id="srcCommit">…</span></div>
+      <div class="row"><span class="k">Desktop build</span><span class="v" id="desktopState">…</span></div>
+      <div class="row"><span class="k">Web build</span><span class="v ok" id="webState">From same source ✓</span></div>
+    </section>
+
+    <button class="primary-btn" id="launch">Launch Wildlife Incident Handoff</button>
+
+    <div class="grid2">
+      <button class="btn" id="webPreview">Launch Web Preview</button>
+      <button class="btn" id="build">Build</button>
+      <button class="btn" id="updates">Check for updates</button>
+      <button class="btn" id="diagnostics">Diagnostics</button>
+    </div>
+
+    <section class="card build" id="buildCard">
+      <div class="stage" id="buildStage"><span class="spinner"></span><span>Preparing…</span></div>
+      <div class="log" id="buildLog"></div>
+    </section>
+
+    <p class="note" id="note">The launcher reads your local workspace — it never installs anything from the internet and never overwrites uncommitted work.</p>
+
+    <footer>
+      <span id="footerInfo">Launcher 0.3.0-dev.5</span>
+      <label>Theme
+        <select id="themeSel">
+          <option value="forest-night">Forest Night</option>
+          <option value="forest-dark">Forest Dark</option>
+          <option value="midnight-ops">Midnight Ops</option>
+          <option value="storm">Storm</option>
+          <option value="aurora">Aurora</option>
+        </select>
+      </label>
+    </footer>
+  </div>
+
+<script>
+  const invoke = window.__TAURI__.core.invoke;
+  const $ = (id) => document.getElementById(id);
+  let identity = null;
+
+  function set(el, text, cls) { $(el).textContent = text; $(el).className = "v " + (cls || ""); }
+
+  async function refresh() {
+    try {
+      identity = await invoke("get_identity");
+      set("srcVersion", identity.version + " · " + identity.frontend_build_id.slice(0, 8));
+      set("srcCommit", identity.commit);
+      if (identity.desktop) {
+        const d = identity.desktop;
+        if (!d.commit) {
+          set("desktopState", d.version + " (identity manifest missing)", "warn");
+        } else if (identity.desktop_stale) {
+          set("desktopState", "Out of date — " + d.version + " @ " + d.commit, "warn");
+        } else {
+          set("desktopState", "Up to date ✓ " + d.version, "ok");
+        }
+      } else {
+        set("desktopState", "Not built yet", "warn");
+      }
+      $("note").textContent = "Workspace: " + identity.root + (identity.git_dirty ? " · uncommitted changes present" : "");
+    } catch (e) {
+      set("srcVersion", "unavailable", "warn");
+      set("srcCommit", "—", "");
+      set("desktopState", "—", "");
+      $("note").textContent = String(e);
+    }
+  }
+
+  $("launch").addEventListener("click", async () => {
+    $("launch").disabled = true;
+    try { await invoke("launch_app"); window.close(); }
+    catch (e) { $("note").textContent = String(e); $("note").classList.add("fail"); $("launch").disabled = false; }
+  });
+
+  $("webPreview").addEventListener("click", async () => {
+    try { await invoke("launch_web"); } catch (e) { $("note").textContent = String(e); }
+  });
+
+  let poll = null;
+  $("build").addEventListener("click", async () => {
+    try {
+      await invoke("build_app");
+      $("buildCard").classList.add("active");
+      $("build").disabled = true;
+      poll = setInterval(async () => {
+        const st = await invoke("get_build_status");
+        $("buildStage").lastChild.textContent = st.stage;
+        $("buildLog").textContent = st.lines.join("\n");
+        $("buildLog").scrollTop = $("buildLog").scrollHeight;
+        if (!st.running) {
+          clearInterval(poll);
+          $("build").disabled = false;
+          if (st.done) { await refresh(); $("buildCard").classList.remove("active"); }
+          else $("buildStage").classList.add("fail");
+        }
+      }, 700);
+    } catch (e) { $("note").textContent = String(e); }
+  });
+
+  $("updates").addEventListener("click", async () => {
+    $("updates").disabled = true;
+    try { const u = await invoke("check_updates"); $("note").textContent = u.detail; }
+    catch (e) { $("note").textContent = String(e); }
+    $("updates").disabled = false;
+  });
+
+  $("diagnostics").addEventListener("click", () => {
+    if (!identity) return;
+    const d = identity.desktop || {};
+    $("note").textContent =
+      `Source: ${identity.version} @ ${identity.commit} (frontend ${identity.frontend_build_id}) · ` +
+      `Desktop: ${d.version ?? "not built"} @ ${d.commit || "?"} · dirty: ${identity.git_dirty ? "yes" : "no"}`;
+  });
+
+  $("themeSel").addEventListener("change", async (e) => {
+    const t = e.target.value;
+    document.documentElement.dataset.theme = t;
+    try { await invoke("set_theme", { theme: t }); } catch { /* keep UI theme */ }
+  });
+
+  (async () => {
+    const pref = await invoke("get_theme").catch(() => ({ theme: "forest-night" }));
+    document.documentElement.dataset.theme = pref.theme;
+    $("themeSel").value = pref.theme;
+    await refresh();
+  })();
+</script>
+</body>
+</html>

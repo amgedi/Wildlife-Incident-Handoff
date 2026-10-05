@@ -275,6 +275,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSettings((prev) => {
       const next = { ...prev, ...patch };
       if (patch.language) void changeLanguage(patch.language);
+      // 0.3.0-dev.5 (spec 112): share the visual preference with the native
+      // launcher. Fire-and-forget on desktop; never blocks the UI, never
+      // stores anything beyond theme/motion/material ids.
+      if (patch.theme || patch.motion || patch.material) {
+        void import("../utils/platformFile")
+          .then(({ isTauri }) => isTauri())
+          .then((tauri) => {
+            if (tauri) {
+              const cmd = (window as unknown as { __TAURI__?: { core: { invoke: (c: string, a: Record<string, string>) => Promise<void> } } }).__TAURI__;
+              void cmd?.core.invoke("write_launcher_theme", {
+                theme: next.theme, motion: next.motion, material: next.material,
+              }).catch(() => undefined);
+            }
+          });
+      }
       return next;
     });
   }, []);
