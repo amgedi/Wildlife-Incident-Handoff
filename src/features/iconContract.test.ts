@@ -37,7 +37,8 @@ describe("icon surfaces", () => {
 
   it("EXTERNAL identity = static canonical paw (taskbar/installer/Start Menu/PWA)", () => {
     const { execSync } = require("child_process") as { execSync: (c: string) => Buffer };
-    const png = execSync("git show v0.2.0-dev.19-checkpoint:public/icons/icon-512.png | head -c 8").toString("hex");
+    // No shell pipe (cmd.exe has no `head`) — slice the PNG magic in Node.
+    const png = execSync("git show v0.2.0-dev.19-checkpoint:public/icons/icon-512.png").subarray(0, 8).toString("hex");
     expect(png.startsWith("89504e47")).toBe(true); // paw png restored (dev.2 pass)
   });
 
