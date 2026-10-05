@@ -1,10 +1,10 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Wildlife Incident Handoff Launcher",
-  "version": "0.3.0-dev.7",
+  "version": "0.3.0-rc.2",
   "identifier": "org.wildlifeincidenthandoff.launcher",
   "build": {
-    "frontendDist": "./ui"
+    "frontendDist": "../ui/dist"
   },
   "app": {
     "withGlobalTauri": true,
@@ -17,6 +17,7 @@
         "minHeight": 560,
         "resizable": true,
         "decorations": false,
+        "backgroundColor": "#0a120d",
         "center": true
       }
     ],

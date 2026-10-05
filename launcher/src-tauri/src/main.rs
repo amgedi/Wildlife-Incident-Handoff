@@ -122,6 +122,11 @@ fn main() {
             get_theme,
             set_theme,
             get_diagnostics,
+            get_prefs,
+            set_prefs,
+            check_release_update,
+            open_release_folder,
+            open_logs_folder,
         ])
         .run(tauri::generate_context!())
         .expect("launcher failed to start");
@@ -238,6 +243,7 @@ fn portable_exe_fallback(root: &Path) -> Option<PathBuf> {
 }
 
 #[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
 struct DesktopInfo {
     version: String,
     commit: String,
@@ -251,6 +257,7 @@ struct DesktopInfo {
 }
 
 #[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
 struct PreviousBuild {
     version: String,
     exe: String,
@@ -294,6 +301,7 @@ enum Freshness {
 }
 
 #[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
 struct Identity {
     root: String,
     version: String,
@@ -540,6 +548,7 @@ fn build_app(state: State<'_, BuildState>) -> Result<(), String> {
 }
 
 #[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
 struct BuildStatus {
     running: bool,
     stage: String,
@@ -562,6 +571,7 @@ fn get_build_status(state: State<BuildState>) -> BuildStatus {
 }
 
 #[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
 struct UpdateInfo {
     /// no-remote | offline | remote-error | auth | up-to-date | available | dirty-tree | error
     status: String,
@@ -753,6 +763,7 @@ fn set_theme(theme: String) -> Result<(), String> {
 }
 
 #[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
 struct Diagnostics {
     launcher_version: String,
     source_version: String,
@@ -799,6 +810,176 @@ fn get_diagnostics(state: State<'_, BuildState>) -> Result<Diagnostics, String> 
             None => "no build run this session".into(),
         },
     })
+}
+
+
+// ---------- RC2: launcher preferences + release-channel update check ----------
+
+#[derive(Serialize, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Prefs {
+    theme: String,
+    motion: String,
+    material: String,
+    channel: String,
+    auto_check_updates: bool,
+    dev_tools_visible: bool,
+}
+
+impl Default for Prefs {
+    fn default() -> Self {
+        Prefs {
+            theme: "forest-night".into(),
+            motion: "full".into(),
+            material: "frosted".into(),
+            channel: "tester".into(),
+            auto_check_updates: true,
+            dev_tools_visible: true,
+        }
+    }
+}
+
+fn prefs_file() -> Option<PathBuf> {
+    let appdata = std::env::var("APPDATA").ok()?;
+    Some(PathBuf::from(appdata).join("org.wildlifeincidenthandoff.app").join("launcher-prefs.json"))
+}
+
+#[tauri::command]
+fn get_prefs() -> Prefs {
+    if let Some(p) = prefs_file() {
+        if let Ok(text) = std::fs::read_to_string(p) {
+            if let Ok(v) = serde_json::from_str::<Prefs>(&text) {
+                return v;
+            }
+        }
+    }
+    Prefs::default()
+}
+
+#[tauri::command]
+fn set_prefs(prefs: Prefs) -> Result<(), String> {
+    let p = prefs_file().ok_or("no config dir")?;
+    if let Some(dir) = p.parent() {
+        std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+    }
+    // Keep the legacy theme-sync file in step so the app + launcher stay aligned.
+    let _ = std::fs::write(
+        p.parent().unwrap().join("launcher-theme.json"),
+        serde_json::json!({"theme": prefs.theme, "motion": prefs.motion, "material": prefs.material}).to_string(),
+    );
+    std::fs::write(&p, serde_json::to_string(&prefs).map_err(|e| e.to_string())?).map_err(|e| e.to_string())
+}
+
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct ReleaseCheck {
+    status: String, // up-to-date | available | offline | unavailable | error
+    channel: String,
+    current_version: String,
+    latest_version: Option<String>,
+    notes_url: Option<String>,
+    detail: String,
+}
+
+/// Check the installed Workbench version against the GitHub release channel
+/// metadata (latest.json for stable, tester.json for the RC channel).
+/// Read-only: the launcher never downloads or installs binaries itself.
+#[tauri::command]
+fn check_release_update(channel: String) -> ReleaseCheck {
+    let current = desktop_release(&find_root().unwrap_or_default())
+        .map(|d| d.version)
+        .unwrap_or_else(|| read_version(&find_root().unwrap_or_default()).unwrap_or_default());
+    let endpoint = if channel == "stable" {
+        "https://github.com/amgedi/Wildlife-Incident-Handoff/releases/latest/download/latest.json"
+    } else {
+        "https://github.com/amgedi/Wildlife-Incident-Handoff/releases/latest/download/tester.json"
+    };
+    let resp = ureq::get(endpoint).timeout(std::time::Duration::from_secs(12)).call();
+    match resp {
+        Ok(r) => match r.into_json::<serde_json::Value>() {
+            Ok(v) => {
+                let latest = v.get("version").and_then(|x| x.as_str()).map(String::from);
+                let notes = v.get("notes").and_then(|x| x.as_str()).map(String::from);
+                let newer = match (&latest, semver_like(&current)) {
+                    (Some(l), Some(c)) => semver_like(l).map(|ln| ln > c).unwrap_or(false),
+                    _ => latest.is_some() && latest.as_deref() != Some(current.as_str()),
+                };
+                if newer {
+                    let ch = channel.clone();
+                    let cur = current.clone();
+                    ReleaseCheck {
+                        status: "available".into(),
+                        channel: ch,
+                        current_version: current,
+                        latest_version: latest.clone(),
+                        notes_url: Some(format!(
+                            "https://github.com/amgedi/Wildlife-Incident-Handoff/releases/tag/v{}",
+                            latest.clone().unwrap_or_default()
+                        )),
+                        detail: format!("Wildlife Incident Handoff {} is available on the {} channel.", latest.clone().unwrap_or_default(), channel.clone()),
+                    }
+                } else {
+                    ReleaseCheck {
+                        status: "up-to-date".into(),
+                        channel: channel.clone(),
+                        current_version: current.clone(),
+                        latest_version: latest,
+                        notes_url: None,
+                        detail: format!("Installed version {} is current on the {} channel.", current, channel),
+                    }
+                }
+            }
+            Err(e) => ReleaseCheck {
+                status: "unavailable".into(), channel: channel.clone(), current_version: current.clone(),
+                latest_version: None, notes_url: None,
+                detail: format!("Release metadata could not be parsed ({}). The repository may not be published yet.", e),
+            },
+        },
+        Err(e) => {
+            let offline = e.to_string().to_lowercase().contains("connection")
+                || e.to_string().to_lowercase().contains("dns")
+                || e.to_string().to_lowercase().contains("timed");
+            ReleaseCheck {
+                status: if offline { "offline".into() } else { "unavailable".into() },
+                channel, current_version: current.clone(), latest_version: None, notes_url: None,
+                detail: if offline {
+                    "You're offline. Update checking resumes when a connection returns.".into()
+                } else {
+                    "The release service could not be reached. The public repository may not be published yet.".into()
+                },
+            }
+        }
+    }
+}
+
+/// Minimal "major.minor.patch[-rc.N]" comparison helper (no external semver dep).
+fn semver_like(v: &str) -> Option<(u64, u64, u64, u64)> {
+    let core = v.trim_start_matches('v');
+    let (nums, pre) = match core.split_once('-') {
+        Some((n, p)) => (n, p),
+        None => (core, ""),
+    };
+    let mut it = nums.split('.');
+    let maj: u64 = it.next()?.parse().ok()?;
+    let min: u64 = it.next()?.parse().ok()?;
+    let pat: u64 = it.next()?.parse().ok()?;
+    let rc = if let Some(n) = pre.strip_prefix("rc.") { n.parse().unwrap_or(0) } else { u64::MAX };
+    Some((maj, min, pat, rc))
+}
+
+#[tauri::command]
+fn open_release_folder() -> Result<(), String> {
+    let root = find_root().ok_or("workspace not found")?;
+    let dir = root.join("release").join("current");
+    Command::new("explorer").arg(&dir).creation_flags(CREATE_NO_WINDOW).spawn().map(|_| ()).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn open_logs_folder() -> Result<(), String> {
+    let appdata = std::env::var("APPDATA").map_err(|_| "no APPDATA")?;
+    let dir = PathBuf::from(appdata).join("org.wildlifeincidenthandoff.app");
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    Command::new("explorer").arg(&dir).creation_flags(CREATE_NO_WINDOW).spawn().map(|_| ()).map_err(|e| e.to_string())
 }
 
 #[cfg(test)]

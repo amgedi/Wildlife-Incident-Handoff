@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en" data-theme="forest-night" data-motion="full">
+<head>
+  <meta charset="utf-8" />
+  <title>Wildlife Incident Handoff</title>
+  <!-- White-screen guard: theme-colored paint BEFORE any JS runs. The persisted
+       theme is read from the shared config file by the Rust bootstrap command
+       below; this inline default is the safe dark base. -->
+  <style>
+    html, body { margin: 0; height: 100%; background: #0a120d; }
+    #root { height: 100%; }
+    .splash { position: fixed; inset: 0; display: grid; place-items: center; background: #0a120d; }
+    .splash .ring { width: 34px; height: 34px; border-radius: 50%; border: 3px solid rgb(221 232 222 / 0.15); border-top-color: #4e9d6f; animation: spin 0.9s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div class="splash" aria-label="Loading launcher"><div class="ring"></div></div>
+  </div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>
