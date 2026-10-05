@@ -1,6 +1,6 @@
 [package]
 name = "wildlife-incident-handoff"
-version = "0.3.0-dev.7"
+version = "0.3.0-rc.1"
 description = "An open-source, local-first tool for creating clear and traceable wildlife incident handoffs."
 license = "AGPL-3.0-only"
 edition = "2021"
