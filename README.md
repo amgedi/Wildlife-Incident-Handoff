@@ -52,51 +52,42 @@ This app records **what people actually observed** and supports **responsible ha
 
 Where relevant, the app encourages safe behavior: observe from a distance, avoid unnecessary handling, keep people and pets away, and contact an appropriate licensed wildlife professional.
 
-## Highlights (0.2.0-dev additions in *italics*)
-
-- *🧭 **Real spotlight tour*** — the tour navigates into the actual screens (incident list, timeline, handoff, export), dims everything except the target through an SVG-mask cutout, and follows the interface on resize.
-- *🐻 **Canonical bear-paw brand mark** (scenic emblem, theme-aware in-app; full logo with wordmark in `branding/`) — one shape across app, favicon, PWA icons and installer.*
-- *📍 **Use my current location*** — optional, permission-gated geolocation with accuracy capture; denied permission never breaks the form.
-- *🙋 **Reporter contact by choice*** — anonymous by default; opt-in contact details with optional (off-by-default, clearable) remembering on this device; a review screen shows exactly what the report includes and a sharing profile (Private record / Responder report / Public).
-- *🤝 **Response network (local preview)** — a professional dashboard over local incidents: service area, grouped feed (new / active / transfer / closed), accept action, possible-duplicate detection, map-provider abstraction. Nothing is transmitted; see [docs/NETWORK_ARCHITECTURE.md](docs/NETWORK_ARCHITECTURE.md).
-- *🧭 **Guide me** — deterministic step-by-step coaching through a real report (no AI, no chatbot).
-- *🌍 **Region & language settings*** — country, metric/imperial, and deliberately neutral emergency language.
-- *🖥️ **Desktop (Tauri 2)** — scaffold + documented build for a native Windows app with no terminal and no localhost; see [src-tauri/README.md](src-tauri/README.md).
-- *✨ **Ambient themes*** — very slow per-theme background movement when motion is Full, with a separate ambience control and frosted surfaces with solid fallbacks.
-
 ## Highlights
 
-- 🪶 **Unknown is valid** — species, age, sex, cause: never required, never faked. Observations like *"right wing hangs lower than left"* are preferred over diagnoses like *"broken wing"*.
-- 🧭 **Guided 10-step creation wizard** with autosaved drafts, draft recovery, and a review screen that distinguishes *Known / Unknown / Not provided*.
-- 📜 **Append-only timeline** — every observation, photo, status change, correction, and handoff becomes chronological history. Original entries are never overwritten; corrections record previous and new values with an optional reason.
-- 🤝 **Handoff & custody workflow** — record transfers of responsibility (from → to, method, condition, items transferred) and see the full custody chain at a glance.
-- 🔒 **Privacy-aware exports** — shareable summaries exclude precise coordinates, personal contacts, and private notes by default; internal exports include everything, by explicit choice.
-- 💾 **Local-first storage** — everything lives in your browser (IndexedDB). No account, no cloud, no tracking. Versioned JSON backups with safe, conflict-aware import.
-- ♿ **Accessible by design** — keyboard navigation, focus management, labeled forms, status never by color alone, reduced-motion support.
-- 📱 **Mobile-friendly** — genuinely usable field reporting, not a shrunken desktop.
-- 🎓 **Onboarding, product tour, guided tutorial, and clearly-labeled fictional demo cases.**
-- 🌲 **Sixteen themes** — Forest Night (default), Aurora, Midnight Ops, Storm, Sand, Arctic, monochrome and high-contrast options; shared across app and launcher.
+- **Unknown is valid** — species, age, sex, cause: never required, never faked. Observations like *"right wing hangs lower than left"* are preferred over diagnoses like *"broken wing"*.
+- **Guided 10-step creation wizard** with autosaved drafts, draft recovery, and a review screen that distinguishes *Known / Unknown / Not provided*. Optional permission-gated current-location capture; denied permission never breaks the form.
+- **Append-only timeline** — every observation, photo, status change, correction, and handoff becomes chronological history. Original entries are never overwritten; corrections record previous and new values with an optional reason.
+- **Handoff & custody workflow** — record transfers of responsibility (from one responder to the next, method, condition, items transferred) and see the full custody chain at a glance. Reporter contact is by choice: anonymous by default.
+- **Response operations dashboard** — service-area map, needs-attention queue, response flow, network pulse, live activity and deterministic analytics over local incidents. Nothing is transmitted (see [docs/NETWORK_ARCHITECTURE.md](docs/NETWORK_ARCHITECTURE.md)).
+- **Map with location privacy** — 2D / satellite / terrain basemaps (MapLibre), incident side-list with single-click fly-to, cluster-aware camera, and measure tool. Approximate reports are fuzzed to ~1 km; sensitive reports never show a precise point.
+- **Privacy-aware exports** — shareable summaries exclude precise coordinates, personal contacts, and private notes by default; internal exports include everything, by explicit choice.
+- **Local-first storage** — everything lives on this device. No account, no cloud, no tracking. Versioned JSON backups with safe, staged restore.
+- **Test View** — realistic fictional incidents (role × intensity × seed, reproducible) for training and demos, clearly labeled and safe to reset.
+- **Accessible by design** — keyboard navigation, focus management, labeled forms, status never by color alone, reduced-motion support; works in short windows and narrow layouts.
+- **Guide me, onboarding, product tour and tutorial** — deterministic coaching through a real report (no AI, no chatbot), plus clearly-labeled fictional demo cases.
+- **Sixteen themes** — Forest Night (default), Aurora, Midnight Ops, Storm, Sand, Arctic, monochrome and high-contrast options; shared across app and launcher.
+- **Native desktop app (Tauri 2)** — no terminal, no localhost; signed auto-update infrastructure and a companion launcher.
 
 ## Screenshots
 
-| Home | Timeline |
+| Operations dashboard (desktop) | Map — incident selected from the side list |
 | --- | --- |
-| ![Home](screenshots/archive/1-home.png) | ![Timeline](screenshots/archive/5-timeline.png) |
-| **Create incident (guided wizard)** | **Privacy-aware export** |
-| ![Create](screenshots/archive/2-create-incident.png) | ![Export](screenshots/archive/6-export.png) |
+| ![Operations dashboard](screenshots/current/rc2-app-sidebar-maximized.png) | ![Map selection](screenshots/current/v030-dev7-map/map-row-selected-camera.png) |
+| **Companion launcher — Home** | **Launcher — theme gallery** |
+| ![Launcher home](screenshots/current/rc2-launcher-home.png) | ![Launcher themes](screenshots/current/rc2-launcher-settings-themes.png) |
 
-*(All screenshots use fictional data.)*
+*(All screenshots use fictional demo data.)*
 
 ## v0.1.0 Features
 
 - Onboarding with experience modes (presentation presets only — never permissions)
 - Guided incident creation: what happened, animal, location, observations, hazards, actions taken, current situation, contacts, photos, review
 - Incident workspace: Overview, Timeline, Observations, Attachments, People & handoffs, Incident details, Export
-- Status system (Reported → … → Released/Closed) with status-change history
+- Status system (Reported  …  Released/Closed) with status-change history
 - Handoff/transfer recording with custody history and consistency warnings
 - Corrections with preserved history ("append, don't erase")
 - Search & filters; Archive and Trash with restore + undo
-- Export: printable handoff summary (browser print → PDF), text, HTML; JSON backup export/import with validation
+- Export: printable handoff summary (browser print  PDF), text, HTML; JSON backup export/import with validation
 - Fictional demo incidents, product tour, guided tutorial, contextual help
 - Settings: appearance (4 themes, density, motion), accessibility, incident defaults, privacy, storage & backups, and more
 - Installable PWA; core workflows work offline
@@ -104,7 +95,7 @@ Where relevant, the app encourages safe behavior: observe from a distance, avoid
 ## Privacy & data safety
 
 - **All incident data is stored locally in your browser.** Nothing is uploaded, synced, or tracked — there is no server.
-- Clearing browser data can delete local records; backups are recommended (Settings → Storage & backups).
+- Clearing browser data can delete local records; backups are recommended (Settings  Storage & backups).
 - Exports never happen automatically. Shareable exports deliberately exclude sensitive information; precise wildlife locations can be marked *Sensitive* and are redacted by default.
 - Personal contact details are marked private and excluded from shareable exports unless explicitly included.
 
