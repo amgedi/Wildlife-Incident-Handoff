@@ -28,4 +28,9 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: launcher/src-tauri }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: launcher/ui/package-lock.json }
+      - run: npm ci --prefix launcher/ui
+      # Tauri codegen embeds ../ui/dist at compile time — build the UI first.
+      - run: npm run --prefix launcher/ui build
       - run: cargo test --manifest-path launcher/src-tauri/Cargo.toml
