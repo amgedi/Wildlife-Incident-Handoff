@@ -23,13 +23,13 @@ export function useIncidents() {
 
 /** 0.3.0-dev.6: shared card body — bookmark responds instantly via a local
  *  shadow; a genuinely newer record from the parent always wins. */
-function CardBody({ incident, full }: { incident: Incident; full: boolean }) {
+function CardBody({ incident, full, onContextMenu }: { incident: Incident; full: boolean; onContextMenu?: (e: React.MouseEvent, incident: Incident) => void }) {
   const [shadow, setShadow] = useState(incident);
   const current = shadow.updatedAt === incident.updatedAt ? shadow : incident;
   const last = [...current.timeline].sort((a, b) => b.timestamp.localeCompare(a.timestamp))[0];
   const custody = current.custody.filter((c) => !c.endedAt).at(-1);
   return (
-    <Link to={`/incidents/${current.id}`} className="incident-card">
+    <Link to={`/incidents/${current.id}`} className="incident-card" onContextMenu={onContextMenu ? (e) => onContextMenu(e, current) : undefined}>
       <div className="ic-body">
         <p className="ic-title">{animalLabel(current)}</p>
         <p className="ic-meta">
@@ -57,10 +57,10 @@ function CardBody({ incident, full }: { incident: Incident; full: boolean }) {
   );
 }
 
-export function IncidentCard({ incident }: { incident: Incident }) {
-  return <CardBody incident={incident} full={false} />;
+export function IncidentCard({ incident, onContextMenu }: { incident: Incident; onContextMenu?: (e: React.MouseEvent, incident: Incident) => void }) {
+  return <CardBody incident={incident} full={false} onContextMenu={onContextMenu} />;
 }
 
-export function IncidentCardFull({ incident }: { incident: Incident }) {
-  return <CardBody incident={incident} full={true} />;
+export function IncidentCardFull({ incident, onContextMenu }: { incident: Incident; onContextMenu?: (e: React.MouseEvent, incident: Incident) => void }) {
+  return <CardBody incident={incident} full={true} onContextMenu={onContextMenu} />;
 }

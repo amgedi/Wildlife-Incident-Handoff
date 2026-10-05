@@ -40,6 +40,23 @@ export interface RoleVerificationRequest {
   note: string;
   /** File name of local proof — stays on this device. */
   proofName: string | null;
+  /** 0.3.0-dev.6 (Part XIV): structured, role-specific evidence fields.
+   *  Local preparation only — nothing here is verified externally and
+   *  nothing is submitted anywhere (no connected reviewer exists). */
+  evidence?: RoleEvidence;
+}
+
+export interface RoleEvidence {
+  organization: string;
+  roleTitle: string;
+  jurisdiction: string;
+  credentialId: string;
+  issuingAuthority: string;
+  expiryDate: string;
+  supervisorContact: string;
+  organizationWebsite: string;
+  professionalEmail: string;
+  trainingCompleted: string;
 }
 
 export interface ProfessionalRoleEntry {

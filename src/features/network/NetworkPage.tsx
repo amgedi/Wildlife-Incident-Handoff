@@ -38,6 +38,8 @@ import { IncidentQueueRow } from "./dashboard/IncidentQueueRow";
 import { ResponseFlow } from "./dashboard/ResponseFlow";
 import { LiveActivityFeed } from "./dashboard/LiveActivityFeed";
 import { CONCERN_TYPES, concernOf } from "../incidents/concernTypes";
+import { AppContextMenu, useAppContextMenu, type ContextMenuItem } from "../incidents/ContextMenu";
+import { withBookmarkToggled, isBookmarked } from "../incidents/bookmarks";
 import { DuplicateReview } from "./dashboard/DuplicateReview";
 import { SimulationCard } from "../simulation/SimulationCard";
 import { type SimulationRole, type SimulationIntensity } from "../simulation/scenario";
@@ -102,6 +104,8 @@ export function NetworkPage() {
   const [loaded, setLoaded] = useState(false);
   const [range, setRange] = useState<1 | 7 | 30 | 90>(7);
   const [chartMetrics, setChartMetrics] = useState<MetricId[]>(["reported", "closed"]);
+  // 0.3.0-dev.6 (Part XII): activity-row right-click actions.
+  const { menu: ctxMenu, open: openCtx, close: closeCtx } = useAppContextMenu();
   const [bucketSelected, setBucketSelected] = useState<number | null>(null);
   const [now, setNow] = useState(() => new Date());
   const [layout, setLayout] = useState<DashboardLayout | null>(null);
@@ -425,7 +429,26 @@ export function NetworkPage() {
         <Icons.activity size={16} /> {t("liveActivity", { defaultValue: "Live activity" })}
       </h3>
       {/* 0.3.0-dev.5 Live Activity V5: rich categorized event feed. */}
-      <LiveActivityFeed feed={feed} onOpenIncident={(id) => navigate(`/incidents/${id}`)} />
+      <LiveActivityFeed
+        feed={feed}
+        onOpenIncident={(id) => navigate(`/incidents/${id}`)}
+        onRowContextMenu={(ev, entry) => {
+          const incident = filtered.find((i) => i.id === entry.incidentId);
+          const items: ContextMenuItem[] = [
+            { icon: "chevronRight", label: "Open incident", onSelect: () => navigate(`/incidents/${entry.incidentId}`) },
+            { icon: "list", label: "Copy reference", onSelect: () => void navigator.clipboard?.writeText(entry.incidentRef).catch(() => undefined) },
+          ];
+          if (incident) {
+            items.push({
+              icon: "book",
+              label: isBookmarked(incident) ? "Remove bookmark" : "Bookmark incident",
+              onSelect: () => void putIncident(withBookmarkToggled(incident)).then(() => refresh()),
+            });
+          }
+          items.push({ icon: "activity", label: "View related activity", onSelect: () => navigate("/incidents") });
+          openCtx(ev, items);
+        }}
+      />
     </div>
   );
 
@@ -1296,7 +1319,8 @@ export function NetworkPage() {
       >
         <p>{t("attentionHideWarnBody", { defaultValue: "Needs attention surfaces incidents that may be waiting too long, missing a responder, or missing a usable location. You can re-enable it any time from Customize dashboard." })}</p>
       </Dialog>
-    </main>
+    <AppContextMenu state={ctxMenu} onClose={closeCtx} />
+      </main>
   );
 }
 

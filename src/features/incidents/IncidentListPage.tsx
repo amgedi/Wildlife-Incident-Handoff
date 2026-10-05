@@ -29,6 +29,8 @@ import { getAllDrafts, deleteDraft } from "../../storage/repositories";
 import type { DraftRecord } from "../../storage/db";
 import { STATUS_LABELS_BY_KEY, INCIDENT_TYPES, ANIMAL_GROUPS } from "./labels";
 import { CONCERN_TYPES } from "./concernTypes";
+import { AppContextMenu, useAppContextMenu, type ContextMenuItem } from "./ContextMenu";
+import { withBookmarkToggled, isBookmarked } from "./bookmarks";
 import { animalLabel } from "../export/exportService";
 import { formatDateTime, relativeTime } from "../../utils/time";
 import { isOpen } from "../network/incidentAnalytics";
@@ -144,6 +146,15 @@ export function IncidentListPage() {
   const [savedViews, setSavedViews] = useState<SavedView[]>([]);
   const [newViewName, setNewViewName] = useState("");
   const [renderLimit, setRenderLimit] = useState(RENDER_STEP);
+  // 0.3.0-dev.6 (Part XII): right-click actions on incident rows.
+  const { menu: ctxMenu, open: openCtx, close: closeCtx } = useAppContextMenu();
+  const ctxActions = (incident: Incident): ContextMenuItem[] => [
+    { icon: "chevronRight", label: "Open", onSelect: () => navigate(`/incidents/${incident.id}`) },
+    { icon: "book", label: isBookmarked(incident) ? "Remove bookmark" : "Bookmark", onSelect: () => void putIncident(withBookmarkToggled(incident)).then(() => refresh()) },
+    { icon: "list", label: "Copy incident reference", onSelect: () => void navigator.clipboard?.writeText(incident.humanReference).catch(() => undefined) },
+    { icon: "map", label: "View on map", onSelect: () => navigate("/network?view=map") },
+    { icon: "download", label: "Export", onSelect: () => navigate(`/incidents/${incident.id}?tab=export`) },
+  ];
 
   const categoryParam = searchParams.get("category");
   const categoryStatuses = statusesForCategory(categoryParam);
@@ -638,8 +649,15 @@ export function IncidentListPage() {
           actions={rowActions}
         />
       ) : (
-        <div className="card-list">
+        <div className="card-list" onContextMenu={(e) => {
+          const card = (e.target as HTMLElement).closest(".incident-card, [data-incident-ref]");
+          if (!card) return;
+          const id = card.getAttribute("data-incident-id");
+          const inc = sorted.find((x) => x.id === id);
+          if (inc) openCtx(e, ctxActions(inc));
+        }}>
           {sorted.slice(0, renderLimit).map((i) => (
+            <div key={i.id} data-incident-id={i.id}>
             <ReportCard
               key={i.id}
               incident={i}
@@ -653,6 +671,7 @@ export function IncidentListPage() {
               onRestore={() => rowActions.onRestore(i)}
               onDeleteForever={() => rowActions.onDeleteForever(i)}
             />
+            </div>
           ))}
         </div>
       )}
@@ -669,6 +688,8 @@ export function IncidentListPage() {
       )}
 
       {selected && <InspectorPanel incident={selected} onClose={() => setInspectorId(null)} />}
+
+      <AppContextMenu state={ctxMenu} onClose={closeCtx} />
 
       <Dialog
         open={pendingDelete !== null}

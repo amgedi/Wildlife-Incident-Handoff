@@ -49,9 +49,11 @@ interface Props {
   feed: ActivityFeedEntry[];
   onOpenIncident: (incidentId: string) => void;
   maxRows?: number;
+  /** 0.3.0-dev.6 (Part XII): right-click actions provided by the page. */
+  onRowContextMenu?: (e: React.MouseEvent, entry: ActivityFeedEntry) => void;
 }
 
-export function LiveActivityFeed({ feed, onOpenIncident, maxRows = 40 }: Props) {
+export function LiveActivityFeed({ feed, onOpenIncident, maxRows = 40, onRowContextMenu }: Props) {
   const { t } = useTranslation("professional");
   const [category, setCategory] = useState<ActivityCategory | "all">("all");
   const listRef = useRef<HTMLOListElement | null>(null);
@@ -158,7 +160,12 @@ export function LiveActivityFeed({ feed, onOpenIncident, maxRows = 40 }: Props) 
                     const toLabel = statusLabel(e.statusTo);
                     return (
                       <li key={`${e.incidentId}-${e.timestamp}-${idx}`}>
-                        <button onClick={() => onOpenIncident(e.incidentId)} className="ops-feed-item" data-cat={cat}>
+                        <button
+                          onClick={() => onOpenIncident(e.incidentId)}
+                          onContextMenu={onRowContextMenu ? (ev) => onRowContextMenu(ev, e) : undefined}
+                          className="ops-feed-item"
+                          data-cat={cat}
+                        >
                           <span className="ops-feed-time">{new Date(e.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                           <span className="activity-v5-rail" aria-hidden="true" />
                           <span className="ops-feed-body">

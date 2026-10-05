@@ -1768,3 +1768,45 @@ button.ax-dist-row:hover { border-color: var(--c-border); background: var(--c-su
 .dup6-report-ref:focus-visible { outline: 2px solid var(--c-focus); outline-offset: 2px; }
 .dup6-report-row { font-size: 0.84rem; overflow-wrap: anywhere; }
 .dup6-report-status { font-size: 0.8rem; font-weight: 600; }
+
+/* ---------- 0.3.0-dev.6 Stewardship V6 (Part XIII) ---------- */
+.steward-preview-badges { display: flex; flex-wrap: wrap; gap: 8px; }
+.steward-preview-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px dashed var(--c-border-strong); border-radius: 8px;
+  padding: 5px 10px; font-size: 0.84rem; color: var(--c-ink-soft);
+}
+
+/* ---------- 0.3.0-dev.6 verification V6 (Part XIV) ---------- */
+.verif-checklist { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: 0.84rem; }
+.verif-checklist li { display: flex; gap: 6px; align-items: baseline; color: var(--c-ink-faint); }
+.verif-checklist li.done { color: var(--c-ink-soft); }
+.verif-checklist li.done span[aria-hidden] { color: var(--c-ok, #4f9d6e); }
+.verif-req { color: var(--c-ink-faint); font-size: 0.76rem; }
+
+/* ---------- 0.3.0-dev.6 titlebar (Part X) ---------- */
+/* Narrow mode: search collapses to icon-only (spec 53). */
+@media (max-width: 900px) {
+  .titlebar-center .btn .tb-search-label { display: none; }
+}
+
+/* ---------- 0.3.0-dev.6 context menu (Part XII) ---------- */
+.ctx-scrim { position: fixed; inset: 0; z-index: 200; }
+.ctx-menu {
+  position: fixed; min-width: 190px; z-index: 201;
+  background: var(--c-surface); border: 1px solid var(--c-border);
+  border-radius: var(--radius-md); box-shadow: var(--shadow-lg);
+  padding: 5px; display: grid; gap: 1px;
+  backdrop-filter: var(--material-blur, none);
+}
+.ctx-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 7px 10px; border: none; border-radius: 7px;
+  background: transparent; color: var(--c-ink); font: inherit; font-size: 0.86rem;
+  text-align: left; cursor: pointer;
+}
+[data-motion="full"] .ctx-item:hover, .ctx-item.focused { background: color-mix(in srgb, var(--c-primary) 12%, transparent); }
+.ctx-item:disabled { opacity: 0.45; cursor: default; }
+.ctx-item:focus-visible { outline: 2px solid var(--c-focus); outline-offset: -2px; }
+.ctx-item svg { color: var(--c-ink-soft); }
+.ctx-spacer { width: 14px; }

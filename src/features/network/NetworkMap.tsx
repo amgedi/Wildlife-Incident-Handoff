@@ -21,6 +21,7 @@ import {
 } from "./map/v4";
 import { disableTerrain, easePitch, enableTerrain, queryElevationM, resetCompass, setMeasureLine } from "./map/v4Map";
 import { CONCERN_TYPES } from "../incidents/concernTypes";
+import { BookmarkButton } from "../incidents/BookmarkButton";
 
 type MapState = "loading" | "ready" | "offline" | "provider-failed" | "no-coordinates";
 
@@ -624,37 +625,56 @@ export function NetworkMap({
               position: "relative",
             }}
           />
-          {/* P19 — lightweight map inspector (not a modal). */}
+          {/* 0.3.0-dev.6 (Part III/XVII) — inspector V6: header + structured
+              location + collapsed technical details + action area. Close sits
+              top-right with a 28px hit target; Escape closes. */}
           {inspectedIncident && (
             <aside
               className="card map-inspector"
               aria-label={t("inspectorLabel", { defaultValue: "Incident details" })}
               style={{
-                position: "absolute", top: 12, right: 12, width: 264, maxWidth: "calc(100% - 24px)",
+                position: "absolute", top: 12, right: 12, width: 300, minWidth: 264, maxWidth: "calc(100% - 24px)",
                 zIndex: 30, padding: "var(--space-3)", boxShadow: "var(--shadow-lg)", display: "grid", gap: 6,
               }}
+              onKeyDown={(e) => { if (e.key === "Escape") setInspected(null); }}
             >
-              <div className="row between" style={{ gap: 8 }}>
-                <strong style={{ fontSize: "0.95rem" }}>{animalLabel(inspectedIncident)}</strong>
-                <button className="btn btn-quiet btn-sm" aria-label={t("inspectorClose", { defaultValue: "Close" })} onClick={() => setInspected(null)}>
+              <div className="row between" style={{ gap: 8, alignItems: "flex-start" }}>
+                <strong style={{ fontSize: "0.95rem", overflowWrap: "anywhere" }}>{animalLabel(inspectedIncident)}</strong>
+                <button className="btn btn-quiet btn-sm" style={{ width: 28, height: 28, padding: 0, justifyContent: "center" }} title={t("inspectorClose", { defaultValue: "Close" })} aria-label={t("inspectorClose", { defaultValue: "Close" })} onClick={() => setInspected(null)}>
                   <Icons.x size={14} />
                 </button>
               </div>
-              <StatusBadge status={inspectedIncident.status} />
-              <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--c-ink-soft)" }}>
-                {inspectedIncident.humanReference} · {t("reportedAgo", { defaultValue: "Reported" })} {relativeTime(inspectedIncident.occurredAt ?? inspectedIncident.createdAt)}
-              </p>
+              <div className="row" style={{ gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                <StatusBadge status={inspectedIncident.status} />
+                <span style={{ fontSize: "0.8rem", color: "var(--c-ink-faint)", fontVariantNumeric: "tabular-nums" }}>
+                  {inspectedIncident.humanReference} · {t("reportedAgo", { defaultValue: "Reported" })} {relativeTime(inspectedIncident.occurredAt ?? inspectedIncident.createdAt)}
+                </span>
+              </div>
               <LocationIntel incident={inspectedIncident} serviceArea={serviceArea} />
               <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--c-ink-soft)" }}>
-                {inspectedIncident.location.precision === "sensitive"
-                  ? t("privacySensitive", { defaultValue: "Sensitive — area only" })
-                  : t("privacyApprox", { defaultValue: "Approximate location" })}
-              </p>
-              <p style={{ margin: 0, fontSize: "0.82rem", color: "var(--c-ink-soft)" }}>
                 {inspectedIncident.custody.some((c) => !c.endedAt) && inspectedIncident.status !== "reported" && inspectedIncident.status !== "response_requested"
                   ? inspectedIncident.custody.find((c) => !c.endedAt)?.holder
                   : t("colUnassigned", { defaultValue: "Unassigned" })}
               </p>
+              <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+                <Link className="btn btn-primary btn-sm" to={`/incidents/${inspectedIncident.id}`} onClick={() => onSelect?.(inspectedIncident)}>
+                  {t("openIncident", { defaultValue: "Open incident" })}
+                </Link>
+                <BookmarkButton incident={inspectedIncident} />
+                <button
+                  className="btn btn-quiet btn-sm"
+                  onClick={() => {
+                    const pos = markerPositionFor(inspectedIncident, effectivePrivacy(inspectedIncident, privacy));
+                    if (pos) {
+                      setMeasureMode(true);
+                      setMeasurePts([[pos.lon, pos.lat]]);
+                      setInspected(null);
+                    }
+                  }}
+                >
+                  <Icons.pin size={13} /> {t("mv4MeasureFrom", { defaultValue: "Measure from here" })}
+                </button>
+              </div>
               {/* Field lens (spec 90/23): terrain mode only, coarse "≈" elevation,
                   built through buildFieldLens so no coordinates can leak. */}
               {(() => {
