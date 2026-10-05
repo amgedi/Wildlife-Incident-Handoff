@@ -36,10 +36,11 @@ describe("icon surfaces", () => {
   });
 
   it("EXTERNAL identity = static canonical paw (taskbar/installer/Start Menu/PWA)", () => {
-    const { execSync } = require("child_process") as { execSync: (c: string) => Buffer };
-    // No shell pipe (cmd.exe has no `head`) — slice the PNG magic in Node.
-    const png = execSync("git show v0.2.0-dev.19-checkpoint:public/icons/icon-512.png").subarray(0, 8).toString("hex");
-    expect(png.startsWith("89504e47")).toBe(true); // paw png restored (dev.2 pass)
+    // The canonical paw PNG is tracked in the repository (restored in the
+    // dev.2 pass from the v0.2.0-dev.19 checkpoint) — verify the artifact
+    // directly so the test does not depend on git tags existing in a clone.
+    const png = readFileSync("public/icons/icon-512.png").subarray(0, 8).toString("hex");
+    expect(png.startsWith("89504e47")).toBe(true);
   });
 
   it("no conflation: the runtime icon renderer never draws the relay geometry", () => {
