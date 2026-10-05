@@ -4,7 +4,7 @@ Status legend: PASS · MANUAL CHECK (needs a human/external environment) · DEFE
 
 | Area | Status | Evidence / notes |
 | --- | --- | --- |
-| Dashboard | PASS | Personalized header, attention band, KPIs; screenshot QA in screenshots/v030-after; contract + greeting-dynamic tests |
+| Dashboard | PASS | Personalized header, attention band, KPIs; screenshot QA in screenshots/archive/v030-after; contract + greeting-dynamic tests |
 | Response Network | PASS | Real-record organizations/transfer partners widget; honesty note; no invented capacity |
 | Response Flow | PASS | Canonical scope invariant tests; visual QA (Pickup 3 ↔ drawer 3); default nothing-selected |
 | Incidents | PASS | Command center: summary band, table, inspector, density; 17 dedicated tests |

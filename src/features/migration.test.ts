@@ -57,7 +57,7 @@ describe("migration: dev.19 profile → 0.3.0-dev.2 (spec 58)", () => {
   });
 
   it("downgrade honesty: 0.3 fields are additive so 0.2 ignores them, but the dev.19 build cannot read this version's docs — documented", () => {
-    const readme = readFileSync("docs/V030_DEV2_BASELINE.md", "utf-8");
+    const readme = readFileSync("docs/archive/0.3/V030_DEV2_BASELINE.md", "utf-8");
     // the release honesty statement exists (spec 59)
     expect(readme.length).toBeGreaterThan(0);
   });

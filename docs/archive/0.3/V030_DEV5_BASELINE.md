@@ -11,7 +11,7 @@
 
 Uncommitted working-tree noise at session start: regenerated `src/build-identity.ts`
 (reflects the packaged dev.4 identity — benign) and two re-captured
-`screenshots/v030-dev4-after/*.png` binaries.
+`screenshots/archive/v030-dev4-after/*.png` binaries.
 
 ## Baseline verification performed this session
 
@@ -22,7 +22,7 @@ Uncommitted working-tree noise at session start: regenerated `src/build-identity
 - Desktop smoke against the **packaged EXE**: **7/7 PASS**
   (wizard reaches review; incident created + detail opens WIH-2026-000001; summary preserved; About version 0.3.0-dev.4; About build id; About schema v1; Guide Me entry).
 - Runtime About identity = source identity (dev.4 @ `da3a0a3`). Build is not stale.
-- Baseline screenshots captured to `screenshots/v030-dev5-before/`.
+- Baseline screenshots captured to `screenshots/archive/v030-dev5-before/`.
 
 ## Regression found during baseline (owner report #27, confirmed)
 

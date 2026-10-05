@@ -2,7 +2,7 @@
 
 Judged from the **rendered application** (Vite build served in a real browser), with
 realistic seeded data (11 Calgary incidents across all response stages + configured
-25 km service area). Screenshots: `screenshots/before/`. Changelogs and tests were
+25 km service area). Screenshots: `screenshots/archive/before/`. Changelogs and tests were
 explicitly **not** treated as evidence of quality.
 
 ## Professional workspace

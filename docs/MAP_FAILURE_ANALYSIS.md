@@ -6,9 +6,9 @@ incidents carrying Calgary coordinates and a configured 25 km service area.
 ## Symptoms observed
 
 1. Desktop operations dashboard: map panel frequently paints as an **empty box** —
-   no markers, no clusters (screenshots/before/pro-ops-1920.png).
+   no markers, no clusters (screenshots/archive/before/pro-ops-1920.png).
 2. Mobile dashboard: the **same component renders markers correctly**
-   (screenshots/before/pro-ops-mobile.png) — so data, clustering, and the provider
+   (screenshots/archive/before/pro-ops-mobile.png) — so data, clustering, and the provider
    were never the whole story.
 3. Fresh desktop load (measured live): canvas `687×278`, **10 markers present** —
    the failure is intermittent/state-dependent, not deterministic.

@@ -19,7 +19,7 @@ Frozen 2026-10-05. dev.7 is the RC candidate source.
 ## dev.7 foundation claims — confirmed
 
 Confirmed from this repository and the packaged artifacts (not blindly
-trusted; see docs/V030_DEV7_FINAL_REPORT.md for the verification record):
+trusted; see docs/archive/0.3/V030_DEV7_FINAL_REPORT.md for the verification record):
 launcher freshness model + CURRENT state, manifest-based EXE discovery,
 streaming build timeline, structured update states, canonical branding,
 custom titlebar, 16-theme combobox, theme sync, map list single-click

@@ -57,6 +57,6 @@ release candidate. Deferred again because:
 3. The "no blank map" invariant is already covered by the existing graceful
    offline fallback; the field workflow stays usable without a pack.
 
-RC impact: recorded as DEFERRED in docs/V020_RELEASE_READINESS.md, not as a
+RC impact: recorded as DEFERRED in docs/archive/0.3/V020_RELEASE_READINESS.md, not as a
 PASS. The contract above is unchanged and remains the acceptance criteria for
 a future pass.

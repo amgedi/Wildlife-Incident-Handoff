@@ -21,7 +21,7 @@ Audit date: 2026-10-04 · Auditor: fresh 0.3 development session · Branch: `0.3
 
 ## Before screenshots
 
-Captured from the real dev.19 portable EXE (WebView2 CDP), stored in `screenshots/v030-before/`:
+Captured from the real dev.19 portable EXE (WebView2 CDP), stored in `screenshots/archive/v030-before/`:
 home, network (dashboard), network-map, incidents, new-intake, settings, profile, help, network-2.
 
 Observed visual problems (confirmed from screenshots):

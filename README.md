@@ -6,9 +6,9 @@
 
 **An open-source, local-first tool for creating clear and traceable wildlife incident handoffs.**
 
-[![Version](https://img.shields.io/badge/version-0.3.0--dev.5-green)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.3.0--rc.1-green)](CHANGELOG.md)
 [![License: AGPL-3.0-only](https://img.shields.io/badge/License-AGPL--3.0--only-blue)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-54%20passing-brightgreen)](#development)
+[![Tests](https://img.shields.io/badge/tests-647%20passing-brightgreen)](#development)
 
 </div>
 
@@ -20,21 +20,22 @@ When someone finds injured wildlife, the important details end up scattered acro
 
 > **Observe · Record · Hand off · Preserve context**
 
-## HOW TO LAUNCH
+## HOW TO OPEN WORKBENCH
 
-Open: **`Wildlife Incident Handoff Launcher.exe`** (project root).
+- **Development/workspace:** double-click **`Launch Wildlife Incident Handoff.exe`** (project root — the only executable here). It shows build identity, launches the current packaged build, runs builds, checks updates, and switches themes.
+- **Current tester release:** `release/current/` (installer + portable + tester docs).
+- **Historical releases:** `release/archive/`.
+- **Source:** `src/` (frontend) · `src-tauri/` (desktop shell) · `launcher/` (the launcher's own Tauri project).
+- **Documentation:** `docs/` · **Folder map:** `PROJECT_STRUCTURE.md`.
 
-The launcher shows which version/commit you are on, whether the packaged
-desktop build is stale, and can build the desktop app with one click
-(canonical pipeline: `npm run desktop:release`). It never installs anything
-from the internet and never overwrites uncommitted work.
+The launcher never installs anything from the internet and never overwrites
+uncommitted work. External testers only need `release/current/` — not this
+folder.
 
-For direct installed application: run
-`release/desktop/Wildlife-Incident-Handoff-Setup-<version>.exe` once, then
+For the installed application: run
+`release/current/Wildlife-Incident-Handoff-Setup-0.3.0-rc.1.exe` once, then
 launch "Wildlife Incident Handoff" from the Start Menu. A portable EXE sits
-beside it. `Launch Wildlife Incident Handoff.cmd` in the root is only a
-compatibility shim that opens the native launcher; the legacy menu lives in
-`scripts/legacy/`.
+beside it in the same folder.
 
 ## What it is (and isn't)
 
@@ -75,9 +76,9 @@ Where relevant, the app encourages safe behavior: observe from a distance, avoid
 
 | Home | Timeline |
 | --- | --- |
-| ![Home](screenshots/1-home.png) | ![Timeline](screenshots/5-timeline.png) |
+| ![Home](screenshots/archive/1-home.png) | ![Timeline](screenshots/archive/5-timeline.png) |
 | **Create incident (guided wizard)** | **Privacy-aware export** |
-| ![Create](screenshots/2-create-incident.png) | ![Export](screenshots/6-export.png) |
+| ![Create](screenshots/archive/2-create-incident.png) | ![Export](screenshots/archive/6-export.png) |
 
 *(All screenshots use fictional data.)*
 

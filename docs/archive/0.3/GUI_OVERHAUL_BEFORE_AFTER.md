@@ -1,6 +1,6 @@
 # GUI Overhaul — Before / After (0.2.0-dev.9 → 0.2.0-dev.10)
 
-Before shots: `screenshots/before/` · After shots: `screenshots/after/`
+Before shots: `screenshots/archive/before/` · After shots: `screenshots/archive/after/`
 Audit with per-screen verdicts: `docs/GUI_OVERHAUL_AUDIT.md`
 
 ## Operations dashboard (professional)

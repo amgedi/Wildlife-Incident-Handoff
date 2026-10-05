@@ -10,8 +10,8 @@ Paths are relative to the repository root.
   the far-left beside a giant black void; the header was a generic "Live
   local operations" strip; the response flow started in a visually ambiguous
   state and its case list disagreed with its counts.
-- **Before**: `screenshots/v030-before/network.png`
-- **After**: `screenshots/v030-after/dashboard.png`
+- **Before**: `screenshots/archive/v030-before/network.png`
+- **After**: `screenshots/archive/v030-after/dashboard.png`
 - **Rationale**: personalized command header (`Welcome, Amged`, weekday,
   open/assignment/handoff counters, honest network badge); attention became a
   responsive prioritized band spanning the full width; widgets fill the grid.
@@ -21,9 +21,9 @@ Paths are relative to the repository root.
 - **Problem**: stage counts and the case drawer used two different data paths
   (Pickup showed 3; selecting it showed "0 case(s)"); a stage could appear
   pre-selected; selection was a heavy filled card.
-- **Before**: `screenshots/v030-before/network-2.png`
-- **After**: `screenshots/v030-after/dashboard.png` (rail, nothing selected)
-  and `screenshots/v030-after/response-flow-selected.png` (node ring +
+- **Before**: `screenshots/archive/v030-before/network-2.png`
+- **After**: `screenshots/archive/v030-after/dashboard.png` (rail, nothing selected)
+  and `screenshots/archive/v030-after/response-flow-selected.png` (node ring +
   underline + compact drawer whose count matches the stage).
 - **Rationale**: one canonical query (invariant-tested); selection is a node
   ring + accent underline, never a giant card; drawer animates open with
@@ -33,8 +33,8 @@ Paths are relative to the repository root.
 
 - **Problem**: a plain searchable card list; no operational context, no table,
   no fast inspection.
-- **Before**: `screenshots/v030-before/incidents.png`
-- **After**: `screenshots/v030-after/incidents-list.png`,
+- **Before**: `screenshots/archive/v030-before/incidents.png`
+- **After**: `screenshots/archive/v030-after/incidents-list.png`,
   `incidents-table.png`, `incident-inspector.png`
 - **Rationale**: summary band (each stat filters), sortable table, side
   inspector, compact density — all bounded for 10k-record stores.
@@ -44,8 +44,8 @@ Paths are relative to the repository root.
 - **Problem**: the paw was the person's default avatar and the app mark;
   decorative ring options (Leaves/Wood/Rope/Stars) added noise; "(optional)"
   labels were duplicated.
-- **Before**: `screenshots/v030-before/profile.png`
-- **After**: `screenshots/v030-after/profile.png`
+- **Before**: `screenshots/archive/v030-before/profile.png`
+- **After**: `screenshots/archive/v030-after/profile.png`
 - **Rationale**: initials/silhouette avatar with one subtle ring; new
   handoff-relay app mark in the titlebar/sidebar/icons; opt-in recognition
   card states there is no leaderboard.
@@ -54,8 +54,8 @@ Paths are relative to the repository root.
 
 - **Problem**: the strong cryptographic device identity was invisible; the
   country dropdown looked like a browser `<select>` and did almost nothing.
-- **After**: `screenshots/v030-after/devices.png`,
-  `screenshots/v030-after/appearance.png`
+- **After**: `screenshots/archive/v030-after/devices.png`,
+  `screenshots/archive/v030-after/appearance.png`
 - **Rationale**: Settings → Devices shows friendly name, type, OS, version,
   public fingerprint, trusted peers with revoke; the country combobox is
   searchable/keyboard-accessible with an honest effects note.
@@ -64,7 +64,7 @@ Paths are relative to the repository root.
 
 - **Problem**: only two genuinely distinct dark themes; Monochrome Dark
   statuses/surfaces were hard to distinguish; no window material choice.
-- **After**: `screenshots/v030-after/theme-*.png` (Forest Night, Midnight
+- **After**: `screenshots/archive/v030-after/theme-*.png` (Forest Night, Midnight
   Ops, Storm, Aurora, mono-dark, Forest Light, Sand) and
   `material-solid/frosted/glass.png`
 - **Rationale**: six new themes with complete status palettes + ambient
@@ -74,7 +74,7 @@ Paths are relative to the repository root.
 
 ## 7. Help, integrity review, home
 
-- **After**: `screenshots/v030-after/help.png`, `integrity-review.png`,
+- **After**: `screenshots/archive/v030-after/help.png`, `integrity-review.png`,
   `home.png`
 - **Rationale**: new Help articles (response flow, integrity, devices,
   recognition, country, palette, themes); integrity review is a

@@ -106,11 +106,11 @@ anywhere; update check is read-only).
 
 ## Screenshots
 
-- FINAL LAUNCHER SCREENSHOTS: `screenshots/v030-dev7-launcher/` (13 PNGs:
+- FINAL LAUNCHER SCREENSHOTS: `screenshots/current/v030-dev7-launcher/` (13 PNGs:
   Forest Night / Aurora / Midnight Ops, theme menu open, diagnostics,
   update-no-remote, desktop-missing, build running early+mid, build complete,
   titlebar narrow + maximized).
-- FINAL MAP SCREENSHOTS: `screenshots/v030-dev7-map/` (4 PNGs: list idle,
+- FINAL MAP SCREENSHOTS: `screenshots/current/v030-dev7-map/` (4 PNGs: list idle,
   selection + inspector, street-level selected marker + camera, bookmarked).
 - Visual acceptance: all 15 judged **pass** (minor nits noted in the judge
   output: swatch contrast in the theme popover, long-path wrap in diagnostics).

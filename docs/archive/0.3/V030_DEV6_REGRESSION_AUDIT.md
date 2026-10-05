@@ -4,7 +4,7 @@
 
 - Version before: **0.3.0-dev.5** @ `8fe8ae4` / frontend `0b9a95609a28` — confirmed in git, `release/current/manifest.json`, and the running EXE's About.
 - All older Wildlife processes killed; only the current packaged EXE launched for QA.
-- Before-screenshots: `screenshots/v030-dev6-before/`.
+- Before-screenshots: `screenshots/archive/v030-dev6-before/`.
 - Baseline tests: 629/629 frontend, 7/7 Rust, typecheck clean, smoke 7/7.
 
 ## Part I — regression audit (packaged EXE + source)
@@ -65,7 +65,7 @@
   Copy reference / View on map / Export); text inputs keep native edit menus.
 - Map inspector V6: close top-right ✓, structured intel rows ✓, bookmark ✓,
   Measure from here ✓, no escaped unicode ✓ (screenshot
-  `screenshots/v030-dev6-after/map-inspector-v6.png`).
+  `screenshots/archive/v030-dev6-after/map-inspector-v6.png`).
 - Desktop smoke: **7/7** on the final dev.6 EXE.
 - Frontend tests after changes: **629/629**; Rust 7/7; typecheck clean.
 

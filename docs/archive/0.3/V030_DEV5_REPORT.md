@@ -30,7 +30,7 @@
 - **LIVE ACTIVITY V5**: PASS. Rich rows (time · category chip with icon+label · actor/org · ref · concern · status transition · generalized location, suppressed for sensitive records), 6 category filters, Today/Yesterday/Earlier grouping, scroll-safe "New activity" badge. Event types: created, assignment/en-route/pickup/care/closed via status transitions, handoffs/custody, observations/photos, corrections/notes, system.
 - **RESPONSE NETWORK V5**: PASS. Content-aware card heights (`align-items:start`), Network Pulse enriched (sending orgs, recent network event) + compact honest empty state, giant fixed heights removed.
 - **LOCAL-STORE WORKSPACE TEXT**: removed from the workspace; source state lives in the sidebar `● Local` status row / About.
-- **TERRAIN 3D**: **PASS — genuinely online**. ROOT CAUSE (present since the map shipped): MapLibre v6 resolves its module worker at runtime (`dist/assets/maplibre-gl-worker.mjs`), which Vite never emitted — vite dev resolved it from node_modules, the packaged EXE got "Worker failed to load". Fixed with a postbuild copy (`scripts/fix-maplibre-worker.mjs`). Verified in the EXE: canvas mounts cold, DEM active (AWS Terrarium, `HTTP 200` verified), **visible 3D relief + hillshade at pitch 60/bearing 25** (`screenshots/v030-dev5-after/qa-terrain-relief.png`), terrain stays selected on failure with [Retry]/[Use 2D map] (kick-out removed).
+- **TERRAIN 3D**: **PASS — genuinely online**. ROOT CAUSE (present since the map shipped): MapLibre v6 resolves its module worker at runtime (`dist/assets/maplibre-gl-worker.mjs`), which Vite never emitted — vite dev resolved it from node_modules, the packaged EXE got "Worker failed to load". Fixed with a postbuild copy (`scripts/fix-maplibre-worker.mjs`). Verified in the EXE: canvas mounts cold, DEM active (AWS Terrarium, `HTTP 200` verified), **visible 3D relief + hillshade at pitch 60/bearing 25** (`screenshots/archive/v030-dev5-after/qa-terrain-relief.png`), terrain stays selected on failure with [Retry]/[Use 2D map] (kick-out removed).
 - **MAP CAMERA STATE / BASEMAP PERSISTENCE**: PASS — center/zoom/bearing survive Streets→Satellite→Terrain→2D (was reset on every switch; `fitMode="service-area"` forced `initialCamera` null). Terrain pitch memory preserves the previous 2D pitch.
 - **COMPASS V5**: PASS — real rotating SVG compass; old `↑ N` text control removed; real-input click returns bearing 40°→0°.
 - **MEASURE V5**: PASS — designed A/B amber pins, distance + compass-bearing readout, Clear/Esc, panel confirmed in EXE.
@@ -50,7 +50,7 @@
 
 ## Final screenshots
 
-`screenshots/v030-dev5-after/` — terrain relief, measure A/B, map V5 controls, dashboard post-scroll, plus route captures.
+`screenshots/archive/v030-dev5-after/` — terrain relief, measure A/B, map V5 controls, dashboard post-scroll, plus route captures.
 
 ## Remaining blockers / honest notes
 

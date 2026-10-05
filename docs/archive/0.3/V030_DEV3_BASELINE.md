@@ -8,7 +8,7 @@ Date: 2026-10-04 · Branch `0.3.0-overhaul` · dev.2 exit state: commit `c73d80b
 - Portable smoke 7/7 on 0.3.0-dev.2; 60/60 official tour runs (0 auto-skips).
 - dev.19 checkpoint/tag untouched.
 
-## Owner feedback confirmed in the real EXE (before screenshots in `screenshots/v030-dev3-before/`)
+## Owner feedback confirmed in the real EXE (before screenshots in `screenshots/archive/v030-dev3-before/`)
 
 1. Network list view: Live Activity alone at span-6 left the right half empty. → fixed with the Network Pulse module.
 2. Incident rows: actions visually disconnected. → rebuilt (priority actions, vertically centered, icon detail quiet).
