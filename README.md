@@ -6,7 +6,7 @@
 
 **An open-source, local-first tool for creating clear and traceable wildlife incident handoffs.**
 
-[![Version](https://img.shields.io/badge/version-0.1.0-green)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.3.0--dev.5-green)](CHANGELOG.md)
 [![License: AGPL-3.0-only](https://img.shields.io/badge/License-AGPL--3.0--only-blue)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-54%20passing-brightgreen)](#development)
 
@@ -19,6 +19,22 @@ When someone finds injured wildlife, the important details end up scattered acro
 **Wildlife Incident Handoff** turns that scattered story into a clear, chronological, traceable incident record that can be passed from person to person without losing context:
 
 > **Observe · Record · Hand off · Preserve context**
+
+## HOW TO LAUNCH
+
+Open: **`Wildlife Incident Handoff Launcher.exe`** (project root).
+
+The launcher shows which version/commit you are on, whether the packaged
+desktop build is stale, and can build the desktop app with one click
+(canonical pipeline: `npm run desktop:release`). It never installs anything
+from the internet and never overwrites uncommitted work.
+
+For direct installed application: run
+`release/desktop/Wildlife-Incident-Handoff-Setup-<version>.exe` once, then
+launch "Wildlife Incident Handoff" from the Start Menu. A portable EXE sits
+beside it. `Launch Wildlife Incident Handoff.cmd` in the root is only a
+compatibility shim that opens the native launcher; the legacy menu lives in
+`scripts/legacy/`.
 
 ## What it is (and isn't)
 
