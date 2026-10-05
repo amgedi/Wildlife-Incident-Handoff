@@ -7,7 +7,9 @@ jobs:
     # Windows runner: several test fixtures use absolute Windows paths.
     runs-on: windows-latest
     steps:
+      # Full history: iconContract.test.ts verifies a tagged icon artifact.
       - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
