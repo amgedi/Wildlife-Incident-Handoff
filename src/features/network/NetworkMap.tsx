@@ -793,14 +793,28 @@ function LocationIntel({ incident, serviceArea }: { incident: Incident; serviceA
   return (
     <div style={{ borderTop: "1px solid var(--c-border)", paddingTop: 6, display: "grid", gap: 4, fontSize: "0.8rem" }}>
       <strong style={{ fontSize: "0.72rem", letterSpacing: "0.07em", textTransform: "uppercase", color: "var(--c-ink-faint)" }}>
-        {t("intelTitle", { defaultValue: "Location intel" })}
+        {t("intelTitle", { defaultValue: "Location" })}
       </strong>
-      {incident.location.description && <span>\ud83d\udccd {incident.location.description}</span>}
-      {incident.location.landmark && <span>\ud83e\udded {incident.location.landmark}</span>}
-      {incident.location.address && <span>\ud83c\udfe0 {incident.location.address}</span>}
-      {distanceBearing && <span>\ud83d\udcf0 {distanceBearing}</span>}
+      {incident.location.description && (
+        <span className="intel-row"><Icons.pin size={13} /> <span>{incident.location.description}</span></span>
+      )}
+      {incident.location.landmark && (
+        <span className="intel-row"><Icons.compass size={13} /> <span>{t("intelNearLandmark", { defaultValue: "near" })} {incident.location.landmark}</span></span>
+      )}
+      {incident.location.address && (
+        <span className="intel-row"><Icons.home size={13} /> <span>{incident.location.address}</span></span>
+      )}
+      {distanceBearing && (
+        <span className="intel-row"><Icons.map size={13} /> <span>{distanceBearing}</span></span>
+      )}
       {incident.location.accuracyMeters != null && (
-        <span>{t("intelAccuracy", { defaultValue: "GPS accuracy" })} \±{incident.location.accuracyMeters} m</span>
+        <span className="intel-row">
+          <Icons.crosshair size={13} />
+          <span>
+            <span className="intel-k">{t("intelAccuracy", { defaultValue: "GPS accuracy" })}</span>
+            ±{incident.location.accuracyMeters} m
+          </span>
+        </span>
       )}
 
       {state === "blocked" && (
@@ -837,7 +851,15 @@ function LocationIntel({ incident, serviceArea }: { incident: Incident; serviceA
       {state === "loading" && <span className="hint" style={{ margin: 0 }}>{t("intelLoading", { defaultValue: "Looking up…" })}</span>}
       {state === "ok" && intel && (
         <span>
-          {intel.road && <>\ud83d\udee3 {intel.road}</>}
+          {intel.road && (
+            <span className="intel-row" style={{ display: "flex" }}>
+              <Icons.map size={13} />
+              <span>
+                <span className="intel-k">{t("intelNearestPlace", { defaultValue: "Nearest place" })}</span>
+                {intel.road}{intel.road && intel.city ? " · " : ""}{intel.city}
+              </span>
+            </span>
+          )}
           {intel.road && intel.city ? " · " : ""}
           {intel.city}
           <span className="hint" style={{ display: "block", margin: 0, fontSize: "0.68rem" }}>{provider.attribution}</span>

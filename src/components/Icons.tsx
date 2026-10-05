@@ -78,6 +78,9 @@ export const Icons = {
   archive: (p: IconProps) => (
     <Icon {...p}><rect x="3" y="4" width="18" height="4.5" rx="1" /><path d="M5 8.5V19a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8.5M10 12.5h4" /></Icon>
   ),
+  crosshair: (p: IconProps) => (
+    <Icon {...p}><circle cx="12" cy="12" r="7" /><path d="M12 2v4M12 18v4M2 12h4M18 12h4" /><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" /></Icon>
+  ),
   pin: (p: IconProps) => (
     <Icon {...p}><path d="M9 4h6l-.7 5.2 3.2 3.3H6.5l3.2-3.3L9 4ZM12 12.5V21" /></Icon>
   ),

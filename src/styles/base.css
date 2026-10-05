@@ -1650,3 +1650,66 @@ button.ax-dist-row:hover { border-color: var(--c-border); background: var(--c-su
 .onboard-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c-border); }
 .onboard-dot.active { background: var(--c-primary); }
 .onboard-dot.done { background: color-mix(in srgb, var(--c-primary) 55%, var(--c-border)); }
+
+/* ---------- 0.3.0-dev.6 Live Activity layout repair (Part IV) ----------
+   dev.5 regression: .ops-feed-item's grid declared 2 columns but the V5 row
+   has 3 children (time, rail, body) — the body fell into a 52px implicit
+   column and text collapsed one-word-per-line. One canonical grid here;
+   the later duplicate .ops-feed blocks above are superseded for V5 rows. */
+.activity-v5-list .ops-feed-item {
+  display: grid;
+  grid-template-columns: 48px 3px minmax(260px, 1fr);
+  align-items: start;
+}
+.activity-v5-list .ops-feed-body { display: grid; gap: 2px; min-width: 0; }
+.activity-v5-list .activity-v5-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
+.activity-v5-list .ops-feed-event { flex: 1 1 200px; min-width: 200px; overflow-wrap: anywhere; }
+@media (max-width: 900px) {
+  .activity-v5-list .ops-feed-item { grid-template-columns: 48px 3px minmax(180px, 1fr); }
+  .activity-v5-list .ops-feed-event { min-width: 160px; }
+}
+
+/* ---------- 0.3.0-dev.6 Location Intel V6 (Part II) ---------- */
+.intel-row { display: flex; align-items: flex-start; gap: 6px; line-height: 1.45; }
+.intel-row svg { flex-shrink: 0; margin-top: 2px; color: var(--c-ink-faint); }
+.intel-row .intel-k { display: block; font-size: 0.68rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--c-ink-faint); }
+
+/* ---------- 0.3.0-dev.6 status color registry (Part XVI) ----------
+   Semantic status families mapped per theme via tokens; fallbacks keep
+   contrast if a theme does not define them. */
+:root {
+  --status-reported: var(--c-info, #2f6fd0);
+  --status-assigned: #5b5bd6;
+  --status-enroute: #0e8f9e;
+  --status-pickup: #b45309;
+  --status-transfer: #7c3aed;
+  --status-care: #2f7d4f;
+  --status-ok: var(--c-ok, #22c55e);
+  --status-closed: var(--c-ink-faint, #6b7280);
+  --status-draft: var(--c-ink-faint, #6b7280);
+}
+
+/* ---------- 0.3.0-dev.6 Response Flow V6 (Part V) ----------
+   Scannable stage rail: per-stage accent ring + label accent; selected stage
+   gets a stronger ring + soft halo; zero stages stay quiet but legible. */
+.rflow-stage { --stage-color: var(--c-ink-faint); }
+.rflow-stage[data-stage="reported"] { --stage-color: var(--status-reported); }
+.rflow-stage[data-stage="assigned"] { --stage-color: var(--status-assigned); }
+.rflow-stage[data-stage="enroute"] { --stage-color: var(--status-enroute); }
+.rflow-stage[data-stage="pickup"] { --stage-color: var(--status-pickup); }
+.rflow-stage[data-stage="transfer"] { --stage-color: var(--status-transfer); }
+.rflow-stage[data-stage="care"] { --stage-color: var(--status-care); }
+.rflow-stage[data-stage="closed"] { --stage-color: var(--status-closed); }
+.rflow-stage .rflow-node {
+  border: 2px solid color-mix(in srgb, var(--stage-color) 55%, var(--c-border));
+  color: var(--stage-color);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--stage-color) 18%, transparent);
+}
+.rflow-stage .rflow-label { color: var(--c-ink-soft); }
+.rflow-stage.is-selected .rflow-node {
+  border-color: var(--stage-color);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--stage-color) 16%, transparent), 0 2px 8px rgb(0 0 0 / 0.18);
+}
+.rflow-stage.is-selected .rflow-label { color: var(--c-ink); font-weight: 650; }
+.rflow-stage.is-zero .rflow-node { border-color: var(--c-border); color: var(--c-ink-faint); box-shadow: none; }
+.rflow-link { background: linear-gradient(90deg, var(--c-border), var(--c-border)); }

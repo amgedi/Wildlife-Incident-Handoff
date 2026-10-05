@@ -101,13 +101,15 @@ export function SidebarContextSections({ onlyPro = true }: { onlyPro?: boolean }
           ))}
         </nav>
       )}
-      {prefs.showStatus && (
+      {/* 0.3.0-dev.6 (spec 56): "Local only" removed from the sidebar —
+          local-only is the normal state and does not deserve prominent space.
+          Connection state lives in Settings → Devices/Sync; the sidebar only
+          surfaces it when the user opted into LAN sync (action needed). */}
+      {prefs.showStatus && lanSync.address != null && !lanSync.lastSync && (
         <div className="sidebar-status" aria-label={t("sidebarStatus", { defaultValue: "Status" })}>
           <span className="sidebar-status-item">
-            <span className={`sidebar-status-dot ${lanSync.lastSync ? "ok" : ""}`} aria-hidden="true" />
-            {lanSync.lastSync
-              ? t("sidebarLan", { defaultValue: "LAN sync on" })
-              : t("sidebarLocal", { defaultValue: "Local only" })}
+            <span className="sidebar-status-dot" aria-hidden="true" />
+            {t("sidebarLanWaiting", { defaultValue: "LAN sync — waiting for a paired device" })}
           </span>
         </div>
       )}
