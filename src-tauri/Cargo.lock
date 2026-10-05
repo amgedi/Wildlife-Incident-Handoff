@@ -4865,7 +4865,7 @@ dependencies = [
 
 [[package]]
 name = "wildlife-incident-handoff"
-version = "0.3.0-dev.6"
+version = "0.3.0-dev.7"
 dependencies = [
  "aes-gcm",
  "hkdf",
