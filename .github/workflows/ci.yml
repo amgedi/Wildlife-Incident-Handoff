@@ -4,7 +4,8 @@ on:
   pull_request:
 jobs:
   frontend:
-    runs-on: ubuntu-latest
+    # Windows runner: several test fixtures use absolute Windows paths.
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
