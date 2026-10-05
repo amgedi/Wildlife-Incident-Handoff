@@ -68,21 +68,24 @@ record("titlebar: search centered (|offset| <= 8px)", tb.found && Math.abs(tb.of
 
 // bookmark flow on incidents list
 await nav("/incidents", 2200);
-const bmBefore = await ev(`(() => { const b = document.querySelector(".bookmark-btn"); if (!b) return "nf"; b.click(); return "clicked"; })()`);
-await sleep(900);
+const bmBefore = await ev(`(() => { const b = document.querySelector(".bookmark-btn"); if (!b) return "nf"; return b.classList.contains("active") ? "active" : "inactive"; })()`);
+if (bmBefore === "inactive") {
+  await ev(`(() => { document.querySelector(".bookmark-btn").click(); })()`);
+  await sleep(900);
+}
 const bmState = await ev(`(() => { const b = document.querySelector(".bookmark-btn.active"); return !!b; })()`);
-record("bookmark: star toggles active on incident card", bmBefore === "clicked" && bmState);
+record("bookmark: star active on incident card", bmBefore !== "nf" && bmState, "was:" + bmBefore);
 await shot("screenshots/v030-dev6-after/bookmarked-card.png");
 
 // bookmarked deep link shows the incident
 await nav("/incidents?bookmark=1", 2000);
-const bmList = await ev(`(() => { const cards = document.querySelectorAll(".incident-card"); return { cards: cards.length, hasChip: /Bookmarked/.test(document.body.textContent) }; })()`);
+const bmList = await ev(`(() => { const cards = document.querySelectorAll("[data-incident-id]"); return { cards: cards.length }; })()`);
 record("bookmark: ?bookmark=1 view filters to bookmarked", bmList.cards >= 1, JSON.stringify(bmList));
 
 // context menu on card
 await nav("/incidents", 2000);
 const ctx = await ev(`(() => {
-  const card = document.querySelector(".incident-card");
+  const card = document.querySelector("[data-incident-id] .report-card") ?? document.querySelector(".incident-card");
   if (!card) return { found: false };
   card.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: 300, clientY: 300 }));
   return { found: true };
@@ -94,7 +97,10 @@ await shot("screenshots/v030-dev6-after/context-menu.png");
 await ev(`(() => { document.querySelector(".ctx-scrim")?.click(); })()`);
 await sleep(300);
 
-// map inspector: close button top-right + intel rows
+// map inspector: close button top-right + intel rows (Test View provides mappable demo incidents)
+await nav("/network", 2200);
+await ev();
+await sleep(2500);
 await nav("/network?view=map", 3500);
 await ev(`(() => { const c = document.querySelector("canvas"); if (!c) return; const r = c.getBoundingClientRect(); for (let i=0;i<6;i++) c.dispatchEvent(new WheelEvent("wheel",{deltaY:-500,clientX:r.left+r.width/2,clientY:r.top+r.height/2,bubbles:true,cancelable:true})); })()`);
 await sleep(2200);

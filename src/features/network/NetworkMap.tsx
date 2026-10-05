@@ -638,12 +638,16 @@ export function NetworkMap({
               }}
               onKeyDown={(e) => { if (e.key === "Escape") setInspected(null); }}
             >
-              <div className="row between" style={{ gap: 8, alignItems: "flex-start" }}>
-                <strong style={{ fontSize: "0.95rem", overflowWrap: "anywhere" }}>{animalLabel(inspectedIncident)}</strong>
-                <button className="btn btn-quiet btn-sm" style={{ width: 28, height: 28, padding: 0, justifyContent: "center" }} title={t("inspectorClose", { defaultValue: "Close" })} aria-label={t("inspectorClose", { defaultValue: "Close" })} onClick={() => setInspected(null)}>
-                  <Icons.x size={14} />
-                </button>
-              </div>
+              <button
+                className="btn btn-quiet btn-sm"
+                style={{ position: "absolute", top: 8, right: 8, width: 28, height: 28, padding: 0, justifyContent: "center", zIndex: 2 }}
+                title={t("inspectorClose", { defaultValue: "Close" })}
+                aria-label={t("inspectorClose", { defaultValue: "Close" })}
+                onClick={() => setInspected(null)}
+              >
+                <Icons.x size={14} />
+              </button>
+              <strong style={{ fontSize: "0.95rem", overflowWrap: "anywhere", paddingRight: 30 }}>{animalLabel(inspectedIncident)}</strong>
               <div className="row" style={{ gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                 <StatusBadge status={inspectedIncident.status} />
                 <span style={{ fontSize: "0.8rem", color: "var(--c-ink-faint)", fontVariantNumeric: "tabular-nums" }}>
@@ -689,9 +693,6 @@ export function NetworkMap({
                   </p>
                 );
               })()}
-              <Link className="btn btn-primary btn-sm" to={`/incidents/${inspectedIncident.id}`} onClick={() => onSelect?.(inspectedIncident)}>
-                {t("openIncident", { defaultValue: "Open incident" })}
-              </Link>
             </aside>
           )}
         </div>
