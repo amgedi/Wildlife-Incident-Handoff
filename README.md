@@ -10,7 +10,7 @@ An open-source, local-first desktop application for recording wildlife incidents
 
 > Record what was observed. Keep uncertainty visible. Do not invent what is not known.
 
-**Current release: 0.3.0-rc.1 / 0.3.0-rc.2 (release candidate — Tester channel).** See [release notes](https://github.com/amgedi/Wildlife-Incident-Handoff/releases). Use fictional/test data first; see KNOWN_LIMITATIONS.md.
+**Current release: 0.3.0-rc.2 (release candidate — Tester channel).** See [Releases](https://github.com/amgedi/Wildlife-Incident-Handoff/releases) for the installer, portable build and launcher. Use fictional/test data first; see [KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md).
 
 [![Version](https://img.shields.io/badge/version-0.3.0--rc.1-green)](CHANGELOG.md)
 [![License: AGPL-3.0-only](https://img.shields.io/badge/License-AGPL--3.0--only-blue)](LICENSE)
@@ -26,22 +26,21 @@ When someone finds injured wildlife, the important details end up scattered acro
 
 > **Observe · Record · Hand off · Preserve context**
 
-## HOW TO OPEN WORKBENCH
+## HOW TO GET THE APP
 
-- **Development/workspace:** double-click **`Launch Wildlife Incident Handoff.exe`** (project root — the only executable here). It shows build identity, launches the current packaged build, runs builds, checks updates, and switches themes.
-- **Current tester release:** `release/current/` (installer + portable + tester docs).
-- **Historical releases:** `release/archive/`.
+- **Testers / normal users:** download the installer or portable EXE from [Releases](https://github.com/amgedi/Wildlife-Incident-Handoff/releases). No build tools needed.
+- **Companion launcher:** the `Launch Wildlife Incident Handoff` launcher EXE is attached to each release (it is built locally, never committed to Git — binaries belong in Releases, not source history).
 - **Source:** `src/` (frontend) · `src-tauri/` (desktop shell) · `launcher/` (the launcher's own Tauri project).
 - **Documentation:** `docs/` · **Folder map:** `PROJECT_STRUCTURE.md`.
 
 The launcher never installs anything from the internet and never overwrites
-uncommitted work. External testers only need `release/current/` — not this
-folder.
+uncommitted work. RC releases are clearly labeled as pre-releases.
 
-For the installed application: run
-`release/current/Wildlife-Incident-Handoff-Setup-0.3.0-rc.1.exe` once, then
-launch "Wildlife Incident Handoff" from the Start Menu. A portable EXE sits
-beside it in the same folder.
+For the installed application: download
+`Wildlife-Incident-Handoff-Setup-0.3.0-rc.2.exe` from
+[Releases](https://github.com/amgedi/Wildlife-Incident-Handoff/releases), run
+it once, then launch "Wildlife Incident Handoff" from the Start Menu. A
+portable EXE sits beside it in the same download.
 
 ## What it is (and isn't)
 
