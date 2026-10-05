@@ -50,6 +50,7 @@ export function selectionCameraDecision(
   point: MapPointLike,
   bounds: ViewBounds,
   currentZoom: number,
+  opts?: { clusterMinZoom?: number },
 ): CameraDecision {
   const latSpan = bounds.north - bounds.south;
   const lonSpan = bounds.east - bounds.west;
@@ -65,6 +66,12 @@ export function selectionCameraDecision(
     point.lon >= bounds.west + lonMargin &&
     point.lon <= bounds.east - lonMargin;
   if (visible) {
+    // The point is in view but may still be hiding inside a cluster: when
+    // clustering is active below the selection zoom, zoom in enough to break
+    // the cluster so the individual marker appears (Part XIV) — without
+    // zooming absurdly close.
+    const clusterMin = opts?.clusterMinZoom ?? 0;
+    if (currentZoom < clusterMin) return { mode: "fly", zoom: clusterMin };
     // Small pan only — keep the user's zoom (spec 47).
     return { mode: "ease" };
   }

@@ -56,6 +56,18 @@ describe("selection camera decision (pure logic)", () => {
     expect(d.zoom!).toBeLessThanOrEqual(13.5);
   });
 
+  it("visible point inside a cluster at low zoom → zooms in to break the cluster (Part XIV)", () => {
+    const d = selectionCameraDecision({ lat: 5, lon: 5 }, wide, 4, { clusterMinZoom: 12.5 });
+    expect(d.mode).toBe("fly");
+    expect(d.zoom).toBe(12.5);
+  });
+
+  it("visible clustered point at/above the selection zoom → small pan only", () => {
+    expect(selectionCameraDecision({ lat: 5, lon: 5 }, wide, 12.5, { clusterMinZoom: 12.5 }).mode).toBe("ease");
+    // clustering disabled → never force-zoom a visible marker
+    expect(selectionCameraDecision({ lat: 5, lon: 5 }, wide, 4, { clusterMinZoom: 0 }).mode).toBe("ease");
+  });
+
   it("marker just inside the edge margin still flies (needs margin, spec 47)", () => {
     const d = selectionCameraDecision({ lat: 0.5, lon: 5 }, wide, 6);
     expect(d.mode).toBe("fly");

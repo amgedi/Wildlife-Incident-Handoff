@@ -20,7 +20,7 @@ import {
   type CameraMemoryStore, type ClusterSummary, type MapV4Prefs, type Units,
 } from "./map/v4";
 import { disableTerrain, easePitch, enableTerrain, queryElevationM, resetCompass, setMeasureLine } from "./map/v4Map";
-import { selectionCameraDecision } from "./map/mapSelection";
+import { selectionCameraDecision, SELECTION_MIN_ZOOM } from "./map/mapSelection";
 import { CONCERN_TYPES } from "../incidents/concernTypes";
 import { BookmarkButton } from "../incidents/BookmarkButton";
 
@@ -336,7 +336,14 @@ export function NetworkMap({
     let decision: ReturnType<typeof selectionCameraDecision>;
     try {
       const b = map.getBounds();
-      decision = selectionCameraDecision(pos, { north: b.getNorth(), south: b.getSouth(), east: b.getEast(), west: b.getWest() }, map.getZoom());
+      decision = selectionCameraDecision(
+        pos,
+        { north: b.getNorth(), south: b.getSouth(), east: b.getEast(), west: b.getWest() },
+        map.getZoom(),
+        // Clustering active below the selection zoom → the point may sit
+        // inside a cluster; zoom enough to break it open (Part XIV).
+        { clusterMinZoom: prefs.layers.clusters ? SELECTION_MIN_ZOOM : 0 },
+      );
     } catch {
       decision = { mode: "fly", zoom: 12.5 };
     }
