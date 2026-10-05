@@ -25,3 +25,9 @@ release/
 
 src-tauri/target/
 launcher/src-tauri/target/
+
+# Root launcher binary is built locally, deployed via npm run launcher:deploy;
+# never committed to Git (release binaries live in GitHub Releases).
+/Launch Wildlife Incident Handoff.exe
+launcher/ui/node_modules/
+launcher/ui/dist/

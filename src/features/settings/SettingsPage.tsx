@@ -1083,33 +1083,65 @@ function ProfileSection() {
 
 function UpdateChecker() {
   const { t } = useTranslation();
-  const [state, setState] = useState<"idle" | "checking" | "uptodate" | { available: string } | "failed">("idle");
+  // 0.3.0-rc.2: real signed updates via the Tauri updater plugin (GitHub
+  // release manifests, minisign-verified artifacts). The old release-page
+  // comparison remains only as the web/PWA fallback.
+  const [state, setState] = useState<"idle" | "checking" | "uptodate" | "downloading" | { available: string } | { failed: string }>("idle");
+  const desktop = isTauri();
   async function check() {
     setState("checking");
     try {
-      const res = await fetch("https://api.github.com/repos/amgedi/wildlife-incident-handoff/releases/latest", { headers: { Accept: "application/vnd.github+json" } });
-      if (!res.ok) throw new Error("http");
-      const data = (await res.json()) as { tag_name?: string; html_url?: string };
-      const latest = (data.tag_name ?? "").replace(/^v/, "");
-      if (latest && latest !== appVersion) setState({ available: latest });
-      else setState("uptodate");
-    } catch {
-      setState("failed");
+      if (desktop) {
+        const cmd = (window as unknown as { __TAURI__?: { core: { invoke: (c: string) => Promise<{ status: string; latestVersion: string | null; status2?: string }> } } }).__TAURI__;
+        const info = await cmd!.core.invoke("check_app_update");
+        if (info.status === "available" && info.latestVersion) setState({ available: info.latestVersion });
+        else if (info.status === "up-to-date") setState("uptodate");
+        else setState({ failed: info.status });
+      } else {
+        const res = await fetch("https://api.github.com/repos/amgedi/wildlife-incident-handoff/releases/latest", { headers: { Accept: "application/vnd.github+json" } });
+        if (!res.ok) throw new Error("http");
+        const data = (await res.json()) as { tag_name?: string };
+        const latest = (data.tag_name ?? "").replace(/^v/, "");
+        if (latest && latest !== appVersion) setState({ available: latest });
+        else setState("uptodate");
+      }
+    } catch (e) {
+      setState({ failed: String(e) });
+    }
+  }
+  async function install() {
+    if (!desktop) return;
+    setState("downloading");
+    try {
+      const cmd = (window as unknown as { __TAURI__?: { core: { invoke: (c: string) => Promise<void> } } }).__TAURI__;
+      await cmd!.core.invoke("install_app_update");
+      // The app relaunches itself after staging the signed update.
+    } catch (e) {
+      setState({ failed: String(e) });
     }
   }
   return (
     <div className="row" style={{ marginTop: "var(--space-4)", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-      <button className="btn btn-secondary btn-sm" onClick={() => void check()} disabled={state === "checking"}>
+      <button className="btn btn-secondary btn-sm" onClick={() => void check()} disabled={state === "checking" || state === "downloading"}>
         {state === "checking" ? "…" : t("settings:checkUpdates")}
       </button>
+      {state === "downloading" && <span className="hint">Downloading and verifying the signed update…</span>}
       {state === "uptodate" && <span className="badge open">{t("settings:upToDate")}</span>}
       {typeof state === "object" && state !== null && "available" in state && (
         <>
           <span className="badge warn">{t("settings:updateAvailable", { version: state.available })}</span>
-          <a className="btn btn-ghost btn-sm" href="https://github.com/amgedi/wildlife-incident-handoff/releases" target="_blank" rel="noreferrer">{t("settings:viewRelease")}</a>
+          {desktop ? (
+            <button className="btn btn-primary btn-sm" onClick={() => void install()}>Download &amp; install</button>
+          ) : (
+            <a className="btn btn-ghost btn-sm" href="https://github.com/amgedi/wildlife-incident-handoff/releases" target="_blank" rel="noreferrer">{t("settings:viewRelease")}</a>
+          )}
         </>
       )}
-      {state === "failed" && <span style={{ color: "var(--c-ink-faint)", fontSize: "0.85rem" }}>{t("settings:updateCheckFailed")}</span>}
+      {typeof state === "object" && state !== null && "failed" in state && (
+        <span style={{ color: "var(--c-ink-faint)", fontSize: "0.85rem" }}>
+          {desktop ? `Update check unavailable (${state.failed})` : t("settings:updateCheckFailed")}
+        </span>
+      )}
     </div>
   );
 }

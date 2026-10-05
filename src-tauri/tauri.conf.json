@@ -34,6 +34,15 @@
       }
     },
     "shortDescription": "Clear information. Safer handoffs.",
-    "longDescription": "An open-source, local-first tool for creating clear and traceable wildlife incident handoffs."
+    "longDescription": "An open-source, local-first tool for creating clear and traceable wildlife incident handoffs.",
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDMxNkUxREU3NEZBQkVFOUIKUldTYjdxdFA1eDF1TWJwT29IUjN1NGtsTis5WFRucitGZG5YUVdKQ1ZudDVHWGRZLzZqTmsyRHYK",
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

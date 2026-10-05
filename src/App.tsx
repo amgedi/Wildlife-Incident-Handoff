@@ -172,10 +172,15 @@ export function App() {
               )}
             </span>
           </NavLink>
-          <nav aria-label={t("navigation:mainNav")} className="nav-work">
-            {navList}
-          </nav>
-          <SidebarContextSections />
+          {/* 0.3.0-rc.2 sidebar vertical structure: the middle region (primary
+              nav + Pinned/Recent) is its own scroll area so Recent can never
+              render beneath the footer controls on short windows. */}
+          <div className="sidebar-scroll">
+            <nav aria-label={t("navigation:mainNav")} className="nav-work">
+              {navList}
+            </nav>
+            <SidebarContextSections />
+          </div>
           <nav aria-label={t("navigation:footerNav", { defaultValue: "Help and settings" })} className="nav-footer">
             {footerList}
           </nav>

@@ -96,8 +96,8 @@ export function SidebarContextSections({ onlyPro = true }: { onlyPro?: boolean }
           <p className="sidebar-section-label">{t("sidebarRecent", { defaultValue: "Recent" })}</p>
           {recent.map((r) => (
             <Link key={r.id} to={`/incidents/${r.id}`} className="sidebar-context-item">
-              <span className="sidebar-context-ref">{r.ref}</span>
-              <span className="sidebar-context-sub">{r.label} · {r.time}</span>
+              <span className="sidebar-context-ref" title={`${r.ref} — ${r.label}`}>{r.ref}</span>
+              <span className="sidebar-context-sub" title={`${r.label} · ${r.time}`}>{r.label} · {r.time}</span>
             </Link>
           ))}
         </nav>

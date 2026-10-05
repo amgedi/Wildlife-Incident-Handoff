@@ -52,7 +52,10 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .manage(std::sync::Arc::new(lan_sync::LanSyncInner::default()))
+        .manage(PendingUpdate::default())
         .setup(move |app| {
             use tauri::Manager;
             // The main window is created here (not in tauri.conf.json) so a
@@ -101,6 +104,8 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             write_launcher_theme,
+            check_app_update,
+            install_app_update,
             lan_sync::lan_sync_start,
             lan_sync::lan_sync_stop,
             lan_sync::lan_sync_set_snapshot,
@@ -123,3 +128,119 @@ fn main() {
         .run(tauri::generate_context!())
         .expect("failed to start Wildlife Incident Handoff");
 }
+
+// ---------- RC2: signed in-app updates (Tauri updater plugin) ----------
+// Release channel comes from the shared launcher prefs (default: tester for
+// RC versions). Endpoints point at GitHub release update manifests. The
+// downloaded artifact's minisign signature is ALWAYS verified by the plugin;
+// signature verification is never disabled.
+
+use tauri_plugin_updater::UpdaterExt;
+
+#[derive(Default)]
+struct PendingUpdate(std::sync::Mutex<Option<tauri_plugin_updater::Update>>);
+
+fn release_channel() -> String {
+    let appdata = std::env::var("APPDATA").ok();
+    let v = appdata
+        .map(|d| std::path::PathBuf::from(d).join("org.wildlifeincidenthandoff.app").join("launcher-prefs.json"))
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok())
+        .and_then(|v| v.get("channel").and_then(|c| c.as_str()).map(String::from));
+    v.unwrap_or_else(|| "tester".into())
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AppUpdateInfo {
+    status: String, // up-to-date | available | offline | unavailable | error
+    channel: String,
+    current_version: String,
+    latest_version: Option<String>,
+    notes: Option<String>,
+}
+
+#[tauri::command]
+async fn check_app_update(app: tauri::AppHandle) -> Result<AppUpdateInfo, String> {
+    use tauri::Manager;
+    let channel = release_channel();
+    let endpoint = if channel == "stable" {
+        "https://github.com/amgedi/Wildlife-Incident-Handoff/releases/latest/download/latest.json"
+    } else {
+        "https://github.com/amgedi/Wildlife-Incident-Handoff/releases/latest/download/tester.json"
+    };
+    let current = app.package_info().version.to_string();
+    let endpoints: Vec<url::Url> = vec![endpoint.parse().map_err(|e| format!("endpoint: {e}"))?];
+    let updater = app
+        .updater_builder()
+        .endpoints(endpoints)
+        .map_err(|e| e.to_string())?
+        .build()
+        .map_err(|e| e.to_string())?;
+    let update = updater.check().await;
+    match update {
+        Ok(Some(u)) => {
+            let info = AppUpdateInfo {
+                status: "available".into(),
+                channel,
+                current_version: current,
+                latest_version: Some(u.version.clone()),
+                notes: u.body.clone(),
+            };
+            let state = app.state::<PendingUpdate>();
+            *state.0.lock().unwrap() = Some(u);
+            Ok(info)
+        }
+        Ok(None) => Ok(AppUpdateInfo {
+            status: "up-to-date".into(),
+            channel,
+            current_version: current,
+            latest_version: None,
+            notes: None,
+        }),
+        Err(e) => {
+            let msg = e.to_string().to_lowercase();
+            let status = if msg.contains("network") || msg.contains("connection") || msg.contains("timed out") || msg.contains("dns") {
+                "offline"
+            } else {
+                "error"
+            };
+            Ok(AppUpdateInfo {
+                status: status.into(),
+                channel,
+                current_version: current,
+                latest_version: None,
+                notes: Some(e.to_string()),
+            })
+        }
+    }
+}
+
+/// Download + verify + stage the update, then relaunch to install.
+/// The plugin verifies the minisign signature during download — this cannot
+/// be bypassed from here.
+#[tauri::command]
+async fn install_app_update(app: tauri::AppHandle) -> Result<(), String> {
+    use tauri::Manager;
+    let update = {
+        let taken = {
+            let state = app.state::<PendingUpdate>();
+            let mut guard = state.0.lock().unwrap();
+            guard.take()
+        };
+        taken
+    };
+    let Some(update) = update else { return Err("No pending update — check first.".into()) };
+    let downloaded = update
+        .download(
+            |chunk, _total| {
+                let _ = chunk;
+            },
+            || {},
+        )
+        .await
+        .map_err(|e| format!("download failed: {e}"))?;
+    update.install(&downloaded).map_err(|e| format!("install failed: {e}"))?;
+    app.restart();
+}
+
