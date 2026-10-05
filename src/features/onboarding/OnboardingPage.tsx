@@ -118,6 +118,19 @@ export function OnboardingPage({ preview = false }: { preview?: boolean }) {
         </div>
       </div>
 
+      {/* 0.3.0-dev.5 Part XIV: modern presentation — frosted card, subtle
+          progress rail ("1 of N"), shared button system; concise by design. */}
+      <div className="onboard-progress" role="group" aria-label={t("onboarding:progress", { defaultValue: "Onboarding progress" })}>
+        <span className="onboard-progress-count">
+          {t("onboarding:stepOf", { defaultValue: "{{n}} of {{total}}", n: stage + 1, total: 6 })}
+        </span>
+        <span className="onboard-progress-dots" aria-hidden="true">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <span key={i} className={`onboard-dot${i === stage ? " active" : ""}${i < stage ? " done" : ""}`} />
+          ))}
+        </span>
+      </div>
+
       {stage === 0 && (
         <div className="fade-in">
           <h2 style={{ fontSize: "1.25rem" }}>{t("onboarding:languageTitle", { defaultValue: "Choose your language" })}</h2>

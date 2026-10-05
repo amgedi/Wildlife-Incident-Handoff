@@ -1639,3 +1639,11 @@ button.ax-dist-row:hover { border-color: var(--c-border); background: var(--c-su
 .concern-option:focus-visible { outline: 2px solid var(--c-focus); outline-offset: 2px; }
 .concern-option strong { font-size: 0.92rem; }
 .concern-hint { font-size: 0.78rem; color: var(--c-ink-soft); }
+
+/* ---------- 0.3.0-dev.5 onboarding visual rework (Part XIV) ---------- */
+.onboard-progress { display: flex; align-items: center; gap: 10px; margin: 0 0 var(--space-3); }
+.onboard-progress-count { font-size: 0.76rem; letter-spacing: 0.06em; color: var(--c-ink-faint); text-transform: uppercase; }
+.onboard-progress-dots { display: inline-flex; gap: 5px; }
+.onboard-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c-border); }
+.onboard-dot.active { background: var(--c-primary); }
+.onboard-dot.done { background: color-mix(in srgb, var(--c-primary) 55%, var(--c-border)); }
