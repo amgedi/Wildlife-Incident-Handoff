@@ -138,7 +138,11 @@ export function NetworkMap({
       showServiceArea: prefs.layers.serviceArea,
       // Spec 99: restore the persisted camera unless the view must fit the
       // service area. Never restored when nothing was persisted.
-      initialCamera: fitMode !== "service-area" ? cameraStoreRef.current[full ? "full" : "compact"] ?? null : null,
+      // 0.3.0-dev.5 (spec 34/36): restore the remembered camera whenever one
+      // exists — the provider only fits the service area when nothing was
+      // saved. Previously fitMode="service-area" made basemap switches reset
+      // the camera to the fit view, losing the user's place.
+      initialCamera: cameraStoreRef.current[full ? "full" : "compact"] ?? null,
       onCameraChange: (cam) => {
         setView({ bearing: cam.bearing, pitch: cam.pitch });
         const size = full ? "full" : "compact";
