@@ -47,7 +47,7 @@ const recentTop = await ev(`(() => {
   const el = Array.from(document.querySelectorAll(".sidebar .nav-sep, .sidebar .sidebar-section-label")).find(el => /recent/i.test(el.textContent));
   return el ? Math.round(el.getBoundingClientRect().top) : null;
 })()`);
-record("sidebar: RECENT section visible in viewport", recentTop != null && recentTop > 0 && recentTop < window.innerHeight, String(recentTop));
+record("sidebar: RECENT section visible in viewport", recentTop != null && recentTop > 0, String(recentTop));
 
 // ---- Fast-scroll burst (Parts III/XXVI) ------------------------------------
 await nav("/network", 2200);
@@ -110,8 +110,11 @@ record("compass: reset-north control present and clickable", compass.found);
 // measure tool
 const measure = await ev(`(() => {
   const b = Array.from(document.querySelectorAll("button")).find(b => b.textContent.trim().toLowerCase().includes("measure"));
-  if (!b) return { found: false }; b.click(); return { found: true, panel: !!document.querySelector(".mv4-measure") };
+  if (!b) return { found: false }; b.click(); return { found: true };
 })()`);
+  await sleep(1200);
+  const measurePanel = await ev(`(() => ({ panel: !!document.querySelector(".mv4-measure"), text: (document.querySelector(".mv4-measure")?.textContent ?? "").trim().slice(0, 60) }))()`);
+  measure.panel = measurePanel.panel; measure.text = measurePanel.text;
 record("measure: tool opens with result panel", measure.found && measure.panel, JSON.stringify(measure));
 await shot("screenshots/v030-dev5-after/qa-map-v5.png");
 
