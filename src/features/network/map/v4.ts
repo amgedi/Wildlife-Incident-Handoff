@@ -111,6 +111,8 @@ export interface MapV4Prefs {
   timeRange: TimeRange;
   /** Multi-select of real statuses; empty array = show every status. */
   statuses: string[];
+  /** 0.3.0-dev.5: concern filter ("all" or a ConcernType value). */
+  concern: string;
 }
 
 export const MAP_V4_PREFS_KEY = "map-v4-prefs";
@@ -121,6 +123,7 @@ export const DEFAULT_PREFS: MapV4Prefs = {
   layers: { incidents: true, clusters: true, serviceArea: true, terrain: true },
   timeRange: "all",
   statuses: [],
+  concern: "all",
 };
 
 const MAP_MODES: MapMode[] = ["2d", "satellite", "terrain"];
@@ -135,6 +138,7 @@ export function sanitizePrefs(raw: unknown): MapV4Prefs {
   if (typeof r.mode === "string" && (MAP_MODES as string[]).includes(r.mode)) prefs.mode = r.mode as MapMode;
   if (typeof r.exaggeration === "string" && (EXAGGERATIONS as string[]).includes(r.exaggeration)) prefs.exaggeration = r.exaggeration as TerrainExaggeration;
   if (typeof r.timeRange === "string" && (TIME_RANGES as string[]).includes(r.timeRange)) prefs.timeRange = r.timeRange as TimeRange;
+  if (typeof r.concern === "string" && r.concern) prefs.concern = r.concern;
   if (typeof r.layers === "object" && r.layers !== null) {
     const l = r.layers as Record<string, unknown>;
     for (const key of ["incidents", "clusters", "serviceArea", "terrain"] as const) {

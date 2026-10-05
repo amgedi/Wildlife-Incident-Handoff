@@ -19,7 +19,8 @@ import {
   sanitizePrefs, statusesPresent, serializeCamera, TERRAIN_PITCH,
   type CameraMemoryStore, type ClusterSummary, type MapV4Prefs, type Units,
 } from "./map/v4";
-import { disableTerrain, enableTerrain, queryElevationM, resetCompass, setMeasureLine } from "./map/v4Map";
+import { disableTerrain, easePitch, enableTerrain, queryElevationM, resetCompass, setMeasureLine } from "./map/v4Map";
+import { CONCERN_TYPES } from "../incidents/concernTypes";
 
 type MapState = "loading" | "ready" | "offline" | "provider-failed" | "no-coordinates";
 
@@ -80,6 +81,7 @@ export function NetworkMap({
   const [measurePts, setMeasurePts] = useState<[number, number][]>([]);
   const [cluster, setCluster] = useState<{ summary: ClusterSummary; bounds: [[number, number], [number, number]] } | null>(null);
   const [view, setView] = useState({ bearing: 0, pitch: 0 });
+  const preTerrainPitchRef = useRef(0);
   const [viewResetToken, setViewResetToken] = useState(0);
   const [lensElevation, setLensElevation] = useState<number | null>(null);
   // Camera memory lives in a ref so the map-creating effect can read it
@@ -111,10 +113,15 @@ export function NetworkMap({
   }, [prefs, prefsReady]);
 
   const mode = prefs.mode;
-  const visibleIncidents = useMemo(
-    () => filterByStatuses(filterByTimeRange(incidents, prefs.timeRange), prefs.statuses),
-    [incidents, prefs.timeRange, prefs.statuses],
-  );
+  const visibleIncidents = useMemo(() => {
+    const inTime = filterByTimeRange(incidents, prefs.timeRange);
+    const inStatus = filterByStatuses(inTime, prefs.statuses);
+    // 0.3.0-dev.5 concern filter (spec 48): legacy records are wildlife_animal.
+    if (prefs.concern !== "all") {
+      return inStatus.filter((i) => (i.concernType ?? "wildlife_animal") === prefs.concern);
+    }
+    return inStatus;
+  }, [incidents, prefs.timeRange, prefs.statuses, prefs.concern]);
   const availableStatuses = useMemo(
     () => statusesPresent(incidents, Object.keys(STATUS_MARKER_STYLES)),
     [incidents],
@@ -210,21 +217,24 @@ export function NetworkMap({
     if (!map) return;
     const wantTerrain = mode === "terrain" && !offline && prefs.layers.terrain;
     if (wantTerrain) {
-      // Real DEM or nothing: a failed setup falls back to 2D with an honest
-      // notice (never synthesized elevation).
+      // 0.3.0-dev.5 (spec 29): a failed setup NO LONGER kicks the user to 2D.
+      // Terrain stays selected with an honest notice + [Retry]/[Use 2D map];
+      // the operator decides. Never synthesized elevation.
       const ok = enableTerrain(map, prefs.exaggeration, () => setTerrainFailed(true));
       setTerrainActive(ok);
       if (!ok) {
         setTerrainFailed(true);
-        setPrefs((p) => ({ ...p, mode: "2d" }));
         return;
       }
       setTerrainFailed(false);
+      // Preserve the user's center/zoom/bearing — only tilt the camera.
+      try { preTerrainPitchRef.current = map.getPitch(); } catch { /* map gone */ }
       map.easeTo({ pitch: TERRAIN_PITCH, duration: 500 });
     } else {
       disableTerrain(map);
       setTerrainFailed(false);
-      if (mode !== "terrain") map.easeTo({ pitch: 0, duration: 400 });
+      // Returning to 2D restores the previous 2D pitch while keeping location.
+      if (mode !== "terrain") map.easeTo({ pitch: preTerrainPitchRef.current ?? 0, duration: 400 });
     }
   }, [mapReady, mode, offline, prefs.layers.terrain, prefs.exaggeration, terrainAttempt]);
 
@@ -294,6 +304,8 @@ export function NetworkMap({
 
   const measureKm =
     measurePts.length === 2 ? greatCircleKm(measurePts[0]![1], measurePts[0]![0], measurePts[1]![1], measurePts[1]![0]) : null;
+  const measureBearing =
+    measurePts.length === 2 ? bearingToCompass(initialBearingDeg(measurePts[0]![1], measurePts[0]![0], measurePts[1]![1], measurePts[1]![0])) : null;
 
   const setLayer = (key: keyof MapV4Prefs["layers"], value: boolean) =>
     setPrefs((p) => ({ ...p, layers: { ...p.layers, [key]: value } }));
@@ -332,7 +344,7 @@ export function NetworkMap({
       )}
       {terrainFailed && (
         <div className="notice warning" style={{ marginBottom: "var(--space-3)" }} role="status" data-testid="terrain-unavailable">
-          <span>{t("mv4TerrainError", { defaultValue: "Terrain unavailable — using the 2D map. Terrain 3D needs an internet connection and WebGL." })}</span>
+          <span>{t("mv4TerrainError", { defaultValue: "Terrain unavailable — elevation couldn't load. Terrain 3D needs an internet connection and WebGL." })}</span>
           <button
             className="btn btn-secondary btn-sm"
             data-testid="terrain-retry"
@@ -343,6 +355,9 @@ export function NetworkMap({
             }}
           >
             {t("mv4TerrainRetry", { defaultValue: "Retry" })}
+          </button>
+          <button className="btn btn-quiet btn-sm" onClick={() => setPrefs((p) => ({ ...p, mode: "2d" }))}>
+            {t("mv4TerrainUseStreets", { defaultValue: "Use 2D map" })}
           </button>
         </div>
       )}
@@ -450,10 +465,28 @@ export function NetworkMap({
             <button className="btn btn-quiet btn-sm mv4-ctl" aria-pressed={measureMode} onClick={() => (measureMode ? exitMeasure() : (setMeasureMode(true), setMeasurePts([])))}>
               <Icons.pin size={14} /> {t("mv4Measure", { defaultValue: "Measure" })}
             </button>
-            <button className="btn btn-quiet btn-sm mv4-ctl" onClick={resetCompassView} aria-label={t("mv4Compass", { defaultValue: "Reset compass — face north, level view" })} title={t("mv4Compass", { defaultValue: "Reset compass — face north, level view" })}>
-              <span aria-hidden="true" style={{ display: "inline-block", transform: `rotate(${-view.bearing}deg)` }}>↑</span>
+            <button className="btn btn-quiet btn-sm mv4-ctl" onClick={resetCompassView} aria-label={t("mv4Compass", { defaultValue: "Reset north" })} title={t("mv4Compass", { defaultValue: "Reset north" })}>
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" style={{ display: "inline-block", transform: `rotate(${-view.bearing}deg)` }}>
+                <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.5" />
+                <path d="M8 2 L10 8 L8 7 L6 8 Z" fill="#ef4444" />
+                <path d="M8 14 L6 8 L8 9 L10 8 Z" fill="currentColor" opacity="0.8" />
+              </svg>
               {t("mv4CompassShort", { defaultValue: "N" })}
             </button>
+            {mode === "terrain" && (
+              <button
+                className="btn btn-quiet btn-sm mv4-ctl"
+                aria-pressed={(view.pitch ?? 0) > 5}
+                onClick={() => {
+                  const map = providerRef.current?.getMap();
+                  if (!map) return;
+                  easePitch(map, (view.pitch ?? 0) > 5 ? 0 : TERRAIN_PITCH);
+                }}
+                title={t("mv4Tilt", { defaultValue: "3D tilt on / off" })}
+              >
+                {t("mv4Tilt", { defaultValue: "3D tilt on / off" })}
+              </button>
+            )}
             <button className="btn btn-quiet btn-sm mv4-ctl" onClick={resetView} aria-label={t("mv4ResetView", { defaultValue: "Reset view" })} title={t("mv4ResetView", { defaultValue: "Reset view" })}>
               <Icons.refresh size={14} /> {t("mv4ResetView", { defaultValue: "Reset view" })}
             </button>
@@ -489,6 +522,20 @@ export function NetworkMap({
                 </div>
               </div>
               <div className="mv4-group">
+                <span className="mv4-label">{t("mv4ConcernFilter", { defaultValue: "Concern type" })}</span>
+                <select
+                  className="input"
+                  aria-label={t("mv4ConcernFilter", { defaultValue: "Concern type" })}
+                  value={prefs.concern}
+                  onChange={(e) => setPrefs((p) => ({ ...p, concern: e.target.value }))}
+                >
+                  <option value="all">{t("mv4ConcernAll", { defaultValue: "All concerns" })}</option>
+                  {CONCERN_TYPES.map((c) => (
+                    <option key={c.value} value={c.value}>{c.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="mv4-group">
                 <span className="mv4-label">{t("mv4StatusFilter", { defaultValue: "Statuses" })}</span>
                 <div className="mv4-chips" role="group" aria-label={t("mv4StatusFilter", { defaultValue: "Status filter" })}>
                   {availableStatuses.map((s) => (
@@ -514,7 +561,11 @@ export function NetworkMap({
             <div className="card mv4-measure" role="status" style={{ position: "absolute", top: 10, left: "50%", transform: "translateX(-50%)", zIndex: 25, padding: "6px var(--space-3)", boxShadow: "var(--shadow-lg)", display: "flex", gap: 10, alignItems: "center", maxWidth: "calc(100% - 20px)" }}>
               <span style={{ fontSize: "0.82rem" }}>
                 {measureKm != null
-                  ? t("mv4MeasureResult", { defaultValue: "Distance: {{distance}}", distance: formatDistance(measureKm, units) })
+                  ? t("mv4MeasureResult", {
+                      defaultValue: "Distance {{distance}} · Bearing {{bearing}}",
+                      distance: formatDistance(measureKm, units),
+                      bearing: measureBearing,
+                    })
                   : t("mv4MeasureHint", { defaultValue: "Click two points on the map to measure the distance. Esc exits." })}
               </span>
               <button className="btn btn-quiet btn-sm" onClick={exitMeasure} aria-label={t("mv4MeasureExit", { defaultValue: "Exit measure mode" })}>
@@ -639,6 +690,13 @@ export function NetworkMap({
 }
 
 
+/** Initial great-circle bearing A->B in degrees (0 = north). */
+function initialBearingDeg(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const y = Math.sin(toRad(lon2 - lon1)) * Math.cos(toRad(lat2));
+  const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) - Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(toRad(lon2 - lon1));
+  return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+}
 /** Convert degrees bearing to a compass direction. */
 function bearingToCompass(deg: number): string {
   const dirs = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
