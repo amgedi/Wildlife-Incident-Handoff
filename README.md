@@ -5,7 +5,7 @@
 <br/>
 
 [![Download RC2](https://img.shields.io/badge/Download-v0.3.0--rc.2-3C6E62?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/amgedi/Wildlife-Incident-Handoff/releases/tag/v0.3.0-rc.2)
-[![Watch Demo](https://img.shields.io/badge/Watch_Demo-Product_Tour-A18463?style=for-the-badge&logo=github&logoColor=white)](docs/DEMO_VIDEO.md)
+[![Watch Demo](https://img.shields.io/badge/Watch_Demo-Product_Tour-A18463?style=for-the-badge&logo=github&logoColor=white)](docs/wildlife-incident-handoff-demo.mp4)
 [![Tester Guide](https://img.shields.io/badge/Tester_Guide-Start_Here-58704F?style=for-the-badge)](docs/TESTER_README.md)
 [![Report a Bug](https://img.shields.io/badge/Report_a_Bug-Issues-876B52?style=for-the-badge&logo=github&logoColor=white)](https://github.com/amgedi/Wildlife-Incident-Handoff/issues/new?template=bug_report.yml)
 
@@ -155,7 +155,6 @@ Please use fictional or redacted information in public issues and screenshots. D
 
 | Document | What it covers |
 | --- | --- |
-| [Demo video](docs/DEMO_VIDEO.md) | Short public product tour hosted in this repository |
 | [How this app works](docs/HOW_THIS_APP_WORKS.md) | Plain-language product and workflow tour |
 | [Tester guide](docs/TESTER_README.md) | First external testing steps |
 | [Reporter testing guide](docs/TESTING_GUIDE_REPORTER.md) | Reporter-facing test flow |
