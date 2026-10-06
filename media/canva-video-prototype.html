@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Wildlife Incident Handoff Canva Video Prototype</title>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:#152019;font-family:Arial,Helvetica,sans-serif;color:#f4f2e9}
+  body{display:flex;flex-direction:column;gap:0}
+  [data-document-role="page"]{position:relative;width:1600px;height:900px;overflow:hidden;background:#1d2a22}
+  .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,14,10,.88),rgba(8,14,10,.34),rgba(8,14,10,.72))}
+  .shade-bottom{position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,14,10,.12),rgba(8,14,10,.86))}
+  .wrap{position:absolute;inset:0;padding:82px 92px;display:flex;flex-direction:column;justify-content:center}
+  .eyebrow{font-size:24px;letter-spacing:5px;text-transform:uppercase;color:#c9d4b0;font-weight:700;margin-bottom:22px}
+  h1{font-size:84px;line-height:.98;margin:0 0 26px;max-width:1080px;letter-spacing:-2px}
+  h2{font-size:56px;line-height:1.02;margin:0 0 24px;letter-spacing:-1px}
+  p{font-size:30px;line-height:1.35;margin:0;max-width:1050px;color:#e8e6dc}
+  .small{font-size:20px;color:#c8c9bd}
+  .accent{color:#c9d4b0}
+  .panel{background:rgba(26,38,30,.88);border:1px solid rgba(208,216,191,.2);border-radius:26px;padding:28px 32px;box-shadow:0 30px 70px rgba(0,0,0,.35)}
+  .card-row{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:34px}
+  .card{padding:26px 28px;border-radius:22px;background:#26372c;border:1px solid #415747}
+  .card b{font-size:30px;display:block;margin-bottom:10px}
+  .card span{font-size:22px;color:#d2d7ca;line-height:1.3}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:50px;align-items:center;height:100%}
+  .ui{width:100%;border-radius:24px;border:1px solid #4b6050;box-shadow:0 34px 90px rgba(0,0,0,.5)}
+  .ui-wide{width:100%;max-height:690px;object-fit:contain;border-radius:24px;border:1px solid #4b6050;box-shadow:0 34px 90px rgba(0,0,0,.5);background:#101612}
+  .chips{display:flex;flex-wrap:wrap;gap:14px;margin-top:30px}
+  .chip{font-size:21px;padding:12px 18px;border-radius:999px;background:#314637;border:1px solid #60765f;color:#eff2e7}
+  .flow{display:flex;align-items:center;gap:18px;margin-top:40px}
+  .node{padding:22px 26px;border-radius:18px;background:#293b30;border:1px solid #58705a;font-size:26px;font-weight:700;min-width:210px;text-align:center}
+  .arrow{font-size:42px;color:#c9d4b0}
+  .quote{font-size:56px;font-weight:700;line-height:1.06;max-width:1180px}
+  .footer-note{position:absolute;bottom:24px;left:92px;right:92px;font-size:16px;color:#aeb6a8}
+  .logo{width:100%;max-width:1240px;display:block;margin:0 auto}
+  .center{text-align:center;align-items:center}
+  .center p{margin-left:auto;margin-right:auto}
+  .cta{display:inline-block;margin-top:34px;padding:16px 24px;border-radius:14px;background:#c9d4b0;color:#142018;font-size:25px;font-weight:800}
+</style>
+</head>
+<body>
+
+<section data-document-role="page" data-label="Cold open" data-speaker-notes="A fawn on a road shoulder. A caller unsure of the cross street. Three volunteers. Three versions of what happened. By the time it reaches the rehab centre, half the details are gone.">
+  <img class="bg" src="https://www.fws.gov/sites/default/files/2021-09/Doe%20White-tailed%20Deer.jpg" alt="White-tailed deer, public domain USFWS" />
+  <div class="shade"></div>
+  <div class="wrap">
+    <div class="eyebrow">Wildlife response</div>
+    <h1>Wildlife incidents move fast.</h1>
+    <p>Context can disappear before the animal reaches the next person.</p>
+  </div>
+  <div class="footer-note">Real photograph: Regina Snow / USFWS, public domain.</div>
+</section>
+
+<section data-document-role="page" data-label="Product reveal" data-speaker-notes="Wildlife Incident Handoff is an open-source Windows app for clearer reporting, coordination, and handoffs.">
+  <div class="wrap center">
+    <img class="logo" src="https://raw.githubusercontent.com/amgedi/Wildlife-Incident-Handoff/main/branding/readme-banner.svg" alt="Wildlife Incident Handoff banner" />
+    <p style="margin-top:34px">Open-source desktop software for clearer wildlife reporting, coordination, and handoffs.</p>
+  </div>
+</section>
+
+<section data-document-role="page" data-label="Guided capture" data-speaker-notes="Record with guided capture. What you saw. Where. Who is involved. When something is not yet known, mark it Unknown, not a guess.">
+  <img class="bg" src="https://www.fws.gov/sites/default/files/banner_images/2021-12/Injured_owl_Anniston_Muesum_of_Nat_History_car_strike_Gary_Tucker_FWS.jpg" alt="Injured owl, public domain USFWS" />
+  <div class="shade"></div>
+  <div class="wrap">
+    <div class="eyebrow">Guided capture</div>
+    <h2>Record what was observed.<br><span class="accent">Keep uncertainty visible.</span></h2>
+    <div class="card-row">
+      <div class="card"><b>Observed</b><span>What was actually seen or reported.</span></div>
+      <div class="card"><b>Unknown</b><span>A valid state when the answer is not known yet.</span></div>
+      <div class="card"><b>Correctable</b><span>Later updates add context without erasing history.</span></div>
+    </div>
+  </div>
+  <div class="footer-note">Real photograph: Gary Tucker / USFWS, public domain.</div>
+</section>
+
+<section data-document-role="page" data-label="Operational workspace" data-speaker-notes="The operational workspace surfaces active work, incident types, responder load, and the open queue.">
+  <div class="wrap">
+    <div class="split">
+      <div>
+        <div class="eyebrow">Operational workspace</div>
+        <h2>See the work that needs attention.</h2>
+        <p>Active incidents, recent activity, assignments, and response context stay together.</p>
+        <div class="chips"><span class="chip">Active work</span><span class="chip">Assignments</span><span class="chip">Recent incidents</span><span class="chip">Response context</span></div>
+      </div>
+      <img class="ui" src="https://raw.githubusercontent.com/amgedi/Wildlife-Incident-Handoff/main/screenshots/current/rc2-app-sidebar-maximized.png" alt="Wildlife Incident Handoff operational workspace" />
+    </div>
+  </div>
+</section>
+
+<section data-document-role="page" data-label="Map" data-speaker-notes="On the map, inspect any incident in place without losing the surrounding location context.">
+  <div class="wrap">
+    <div class="eyebrow">Map and location context</div>
+    <h2>Inspect the incident without losing the map.</h2>
+    <img class="ui-wide" src="https://raw.githubusercontent.com/amgedi/Wildlife-Incident-Handoff/main/screenshots/current/v030-dev7-map/map-row-selected-inspector.png" alt="Wildlife Incident Handoff map with selected incident" />
+  </div>
+</section>
+
+<section data-document-role="page" data-label="Handoff" data-speaker-notes="Hand it off and track who has custody. The observations, the gaps, the times, and the hands it passed through travel with the case.">
+  <img class="bg" src="https://www.fws.gov/sites/default/files/images/2010-07/10603.jpg" alt="Northern gannet rescue, public domain USFWS" />
+  <div class="shade-bottom"></div>
+  <div class="wrap" style="justify-content:flex-end;padding-bottom:120px">
+    <div class="eyebrow">Clear handoffs</div>
+    <div class="flow"><div class="node">Finder</div><div class="arrow">→</div><div class="node">Responder</div><div class="arrow">→</div><div class="node">Rehab / Vet</div></div>
+    <p style="margin-top:28px">Responsibility can change without losing the incident history.</p>
+  </div>
+  <div class="footer-note">Real photograph: USFWS, public domain.</div>
+</section>
+
+<section data-document-role="page" data-label="Share safe" data-speaker-notes="Export a share-safe copy that leaves precise coordinates, private contacts, and private notes out by default.">
+  <div class="wrap">
+    <div class="split">
+      <img class="ui" src="https://raw.githubusercontent.com/amgedi/Wildlife-Incident-Handoff/main/screenshots/current/rc2-app-sidebar-800x600.png" alt="Wildlife Incident Handoff compact desktop layout" />
+      <div>
+        <div class="eyebrow">Share-safe export</div>
+        <h2>Share the handoff.<br><span class="accent">Not every sensitive field.</span></h2>
+        <div class="card-row" style="grid-template-columns:1fr">
+          <div class="card"><b>Precise coordinates</b><span>Excluded from shareable exports by default.</span></div>
+          <div class="card"><b>Private contacts</b><span>Kept out unless explicitly included.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section data-document-role="page" data-label="Test View" data-speaker-notes="Open Test View and work the full flow on fictional data before you touch a real case.">
+  <div class="wrap">
+    <div class="split">
+      <div>
+        <div class="eyebrow">Test before real use</div>
+        <h2>Explore the workflow with fictional data first.</h2>
+        <p>RC testing can cover the workflow without putting real wildlife records or sensitive locations into public feedback.</p>
+        <div class="cta">RC2 external testing</div>
+      </div>
+      <img class="ui" src="https://raw.githubusercontent.com/amgedi/Wildlife-Incident-Handoff/main/screenshots/current/rc2-launcher-new-home.png" alt="Wildlife Incident Handoff launcher" />
+    </div>
+  </div>
+</section>
+
+<section data-document-role="page" data-label="Call to action" data-speaker-notes="RC2 is open for external testing. Use fictional data first. Help test the workflow.">
+  <div class="wrap center">
+    <div class="eyebrow">Open source • Windows • RC2</div>
+    <h1 style="max-width:1200px">Help test the workflow.</h1>
+    <p>Try the release candidate, use fictional data first, and report what is confusing, missing, or broken.</p>
+    <div class="chips" style="justify-content:center"><span class="chip">GitHub: amgedi/Wildlife-Incident-Handoff</span><span class="chip">AGPL-3.0-only</span></div>
+  </div>
+</section>
+
+<section data-document-role="page" data-label="End card" data-speaker-notes="Clear information. Safer handoffs.">
+  <div class="wrap center">
+    <img class="logo" src="https://raw.githubusercontent.com/amgedi/Wildlife-Incident-Handoff/main/branding/readme-footer.svg" alt="Clear information. Safer handoffs." />
+    <p class="small" style="margin-top:28px">Wildlife Incident Handoff • open source • external testing</p>
+  </div>
+</section>
+
+</body>
+</html>
