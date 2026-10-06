@@ -74,10 +74,10 @@
       <animate attributeName="opacity" values=".18;.5;.18" dur="6s" repeatCount="indefinite"/>
     </rect>
 
-    <g transform="translate(92 90)">
-      <text x="0" y="0" fill="#f4f1e8" font-family="Segoe UI, Arial, sans-serif" font-size="52" font-weight="750" letter-spacing="2.6">WILDLIFE INCIDENT HANDOFF</text>
+    <g transform="translate(80 90)">
+      <text x="0" y="0" fill="#f4f1e8" font-family="Segoe UI, Arial, sans-serif" font-size="47" font-weight="750" letter-spacing="2.3">WILDLIFE INCIDENT HANDOFF</text>
       <text x="2" y="52" fill="#dce8d3" font-family="Segoe UI, Arial, sans-serif" font-size="25" font-weight="600">Clear information. Safer handoffs.</text>
-      <text x="2" y="96" fill="#c6d4bf" font-family="Segoe UI, Arial, sans-serif" font-size="17" letter-spacing="1.7">RECORD  •  COORDINATE  •  HAND OFF  •  PRESERVE CONTEXT</text>
+      <text x="2" y="96" fill="#c6d4bf" font-family="Segoe UI, Arial, sans-serif" font-size="16" letter-spacing="1.55">RECORD  •  COORDINATE  •  HAND OFF  •  PRESERVE CONTEXT</text>
       <g transform="translate(2 128)">
         <rect width="318" height="34" rx="17" fill="#0b1510" fill-opacity=".28" stroke="#d8e2d0" stroke-opacity=".12"/>
         <circle cx="20" cy="17" r="5" fill="#93ac80">
@@ -87,7 +87,7 @@
       </g>
     </g>
 
-    <g transform="translate(870 88)">
+    <g transform="translate(940 88)">
       <rect width="405" height="172" rx="25" fill="#07100b" fill-opacity=".34" stroke="#d8e2d0" stroke-opacity=".13"/>
       <text x="26" y="32" fill="#c8d3bd" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="700" letter-spacing="1.6">INCIDENT TO HANDOFF</text>
 
