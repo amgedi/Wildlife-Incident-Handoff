@@ -22,7 +22,7 @@ tiny_http = "0.12"
 ureq = "2"
 url = "2"
 p256 = { version = "0.13", features = ["ecdh"] }
-hkdf = "0.12"
+hkdf = "0.13"
 sha2 = "0.10"
 aes-gcm = "0.10"
 rand = "0.8"
