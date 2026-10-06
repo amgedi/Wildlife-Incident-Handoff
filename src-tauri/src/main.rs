@@ -1,4 +1,4 @@
-// Wildlife Incident Handoff — Tauri 2 desktop shell.
+// Wildlife Incident Handoff - Tauri 2 desktop shell.
 // The entire UI is the existing React bundle (frontendDist: ../dist);
 // there is no local HTTP server: assets load directly from the bundle.
 //
@@ -13,7 +13,7 @@ mod window_geometry;
 
 /// 0.3.0-dev.5 (spec 112): share the visual preference with the native
 /// launcher (launcher-theme.json in the shared app config dir). Only the
-/// theme id is stored — never incident data.
+/// theme id is stored - never incident data.
 #[tauri::command]
 fn write_launcher_theme(theme: String, motion: String, material: String) -> Result<(), String> {
     let dir = app_data_config_dir()?;
@@ -131,7 +131,7 @@ fn main() {
 
 // ---------- RC2: signed in-app updates (Tauri updater plugin) ----------
 // Release channel comes from the shared launcher prefs (default: tester for
-// RC versions). Endpoints point at GitHub release update manifests. The
+// RC versions). Endpoints point at repository-hosted update manifests. The
 // downloaded artifact's minisign signature is ALWAYS verified by the plugin;
 // signature verification is never disabled.
 
@@ -165,9 +165,9 @@ async fn check_app_update(app: tauri::AppHandle) -> Result<AppUpdateInfo, String
     use tauri::Manager;
     let channel = release_channel();
     let endpoint = if channel == "stable" {
-        "https://github.com/amgedi/Wildlife-Incident-Handoff/releases/latest/download/latest.json"
+        "https://raw.githubusercontent.com/amgedi/Wildlife-Incident-Handoff/main/updates/latest.json"
     } else {
-        "https://github.com/amgedi/Wildlife-Incident-Handoff/releases/latest/download/tester.json"
+        "https://raw.githubusercontent.com/amgedi/Wildlife-Incident-Handoff/main/updates/tester.json"
     };
     let current = app.package_info().version.to_string();
     let endpoints: Vec<url::Url> = vec![endpoint.parse().map_err(|e| format!("endpoint: {e}"))?];
@@ -217,7 +217,7 @@ async fn check_app_update(app: tauri::AppHandle) -> Result<AppUpdateInfo, String
 }
 
 /// Download + verify + stage the update, then relaunch to install.
-/// The plugin verifies the minisign signature during download — this cannot
+/// The plugin verifies the minisign signature during download. This cannot
 /// be bypassed from here.
 #[tauri::command]
 async fn install_app_update(app: tauri::AppHandle) -> Result<(), String> {
@@ -230,7 +230,7 @@ async fn install_app_update(app: tauri::AppHandle) -> Result<(), String> {
         };
         taken
     };
-    let Some(update) = update else { return Err("No pending update — check first.".into()) };
+    let Some(update) = update else { return Err("No pending update. Check first.".into()) };
     let downloaded = update
         .download(
             |chunk, _total| {
@@ -243,4 +243,3 @@ async fn install_app_update(app: tauri::AppHandle) -> Result<(), String> {
     update.install(&downloaded).map_err(|e| format!("install failed: {e}"))?;
     app.restart();
 }
-

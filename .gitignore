@@ -1,33 +1,39 @@
 # Dependencies
 node_modules/
+launcher/ui/node_modules/
 
 # Build output
 dist/
 dev-dist/
 coverage/
+launcher/ui/dist/
+src-tauri/target/
+launcher/src-tauri/target/
 
-# Local env / secrets
+# Local env and secrets
 .env
 .env.*
+!.env.example
+*.pem
+*.p12
+*.pfx
+*.key
+*.key.password
+.tauri/
+secrets.*
 
-# Local app data dumps / test artifacts
+# Local app data dumps and test artifacts
 *.local
 playwright-report/
 test-results/
 
-# OS / editor noise
+# OS and editor noise
 .DS_Store
 Thumbs.db
 *.log
 
-# Release packaging (artifacts stay untracked; release-manifest is regenerated)
+# Release packaging
 release/
 
-src-tauri/target/
-launcher/src-tauri/target/
-
-# Root launcher binary is built locally, deployed via npm run launcher:deploy;
-# never committed to Git (release binaries live in GitHub Releases).
+# Root launcher binary is built locally. Release binaries belong in GitHub Releases.
 /Launch Wildlife Incident Handoff.exe
-launcher/ui/node_modules/
-launcher/ui/dist/

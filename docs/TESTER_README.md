@@ -1,75 +1,61 @@
-# TESTER README — Wildlife Incident Handoff 0.3.0-rc.1
+# Tester Guide
 
-Thank you for testing! This guide is written for non-developers — you do not
-need any programming tools, and nothing here asks you to run commands.
+Version: `0.3.0-rc.2`
 
-## What this app is
+Thanks for testing Wildlife Incident Handoff. You do not need programming tools to test the app.
 
-**Wildlife Incident Handoff** is a local-first desktop app for creating clear,
-traceable wildlife incident records and handing them off between reporters and
-wildlife professionals. Everything you create is stored **on your own
-computer** — the app does not require an account and does not send your records
-anywhere.
+## Start with fictional data
 
-## This is a release candidate
+Please use Test View or clearly fictional information first.
 
-This is an early release candidate for testing. Please use **fictional or
-non-critical test data only** — do not enter real emergency, sensitive, or
-personal data yet. The built-in **Test View** can fill the app with realistic
-fictional incidents for you (see below).
+Do not use real sensitive wildlife coordinates, real contact details, or private case notes in screenshots or public bug reports.
 
-## Installing
+## What to try
 
-1. Run `Wildlife-Incident-Handoff-Setup-0.3.0-rc.1.exe`.
-2. Windows may show a blue "Windows protected your PC" warning because the
-   app is not yet code-signed. Click **More info → Run anyway**. (This is
-   expected for an unsigned release candidate — see KNOWN_LIMITATIONS.md.)
-3. Follow the installer. It installs for your Windows user only (no admin
-   rights needed) and adds **Wildlife Incident Handoff** to your Start Menu.
+A useful first test session looks like this:
 
-A portable, install-free option is also available:
-`Wildlife-Incident-Handoff-Portable-0.3.0-rc.1.exe` — just double-click it.
+1. install or run the portable build
+2. complete onboarding
+3. open Test View and load fictional incidents
+4. create a new incident from the beginning
+5. edit or correct something and check the timeline
+6. record a handoff
+7. open the map and move between incidents
+8. export a shareable summary and inspect what was excluded
+9. create a backup
+10. close and reopen the app to confirm your local data remains
 
-You do **not** need Node, Git, Rust, or any development tools.
+If you have two test devices on the same trusted local network, you can also try experimental LAN sync with fictional records.
 
-## First run
+## Things we especially want feedback on
 
-The app starts with a short onboarding (language → theme → workspace choice).
-You can change everything later in **Settings**. For a quick tour with
-realistic fictional data, enable **Test View** on the dashboard.
-
-## Where your data lives
-
-Your records are stored locally in your Windows user profile
-(`AppData\Roaming\org.wildlifeincidenthandoff.app`). Nothing is uploaded.
-
-## Uninstalling — and what happens to your data
-
-Uninstall from Windows Settings → Apps, or the Start Menu entry. The program
-is removed, but **your records are kept** on purpose, so reinstalling or
-upgrading later brings them back. To fully erase test data, delete the
-`AppData\Roaming\org.wildlifeincidenthandoff.app` folder after uninstalling.
-
-## How to reset your test data
-
-In the app: **Settings → Data** offers backup/restore. For a clean slate,
-close the app and delete the data folder above, then start the app again
-(fresh onboarding).
-
-## How to enable Test View
-
-On the dashboard header, click **Test view**. It fills the workspace with
-fictional demo incidents (clearly labeled) for training and testing. Nothing
-in Test View touches real records, and **Exit test view** + **Reset** removes
-only the fictional data.
+- anything confusing on first launch
+- anything that looks broken in a short or narrow window
+- keyboard navigation problems
+- focus getting lost after dialogs or navigation
+- map controls that are hard to understand
+- fields that feel like they force a guess
+- handoff steps that are unclear
+- export privacy that is surprising
+- backup or restore behavior that feels risky
+- updater or launcher behavior that is unclear
 
 ## Reporting a bug
 
-See FEEDBACK_GUIDE.md. In short: note what you did, what you expected, and
-what happened — and copy your diagnostics from **Settings → About → Copy
-diagnostics** (it contains version/build info and no private data).
+Use the GitHub bug form:
 
-## Finding diagnostics
+https://github.com/amgedi/Wildlife-Incident-Handoff/issues/new?template=bug_report.yml
 
-Open the app, go to **Settings → About** — version, commit and build
-identity are listed there and can be copied for a bug report.
+Include the app version, Windows version, steps to reproduce, expected result, actual result, and a screenshot only if it contains fictional or redacted data.
+
+## SmartScreen
+
+The RC installer is not Authenticode signed yet, so Windows may show a SmartScreen warning. This is expected for the current tester build.
+
+## Updater note
+
+RC2 has a known updater bootstrap limitation. One manual upgrade may be required before automatic tester-channel updates work end to end. See [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md).
+
+## Not emergency software
+
+This tester build is not emergency dispatch, veterinary diagnosis, or treatment guidance. If a real situation involves immediate danger to people, use the appropriate local emergency or wildlife-response service instead of relying on the app.

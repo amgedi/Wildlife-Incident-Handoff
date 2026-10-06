@@ -1,100 +1,125 @@
-# Wildlife Incident Handoff — Feature List & Roadmap (2026-10-03, v0.2.0-dev.13)
+# Feature List and Roadmap
 
-## What the product IS
+This document is the public product view. It describes what the app does now and what may be explored later. It is not a promise that every idea will ship.
 
-Two products over one incident data model, local-first, no backend required:
+## Current release candidate
 
-1. **Reporter** — calm, safety-first reporting for the public.
-2. **Professional** (local preview) — an operations console for wildlife response teams.
+Version: `0.3.0-rc.2`
 
-Everything below is verified working; platform notes mark where a feature is desktop-only.
+### Incident reporting
 
-## Feature list (current state)
+- guided 10-step incident workflow
+- autosaved drafts and recovery
+- optional location capture
+- animal details with Unknown as a valid answer
+- observations, hazards, actions, current situation, contacts, and attachments
+- final review before saving
 
-### Core records & data
-- 10-step guided incident wizard (reporter and professional intake variants), autosaving drafts with resume/discard
-- Incident detail with Overview / Timeline / Observations / Attachments / People & handoffs / Details / Export tabs
-- Append-only timeline with structured events (status changes, corrections, custody, handoffs) — history is never overwritten
-- Animal info with "Unknown" as a first-class answer; species never treated as verified
-- Location model: device GPS with confirmation, manual coordinates, description; exact / approximate / sensitive precision
-- Privacy model: shareable vs internal exports, redaction preview, private notes never exported, coordinates excluded from shareable output
-- Soft delete: archive + trash with restore, permanent delete with backup warning
-- Pin, search (`/` shortcut), filters, saved named views (persisted), deep-linkable categories
-- Backups: single-file JSON export/import (includes media), storage health, duplicate-safe import
-- Media: photos AND videos (capture or file), captions, thumbnails, size warnings, quota awareness
+### Incident history
 
-### Reporter experience
-- Purpose-built home: safety card, report CTA, latest active report, status summary cards, drafts, recent reports
-- Guide Me (in-context coach through a real report), guided first report, interface tour
-- Report status meanings surfaced everywhere; honest "no new action recorded" states
-- Report update dialog (still here / moved / gone / condition changed / observation / photo / location fix)
+- append-only timeline
+- status changes
+- corrections that preserve previous values
+- observations and attachments
+- custody and handoff events
 
-### Professional experience
-- Operations dashboard (god's-eye): service-area map with markers, clusters, service-area ring, map inspector; Needs Attention queue (waiting >2h, unassigned, missing location, handoffs, duplicates); live activity feed; operational pulse KPIs with honest deltas; response-flow pipeline; response performance medians; case aging strip; transfers; distributions with data-quality insights; responder workload (no rankings)
-- Dashboard customization: show/hide/reorder widgets, persisted, Needs Attention hide-confirmation, restore recommended layout; role-based default emphasis (dispatcher/rehabilitator/etc.)
-- Response Network + Incidents queue: consistent rows, cards/table density, 50-row cap, accept action
-- Full-map destination with "Incidents in view" side panel; List/Map are exclusive views
-- Operations View (chrome-less, Esc exits) for dispatch desks / second monitors
-- Professional role architecture: 8 roles, verification requirements, preview/pending states, active role switching, capability matrix docs — nothing authorizes locally (hard-unverified)
-- Unified dashboard filters (status, animal group, type, assignment, time) applying to every widget
+### Handoffs
 
-### Map system
-- MapLibre with a provider registry (declarative descriptors: tiles, attribution, health check, usage policy)
-- OpenStreetMap raster provider (default) + offline basemap provider (zero network requests)
-- Explicit-height containers (fixed the historic blank-desktop-map bug), overlay re-render on load/resize/rAF
-- Service-area first camera; geodesic service-area ring; click-to-zoom clusters; dense clustering (1,000+ incidents stay smooth); shape+color markers; click inspector
-- Graceful failure: retry, honest reason categories, local position list fallback; non-sensitive diagnostics
-- Works in the desktop EXE (production CSP fixed to allow tiles + blob workers)
+- transfer from one person or organization context to another
+- condition at handoff
+- items transferred
+- custody history
+- consistency warnings when handoff information conflicts with incident state
 
-### Localization & accessibility
-- 5 production languages — English, French, Spanish, German, Portuguese (Brazil) — 100% key coverage, live switching, no restart
-- 8 more locales behind a developer preview toggle + zz-ZZ expanding pseudo-locale for QA
-- RTL architecture (Arabic catalog-ready), bidi isolation for user data
-- Keyboard navigation, focus management, ARIA labeling, accessible chart fallbacks (data tables), 200% zoom safe, reduced-motion + off modes, 10 themes including monochrome and high-contrast, ambient background effects with visibility pausing
+### Operations workspace
 
-### Help & support
-- Two-pane Help Center: persistent category rail (search, categories, tutorials, glossary, support), article reader with related articles, Show me tours, optional local "was this helpful"
-- Reporter and Professional article sets with Q&A coverage (17 question-format articles added dev.13)
-- Glossary (shared with contextual popovers); honest support composer (prepare/copy/download bundle, GitHub links — never "message sent"), privacy-safe diagnostics
+- dashboard with active work and needs-attention views
+- response-flow and activity context
+- service-area map
+- incident side list
+- assignment and handoff views
+- deterministic local analytics
 
-### Notifications
-- Local notification center (bell in sidebar footer / mobile top bar), unread badge, mark-read/clear/click-through
-- Categories for reporter + professional events, quiet hours, sound preference; in-app delivery only (honest labeling)
+### Mapping
 
-### Desktop (Tauri 2, Windows)
-- Installer + portable EXE, single-instance, custom titlebar, native save/open dialogs
-- PWA/web build with service worker + installability
-- **LAN sync (NEW, v1, desktop-only)**: optional device-to-device incident exchange over the local network (tiny HTTP server per device; pull+push rounds every ~5s; last-writer-wins merge by id/updatedAt; demo records excluded; peers configured by address; activity log). No internet, no cloud. v1 limits: text records only (photo/video files not synced), manual address exchange (no auto-discovery), plain-HTTP inside the LAN.
+- 2D, satellite, and terrain views
+- clustering
+- incident selection and fly-to behavior
+- measurement tools
+- approximate and sensitive location handling
+- optional external map and geocoding providers
 
-### Launcher & branding
-- `Launch Wildlife Incident Handoff.cmd` (menu: desktop app / web dev)
-- New scenic bear-paw brand: theme-aware in-app emblem (no wordmark), full logo in `branding/`, regenerated icon sets
+### Privacy and exports
 
-## Known issues / what can be fixed (near-term)
+- local-first incident storage
+- no analytics or telemetry service
+- sensitive-location mode
+- shareable exports that exclude precise coordinates, private contacts, and private notes by default
+- internal exports by explicit choice
+- versioned JSON backup and staged restore
 
-1. **LAN sync hardening** — auto-discovery (UDP broadcast or mDNS) instead of manual addresses; conflict surfacing (show merged changes); attachment/media sync (chunked transfer); sync of archive/trash state; tests against a live two-instance setup.
-2. **Notification delivery** — in-app toasts only; add native OS notifications (desktop) and a service-worker channel (PWA).
-3. **Offline maps** — ship a small offline tile pack (e.g. PMTiles of a region) so the professional map works with zero connectivity.
-4. **fr/es/de/pt-BR review** — packs are machine-assisted; need human linguistic review (marked as such).
-5. **Arabic RTL** — architecture ready, no pack yet; needs a full translation + visual RTL pass over charts/maps.
-6. **DPI scaling** — 125/150% Windows scaling untested systematically.
-7. **Screen reader pass** — NVDA/VoiceOver audit of the dashboard and wizard.
-8. **Performance at scale** — analytics recompute over all incidents per render; memoization/incremental aggregation for 10k+ records; virtualize the incidents table.
-9. **Update checker** — currently pings GitHub releases; add in-app changelog viewer.
+### Testing and training
 
-## What can be expanded (mid-term)
+- fictional Test View
+- deterministic seeded demo incidents
+- guided onboarding and tutorial flows
+- resettable test workspace
 
-- **Response network (connected mode)** — the documented server architecture (docs/NETWORK_SECURITY_AND_AUTH_PLAN.md): real organizations, server-side verification, live assignment dispatch, multi-org handoffs. The LAN sync protocol is a stepping stone, not a replacement.
-- **Professional analytics** — saved chart configurations, CSV export of dashboards, seasonal comparisons, response-time SLA alerting.
-- **Reporter follow-ups** — opt-in status subscription for your own report (local notifications exist; cross-device needs the network layer).
-- **Field mode** — GPS breadcrumbs, track recording, offline basemaps per region.
-- **Animal welfare data** — outcome tracking post-release, banding/tagging records, vet treatment logs (schema additive).
-- **Interoperability** — import/export adapters (CSV, OIE-style formats), read-only public situation page export.
-- **Tutorials** — more role-specific professional tours; in-context help for every widget (Help → Show me already wired).
+### Desktop experience
 
-## Deliberate non-goals (per spec)
+- Tauri 2 Windows application
+- installer and portable builds
+- companion launcher
+- responsive window layouts
+- keyboard navigation and reduced-motion support
+- signed Tauri updater artifacts
 
-- No cloud, no accounts, no telemetry.
-- No fake capacity metrics, no productivity scoring of responders.
-- No local "verified" status — verification must be server-issued.
-- No auto-merge of duplicate incidents (human review only).
+### Optional LAN sync
+
+- device-to-device local network exchange
+- explicit pairing and trust approval
+- P-256 identity keys
+- encrypted sync payloads
+- replay protection
+- trust revocation
+- experimental status while wider field testing continues
+
+## Near-term priorities
+
+Before a stable `0.3.0` release, the project should prioritize:
+
+1. external tester feedback
+2. updater channel validation after the RC2 bootstrap fix
+3. accessibility testing on more Windows configurations
+4. LAN sync field testing on real networks
+5. clearer installation and first-run feedback
+6. issue triage from real users
+7. release documentation and reproducible packaging checks
+
+## Possible later work
+
+Potential future work includes:
+
+- richer organization workflows
+- optional verified organization directories
+- additional map and offline-map tooling
+- taxonomic lookup that never forces an identification
+- better cross-device sync options with explicit consent
+- stronger deployment and administration tools for organizations
+- additional export formats and interoperability work
+- more localization coverage
+
+## Non-goals
+
+The project does not aim to become:
+
+- autonomous wildlife diagnosis
+- AI-generated treatment advice
+- emergency-services dispatch
+- surveillance or tracking software
+- a system that silently shares reporter or wildlife-location data
+- a leaderboard that rewards speed or volume over quality and safety
+
+## Product rule
+
+New features should make incident recording, understanding, coordination, handoff, history, privacy, export, accessibility, or reliability better. Feature count by itself is not a goal.

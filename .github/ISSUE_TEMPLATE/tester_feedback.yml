@@ -1,23 +1,59 @@
 name: Tester feedback (RC)
-description: General feedback from testing a release candidate.
+description: Share general feedback from a Wildlife Incident Handoff release candidate.
 labels: ["tester-feedback"]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for testing. Plain-language feedback is useful. Please use fictional or redacted data only.
   - type: input
     id: version
-    attributes: { label: RC version tested, description: "e.g. 0.3.0-rc.2" }
-    validations: { required: true }
+    attributes:
+      label: Version tested
+      description: "Example: 0.3.0-rc.2"
+    validations:
+      required: true
   - type: textarea
     id: worked
-    attributes: { label: What worked well }
+    attributes:
+      label: What worked well?
   - type: textarea
     id: confusing
-    attributes: { label: What was confusing or slow }
+    attributes:
+      label: What was confusing, slow, or harder than expected?
+  - type: textarea
+    id: missing
+    attributes:
+      label: What did you expect to find but could not?
   - type: dropdown
-    id: blankmap
-    attributes: { label: Did the Map ever appear blank?, options: ["No", "Yes", "Not tested"] }
+    id: map
+    attributes:
+      label: Did you test the map?
+      options:
+        - Yes, and it worked
+        - Yes, and I had a problem
+        - No
+  - type: dropdown
+    id: export
+    attributes:
+      label: Did you test export or backup?
+      options:
+        - Yes, and it worked
+        - Yes, and I had a problem
+        - No
   - type: textarea
     id: privacy
-    attributes: { label: Privacy concerns, description: "Anything that made you worry data might leave the device?" }
+    attributes:
+      label: Privacy or trust concerns
+      description: "Was anything unclear about where data was stored, shared, exported, or sent over a network?"
   - type: textarea
     id: else
-    attributes: { label: Anything else }
+    attributes:
+      label: Anything else?
+  - type: checkboxes
+    id: fictional
+    attributes:
+      label: Data check
+      options:
+        - label: I did not include real sensitive wildlife locations, private contact details, credentials, or private case notes in this feedback.
+          required: true

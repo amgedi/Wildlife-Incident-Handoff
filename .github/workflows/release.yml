@@ -1,57 +1,193 @@
 name: Release
+
 on:
   push:
-    tags: ["v*"]
+    tags:
+      - "v*"
+
 permissions:
   contents: write
+
 jobs:
   build:
     runs-on: windows-latest
+
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
+        with:
+          node-version: 22
+          cache: npm
+
       - uses: dtolnay/rust-toolchain@stable
+
       - uses: Swatinem/rust-cache@v2
-        with: { workspaces: src-tauri }
-      - run: npm ci
-      - run: npx tsc --noEmit
-      - run: npm test
-      # Builds the desktop bundle + signed updater artifacts (createUpdaterArtifacts).
-      - run: npm run tauri build
+        with:
+          workspaces: |
+            src-tauri
+            launcher/src-tauri
+
+      - name: Install application dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Frontend tests
+        run: npm test
+
+      - name: Application Rust tests
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Build signed desktop release
+        run: npm run tauri build
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-      # Companion launcher: Vite UI + Rust release build, attached to the release.
-      - run: npm ci --prefix launcher/ui
-      - run: npm run --prefix launcher/ui build
-      - run: cargo build --release --manifest-path launcher/src-tauri/Cargo.toml
-      # Canonical portable name for the bare desktop EXE.
-      - name: Name portable artifact
-        shell: pwsh
-        run: Copy-Item "src-tauri/target/release/wildlife-incident-handoff.exe" "src-tauri/target/release/Wildlife-Incident-Handoff-Portable-${{ github.ref_name }}.exe"
-      # SHA-256 checksums for every uploaded binary.
-      - name: Checksums
+
+      - name: Install launcher dependencies
+        run: npm ci --prefix launcher/ui
+
+      - name: Build launcher UI
+        run: npm run --prefix launcher/ui build
+
+      - name: Launcher Rust tests
+        run: cargo test --manifest-path launcher/src-tauri/Cargo.toml
+
+      - name: Build launcher
+        run: cargo build --release --manifest-path launcher/src-tauri/Cargo.toml
+
+      - name: Prepare release assets and updater manifest
         shell: pwsh
         run: |
-          Get-ChildItem "src-tauri/target/release/bundle/nsis/*.exe","src-tauri/target/release/wildlife-incident-handoff.exe","launcher/src-tauri/target/release/wih-launcher.exe" | ForEach-Object {
-            $h = (Get-FileHash $_ -Algorithm SHA256).Hash.ToLower()
-            "$h  $($_.Name)" | Add-Content release-current-checksums.sha256
+          $tag = "${{ github.ref_name }}"
+          $version = $tag.TrimStart('v')
+          $releaseDir = "release-upload"
+          New-Item -ItemType Directory -Force -Path $releaseDir | Out-Null
+
+          $setup = Get-ChildItem "src-tauri/target/release/bundle/nsis/*-setup.exe" | Select-Object -First 1
+          if (-not $setup) { throw "NSIS setup executable was not produced" }
+
+          $sigPath = "$($setup.FullName).sig"
+          if (-not (Test-Path $sigPath)) { throw "Updater signature was not produced" }
+
+          $portableSource = "src-tauri/target/release/wildlife-incident-handoff.exe"
+          if (-not (Test-Path $portableSource)) { throw "Portable executable was not produced" }
+
+          $launcherSource = "launcher/src-tauri/target/release/wih-launcher.exe"
+          if (-not (Test-Path $launcherSource)) { throw "Launcher executable was not produced" }
+
+          $portableName = "Wildlife-Incident-Handoff-Portable-$version.exe"
+          $launcherName = "Wildlife-Incident-Handoff-Launcher-$version.exe"
+          Copy-Item $portableSource "$releaseDir/$portableName"
+          Copy-Item $launcherSource "$releaseDir/$launcherName"
+          Copy-Item $setup.FullName "$releaseDir/$($setup.Name)"
+          Copy-Item $sigPath "$releaseDir/$($setup.Name).sig"
+
+          $signature = (Get-Content $sigPath -Raw).Trim()
+          $assetName = [uri]::EscapeDataString($setup.Name)
+          $assetUrl = "https://github.com/${{ github.repository }}/releases/download/$tag/$assetName"
+          $published = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+
+          $manifest = [ordered]@{
+            version = $version
+            notes = "See the GitHub release notes for $tag."
+            pub_date = $published
+            platforms = [ordered]@{
+              "windows-x86_64" = [ordered]@{
+                signature = $signature
+                url = $assetUrl
+              }
+            }
           }
-          Get-Content release-current-checksums.sha256
-      # Package the canonical release set (manifest, checksums, web.zip).
-      - run: node scripts/package-release.py
-        continue-on-error: true
-      - name: Release
+
+          $json = $manifest | ConvertTo-Json -Depth 8
+          Set-Content -Path "$releaseDir/tester.json" -Value $json -Encoding utf8
+
+          if ($tag -notmatch "-rc\.") {
+            Copy-Item "$releaseDir/tester.json" "$releaseDir/latest.json"
+          }
+
+          $binaryFiles = @(
+            "$releaseDir/$($setup.Name)",
+            "$releaseDir/$portableName",
+            "$releaseDir/$launcherName"
+          )
+
+          $checksums = foreach ($file in $binaryFiles) {
+            $hash = (Get-FileHash $file -Algorithm SHA256).Hash.ToLower()
+            "$hash  $([System.IO.Path]::GetFileName($file))"
+          }
+          Set-Content -Path "$releaseDir/checksums.sha256" -Value $checksums -Encoding ascii
+
+      - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          prerelease: ${{ contains(github.ref, 'rc') }}
+          prerelease: ${{ contains(github.ref_name, '-rc.') }}
+          generate_release_notes: true
           files: |
-            src-tauri/target/release/bundle/nsis/*-setup.exe
-            src-tauri/target/release/Wildlife-Incident-Handoff-Portable-*.exe
-            src-tauri/target/release/bundle/nsis/*.sig
-            src-tauri/target/release/bundle/nsis/*.zip
-            launcher/src-tauri/target/release/wih-launcher.exe
-            release-current-checksums.sha256
+            release-upload/*.exe
+            release-upload/*.sig
+            release-upload/checksums.sha256
+            release-upload/*.json
           body: |
-            See the repository README and KNOWN_LIMITATIONS.md. RC releases are tester builds.
+            Windows release for `${{ github.ref_name }}`.
+
+            Start with the repository README:
+            https://github.com/${{ github.repository }}#readme
+
+            Known limitations:
+            https://github.com/${{ github.repository }}/blob/main/docs/KNOWN_LIMITATIONS.md
+
+            Tester guide:
+            https://github.com/${{ github.repository }}/blob/main/docs/TESTER_README.md
+
+            RC releases are tester builds. Use fictional data first.
+
+      - name: Publish updater channel manifest to main
+        uses: actions/github-script@v7
+        env:
+          IS_RC: ${{ contains(github.ref_name, '-rc.') }}
+        with:
+          script: |
+            const fs = require('fs');
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            async function put(path, localPath, message) {
+              const content = fs.readFileSync(localPath).toString('base64');
+              let sha;
+              try {
+                const current = await github.rest.repos.getContent({ owner, repo, path, ref: 'main' });
+                if (!Array.isArray(current.data)) sha = current.data.sha;
+              } catch (error) {
+                if (error.status !== 404) throw error;
+              }
+
+              await github.rest.repos.createOrUpdateFileContents({
+                owner,
+                repo,
+                path,
+                message,
+                content,
+                branch: 'main',
+                ...(sha ? { sha } : {})
+              });
+            }
+
+            await put(
+              'updates/tester.json',
+              'release-upload/tester.json',
+              `release: update tester channel for ${context.ref.replace('refs/tags/', '')}`
+            );
+
+            if (process.env.IS_RC !== 'true') {
+              await put(
+                'updates/latest.json',
+                'release-upload/latest.json',
+                `release: update stable channel for ${context.ref.replace('refs/tags/', '')}`
+              );
+            }

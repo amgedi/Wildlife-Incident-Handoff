@@ -1,118 +1,146 @@
 <div align="center">
 
-<img src="branding/wildlife-incident-handoff-emblem.png" alt="Wildlife Incident Handoff, bear-paw emblem over a mountain forest" width="160">
+<img src="branding/readme-banner.svg" width="100%" alt="Wildlife Incident Handoff. Clear information. Safer handoffs." />
+
+<br/>
+
+[![Download RC2](https://img.shields.io/badge/Download-0.3.0--rc.2-3C6E62?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/amgedi/Wildlife-Incident-Handoff/releases/tag/v0.3.0-rc.2)
+[![CI](https://img.shields.io/github/actions/workflow/status/amgedi/Wildlife-Incident-Handoff/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/amgedi/Wildlife-Incident-Handoff/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/License-AGPL--3.0--only-6F875F?style=for-the-badge)](LICENSE)
+[![Windows](https://img.shields.io/badge/Windows-Desktop-A18463?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/amgedi/Wildlife-Incident-Handoff/releases)
+
+[![Report a bug](https://img.shields.io/badge/Report_a_Bug-Issues-263226?style=flat-square&logo=github)](https://github.com/amgedi/Wildlife-Incident-Handoff/issues/new?template=bug_report.yml)
+[![Request a feature](https://img.shields.io/badge/Request_a_Feature-Issues-263226?style=flat-square&logo=github)](https://github.com/amgedi/Wildlife-Incident-Handoff/issues/new?template=feature_request.yml)
+[![Security](https://img.shields.io/badge/Security-Policy-263226?style=flat-square&logo=github)](SECURITY.md)
+[![How it works](https://img.shields.io/badge/How_it_Works-Docs-263226?style=flat-square&logo=readthedocs)](docs/HOW_THIS_APP_WORKS.md)
+
+</div>
 
 # Wildlife Incident Handoff
 
 **Clear information. Safer handoffs.**
 
-An open-source, local-first desktop app for recording wildlife incidents, built so context survives the trip from reporter to responder to rehabilitator.
+Wildlife Incident Handoff is an open-source Windows desktop app for recording wildlife incidents and keeping context intact as information moves between finders, responders, transporters, rehabilitation organizations, veterinary teams, conservation staff, and other people involved in a handoff.
 
-> Record what was observed. Keep uncertainty visible. Don't invent what isn't known.
+The core idea is simple:
 
-**Current release: 0.3.0-rc.2 (release candidate, Tester channel).** Grab the installer, portable build or launcher from [Releases](https://github.com/amgedi/Wildlife-Incident-Handoff/releases). Test with fictional data first, and check [KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md) before you start.
+> **Record what was observed. Keep uncertainty visible. Preserve the handoff.**
 
-[![Version](https://img.shields.io/badge/version-0.3.0--rc.2-green)](CHANGELOG.md)
-[![License: AGPL-3.0-only](https://img.shields.io/badge/License-AGPL--3.0--only-blue)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-647%20passing-brightgreen)](#development)
+**Current public build:** `0.3.0-rc.2`, a release candidate for external testing. Use fictional data first while the RC series is being tested.
 
-</div>
+## Why it exists
 
----
+Wildlife incidents get messy fast. Details end up scattered across calls, texts, photos, notes, memory, and different people. A small missing detail can become a big problem by the time an animal reaches the next person.
 
-Here's the problem this app exists for: someone finds an injured animal, and the important details scatter across phone calls, texts, photos, sticky notes and memory. By the time the animal actually reaches a rehabilitator or vet, half the story is gone.
+Wildlife Incident Handoff gives that information one place to live. It keeps observations, location context, timeline history, attachments, custody changes, corrections, and handoff details together without forcing users to pretend they know more than they do.
 
-**Wildlife Incident Handoff** keeps that story in one clear, chronological, traceable record that can be passed person to person without losing anything:
+## What you can do
 
-> **Observe · Record · Hand off · Preserve context**
-
-## Getting the app
-
-- **Everyone:** download the installer or portable EXE from [Releases](https://github.com/amgedi/Wildlife-Incident-Handoff/releases). No build tools, no account, nothing to sign up for.
-- **The launcher:** each release also ships `wih-launcher.exe`, a little companion app that opens the workbench, keeps it up to date and switches themes. Binaries live in Releases, not in the source tree.
-- **For developers:** `src/` is the frontend, `src-tauri/` the desktop shell, `launcher/` the launcher's own Tauri project. Folder map in `PROJECT_STRUCTURE.md`, docs in `docs/`.
-
-To install: download `Wildlife-Incident-Handoff-Setup-0.3.0-rc.2.exe` from [Releases](https://github.com/amgedi/Wildlife-Incident-Handoff/releases), run it once, then open **Wildlife Incident Handoff** from the Start Menu. Prefer no install? Use the portable EXE from the same release. RC releases are labeled as pre-releases, and uninstalling never deletes your incident data.
-
-## What it is (and isn't)
-
-This app records **what people actually observed** and supports **responsible handoff**. It's deliberately not:
-
-- veterinary diagnostic software or medical advice
-- a replacement for licensed wildlife professionals
-- a capture guide or treatment planner
-
-It nudges safe behavior where it matters: keep your distance, don't handle the animal more than you must, keep pets away, and get a licensed pro involved.
-
-## Highlights
-
-- **Unknown is valid.** Species, age, sex, cause: never required, never faked. "Right wing hangs lower than left" beats "broken wing" every time.
-- **A guided 10-step wizard** with autosaved drafts and a review screen that separates Known / Unknown / Not provided. Optional current-location capture, permission gated; saying no never breaks the form.
-- **Append-only timeline.** Every observation, photo, status change, correction and handoff becomes history you can scroll. Nothing gets overwritten; corrections keep the old value and the reason.
-- **Handoff and custody tracking.** Who had the animal, when, in what condition, and what came with it. Reporter contact is opt-in, anonymous by default.
-- **An operations dashboard** with a service-area map, needs-attention queue, response flow, network pulse, live activity and analytics, all from local records. Nothing is transmitted (see [docs/NETWORK_ARCHITECTURE.md](docs/NETWORK_ARCHITECTURE.md)).
-- **A map that respects location privacy.** 2D, satellite and terrain basemaps (MapLibre), incident side-list with single-click fly-to, cluster-aware camera, measure tool. Approximate reports get fuzzed to about 1 km, and sensitive reports never show a precise point anywhere.
-- **Exports that know what they're for.** Shareable summaries leave out precise coordinates, contacts and private notes by default; full exports exist but are your explicit choice.
-- **Local-first storage.** Everything lives on your device. No account, no cloud, no tracking. JSON backups with a safe, staged restore.
-- **Test View.** Fills the workspace with realistic fictional incidents (reproducible by seed) so you can explore without touching real data. One click to reset.
-- **Accessible by design.** Keyboard navigation, focus management, labeled forms, status never by color alone, reduced motion support, and layouts that survive short and narrow windows.
-- **Guide me, onboarding, tour, tutorial.** Step-by-step coaching through a real report, no AI involved, plus clearly-labeled fictional demo cases.
-- **Sixteen themes.** Forest Night by default, plus Aurora, Midnight Ops, Storm, Sand, Arctic, monochrome and high-contrast options. The launcher matches the app.
-- **A real desktop app** (Tauri 2). No terminal, no localhost window, with signed auto-updates and the companion launcher.
+| | |
+| --- | --- |
+| **Record an incident** | Guided reporting with autosaved drafts, optional location capture, observations, hazards, actions, contacts, attachments, and a final review. |
+| **Keep a real timeline** | Observations, corrections, status changes, media, and handoffs stay chronological. Corrections preserve what changed instead of silently replacing history. |
+| **Coordinate a response** | Dashboard views surface active work, waiting incidents, handoffs, assignments, and operational context from local records. |
+| **Work from a map** | 2D, satellite, and terrain views, clustering, side-list navigation, privacy-aware locations, measurement tools, and incident selection. |
+| **Hand off clearly** | Track who had responsibility, when it changed, condition at transfer, and what moved with the animal. |
+| **Export safely** | Shareable exports leave out precise coordinates, private contact information, and private notes by default. Internal exports are an explicit choice. |
+| **Practice safely** | Test View fills the app with fictional incidents so the whole workflow can be explored without using real case data. |
+| **Keep working offline** | Core incident workflows and local records remain available without an internet connection. |
 
 ## Screenshots
 
-| Operations dashboard (desktop) | Map, incident picked from the side list |
+| Operations dashboard | Incident map |
 | --- | --- |
-| ![Operations dashboard](screenshots/current/rc2-app-sidebar-maximized.png) | ![Map selection](screenshots/current/v030-dev7-map/map-row-selected-camera.png) |
-| **Companion launcher, Home** | **Launcher theme gallery** |
-| ![Launcher home](screenshots/current/rc2-launcher-home.png) | ![Launcher themes](screenshots/current/rc2-launcher-settings-themes.png) |
+| ![Operations dashboard with fictional demo incidents](screenshots/current/rc2-app-sidebar-maximized.png) | ![Incident selected from the map side list](screenshots/current/v030-dev7-map/map-row-selected-camera.png) |
+| **Companion launcher** | **Responsive desktop layout** |
+| ![Wildlife Incident Handoff launcher](screenshots/current/rc2-launcher-new-home.png) | ![Wildlife Incident Handoff in a compact window](screenshots/current/rc2-app-sidebar-1024x600.png) |
 
-*(All screenshots use fictional demo data.)*
+_All screenshots use fictional demo data._
 
-## Privacy and data safety
+## Download and run
 
-- **All incident data stays on your device.** Nothing is uploaded, synced or tracked. There is no server.
-- Clearing app data deletes records, so take backups (Settings → Data).
-- Exports never happen automatically, and the shareable ones leave out sensitive info by design. Locations can be marked *Sensitive* and get redacted by default.
-- Contact details are private by default and excluded from shareable exports unless you say otherwise.
+Go to [Releases](https://github.com/amgedi/Wildlife-Incident-Handoff/releases) and open the newest release.
 
-## Support development
+For most Windows users, choose the installer asset with `setup.exe` in its name. A portable EXE is also included if you do not want to install the app. The companion launcher is included as `wih-launcher.exe`.
 
-If this project is useful to you, you can support it here:
-[GitHub Sponsors](https://github.com/sponsors/amgedi) ·
-[Ko-fi](https://ko-fi.com/openfhs) ·
-[Buymeacoffee](https://buymeacoffee.com/openfhs).
-These links live here and in the app's About page, never inside wildlife workflows.
+RC releases are marked as pre-releases. Windows may show a SmartScreen warning because the RC binaries are not yet Authenticode signed. Tauri updater packages are cryptographically signed separately for in-app update verification.
+
+Before testing, read [Known limitations](docs/KNOWN_LIMITATIONS.md) and [Tester guide](docs/TESTER_README.md).
+
+## Privacy and network behavior
+
+Incident records are local by default. There is no account requirement and no analytics or telemetry service in the app.
+
+Some features can make network requests:
+
+- map and terrain views can request map tiles or geocoding data from configured providers
+- update checks contact GitHub when enabled
+- optional LAN sync can exchange incident records directly with a trusted paired device on the local network
+
+LAN sync is opt-in and uses an authenticated encrypted protocol. See [LAN sync security](docs/LAN_SYNC_SECURITY.md) for the threat model and remaining limitations.
+
+Sensitive locations can be marked as sensitive, approximate locations are intentionally fuzzed, and shareable exports exclude sensitive fields by default.
+
+## What this app is not
+
+Wildlife Incident Handoff is not veterinary diagnostic software, medical advice, an emergency dispatch service, a treatment planner, or proof of professional credentials.
+
+It is designed to help people record observations and move information more clearly. Where safety matters, the app encourages distance, minimal handling, and contacting an appropriate licensed wildlife professional.
+
+## Accessibility
+
+The app is built around keyboard access, visible focus, real form labels, non-color status cues, reduced motion support, and responsive layouts. Accessibility issues are treated as bugs.
+
+If something blocks you, please [report it](https://github.com/amgedi/Wildlife-Incident-Handoff/issues/new?template=bug_report.yml).
+
+## Documentation
+
+| Document | What it covers |
+| --- | --- |
+| [How this app works](docs/HOW_THIS_APP_WORKS.md) | Plain-language product and architecture tour |
+| [Feature list and roadmap](docs/FEATURE_LIST_AND_ROADMAP.md) | Current capabilities and deliberately parked ideas |
+| [Known limitations](docs/KNOWN_LIMITATIONS.md) | RC limitations and unfinished validation |
+| [LAN sync security](docs/LAN_SYNC_SECURITY.md) | Pairing, encryption, replay protection, trust, and known limits |
+| [Security policy](SECURITY.md) | Private vulnerability reporting and supported versions |
+| [Contributing](CONTRIBUTING.md) | Local setup, testing, privacy rules, and contribution expectations |
 
 ## Development
 
-Requirements: **Node.js 20+** and npm, plus the Rust toolchain for the desktop build.
+Requirements: Node.js 20+, npm, Rust, and the Tauri 2 toolchain for desktop builds.
 
 ```bash
-npm install        # install dependencies
-npm run dev        # dev server (http://localhost:5173)
-npm test           # test suite (Vitest)
-npm run typecheck  # strict TypeScript check
-npm run build      # typecheck + production build into dist/
-npm run preview    # serve the production build locally
-npm run launcher:deploy  # build + deploy the companion launcher to the repo root
+npm install
+npm run dev
+npm test
+npm run typecheck
+npm run build
+npm run launcher:build
 ```
 
-The build in `dist/` is an offline-capable PWA, serve it with any static file server. Pull requests are welcome and are accepted under AGPL-3.0-only; see [CONTRIBUTING.md](CONTRIBUTING.md). Security or privacy issues go to [SECURITY.md](SECURITY.md).
+Desktop packaging:
 
-## Data format
+```bash
+npm run tauri build
+```
 
-Incidents use a versioned schema (`schemaVersion: 1`) with a migration path for future versions. Backups are JSON with `schemaVersion`, `applicationVersion` and `exportedAt` metadata, and importing never silently overwrites anything (ID conflicts are skipped and reported).
+Pull requests are welcome. Contributions are accepted under `AGPL-3.0-only`.
 
-For a plain-English tour of how this all works, see [docs/HOW_THIS_APP_WORKS.md](docs/HOW_THIS_APP_WORKS.md).
+## Release integrity
 
-## Roadmap
+Release binaries are published through GitHub Releases. The release workflow runs the TypeScript checks, frontend test suite, Rust tests/builds, generates checksums, and signs Tauri updater artifacts.
 
-Deliberately restrained. Possible later: richer organization workflows, optional secure sync between trusted devices, more map tools, taxonomic lookup, rescue-directory integration. Nothing here is promised, and no wildlife workflow will ever be interrupted by upsells.
+The current RC2 release has one updater bootstrap limitation: the RC2 binary was shipped before the channel manifest endpoint was corrected. Users on RC2 may need one manual upgrade to the next RC before automatic channel updates work end to end. See [Known limitations](docs/KNOWN_LIMITATIONS.md).
+
+## Support development
+
+Support links are intentionally kept out of incident reporting and response workflows.
+
+[![GitHub Sponsors](https://img.shields.io/badge/GitHub_Sponsors-Support-876B52?style=for-the-badge&logo=githubsponsors&logoColor=white)](https://github.com/sponsors/amgedi)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support-6D7F58?style=for-the-badge&logo=kofi&logoColor=white)](https://ko-fi.com/openfhs)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy_Me_a_Coffee-Support-A18463?style=for-the-badge&logo=buymeacoffee&logoColor=white)](https://buymeacoffee.com/openfhs)
 
 ## License
 
-[AGPL-3.0-only](LICENSE) (GNU Affero General Public License v3.0 only). The license covers software rights and implies nothing about veterinary authorization.
+Wildlife Incident Handoff is licensed under [AGPL-3.0-only](LICENSE).
 
-> Historical note: versions up to and including v0.1.0 were MIT licensed; those copies remain under the license that came with them. Everything from 0.2.0 onward is AGPL-3.0-only.
+Versions up to and including `v0.1.0` were released under MIT. Those historical copies remain under the license that accompanied them.

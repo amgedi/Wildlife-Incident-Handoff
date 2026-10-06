@@ -1,37 +1,48 @@
-# PROJECT STRUCTURE — Wildlife Incident Handoff
+# Project Structure
 
-A short map of this folder, so it makes sense months from now.
+Wildlife Incident Handoff is organized so product code, desktop packaging, documentation, and test tooling stay separate.
 
-## What to click
+```text
+.github/                 GitHub Actions, issue forms, funding, community files
+branding/                public branding and README artwork
+docs/                    public product, security, testing, and architecture docs
+launcher/                companion launcher frontend and Tauri shell
+public/                  static web assets
+qa/                      active QA and smoke-test helpers
+screenshots/current/     current fictional-data product screenshots
+scripts/                 build, packaging, release, and maintenance scripts
+src/                     React application
+src-tauri/               Tauri 2 desktop shell and native services
+tests/                   additional test fixtures where applicable
+updates/                 public updater channel manifests
+```
 
-- **`Launch Wildlife Incident Handoff.exe`** (root) — the development/workspace
-  launcher (native Tauri app). It shows build identity, can launch the current
-  packaged build, run a build, check updates, and switch themes. This is the
-  ONLY executable in the root.
+## Main application
 
-## Where things live
+`src/` contains the React application, local storage services, incident workflows, map UI, settings, exports, tutorials, accessibility behavior, and tests.
 
-| Path | What it is |
-|---|---|
-| `release/current/` | **Current external tester release** (0.3.0-rc.1: installer, portable, web.zip, manifest, checksums, tester docs). This is what you give to testers. |
-| `release/archive/` | Historical releases, one folder per version (0.1.0 → 0.3.0-dev.7). |
-| `src/` | Frontend source (React + TypeScript). |
-| `src-tauri/` | Native desktop shell (Tauri 2 / Rust). |
-| `launcher/` | The root launcher's own Tauri project (`launcher/src-tauri`). |
-| `public/` | Static assets and icons served with the frontend. |
-| `branding/` | Canonical brand artwork (paw emblem/logo). |
-| `qa/` | Interactive QA drivers (CDP utilities, LAN probes, tour/onboarding drivers). |
-| `scripts/` | Build/release automation (`release-all.mjs`, `set-version.mjs`, smoke tests…). Old one-off helpers are in `scripts/archive/`. |
-| `docs/` | Active documentation. Historical milestone reports: `docs/archive/0.3/`. |
-| `screenshots/current/` | Current acceptance evidence. Older milestone screenshots: `screenshots/archive/`. |
-| `dist/`, `node_modules/`, `src-tauri/target/` | Generated build output — safe to regenerate, never edit. |
-| `tests/` | (Tests live inside `src/**/*.test.tsx` — there is no separate root tests folder in this architecture.) |
+`src-tauri/` wraps that app as a Windows desktop application and contains native services such as window management, dialogs, file access, updater integration, and optional LAN sync.
 
-## Testers vs. owner
+## Companion launcher
 
-- **External testers** only ever receive `release/current/` — never this whole
-  folder, never the launcher, never source code.
-- **The root launcher** is the project owner's development convenience; the
-  installed Workbench app remains an independent product.
+`launcher/ui/` contains the launcher interface.
 
-See `README.md` for development instructions and `docs/` for details.
+`launcher/src-tauri/` contains its native shell and build logic.
+
+The generated root launcher EXE is intentionally ignored by Git. Downloadable binaries belong in GitHub Releases instead of normal source history.
+
+## Documentation
+
+The public docs focus on things a tester, contributor, reviewer, or security researcher may actually need. Internal implementation scratchpads, temporary cleanup reports, and historical QA dumps are not part of the public documentation set.
+
+## Generated files
+
+These are not source and should remain untracked:
+
+- `node_modules/`
+- `dist/`
+- Rust `target/` directories
+- local release output
+- root launcher binaries
+- local environment files
+- private signing material

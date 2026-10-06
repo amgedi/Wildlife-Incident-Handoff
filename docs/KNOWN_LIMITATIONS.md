@@ -1,46 +1,49 @@
-# KNOWN LIMITATIONS — 0.3.0-rc.1
+# Known Limitations
 
-This is a release candidate for external testing. It is not the finished
-product. The limitations below are current as of this build.
+Applies to `0.3.0-rc.2`.
 
-## Safety first
+This is a release candidate for external testing. It is usable, but it is not the final stable release.
 
-- **Use fictional / non-critical test data.** Do not use active emergency
-  data, sensitive protected-species coordinates, personally sensitive
-  information, or critical operational records with this release candidate.
+## Windows trust warning
 
-## Platform & trust
+The current installer and EXE are not Authenticode signed. Windows SmartScreen may warn before launch. This is separate from Tauri updater signing, which verifies update packages cryptographically.
 
-- **Unsigned release candidate.** The installer and standalone EXE are not
-  code-signed (no certificate). Windows SmartScreen may show a warning;
-  see TESTER_README.md for what to expect.
-- **No signed auto-update.** There is no in-app update installer in this
-  release. Updates will be distributed as new downloads. The app never
-  silently installs binaries.
+## Updater bootstrap
 
-## Features deferred to a later release
+RC2 shipped before the tester-channel manifest endpoint was fully corrected. RC2 users may need one manual upgrade to the next RC. Source after RC2 uses a repository-hosted channel manifest so later builds can receive tester-channel updates normally.
 
-- LAN media transfer (photos/videos over LAN sync) — sync currently covers
-  incident records, not media blobs.
-- Encrypted backups (backups are integrity-manifested but not encrypted).
-- Offline downloadable map packs (the offline basemap is a device-rendered
-  vector view, not full offline street tiles).
-- Profile transfer between devices.
-- Connected external professional verification — role evidence is prepared
-  locally and is clearly labeled "not externally verified".
-- Elevation profile tool.
-- Some translations are incomplete or preview quality (English is complete).
+## LAN sync
 
-## Environment requirements
+LAN sync is experimental.
 
-- Terrain 3D, Satellite view and online street basemaps require an internet
-  connection. The incident list, records, backups and exports work fully
-  offline.
-- Map tiles are © OpenStreetMap contributors; attribution is shown on the map.
+- pairing requires explicit trust approval
+- users should compare device fingerprints when pairing on an untrusted local network
+- media attachments are not synchronized
+- the listener can remain bound while the app is running even when sync is disabled, but disabled endpoints reject sync and pairing requests
+- real-world testing across different routers, firewalls, and enterprise networks is still limited
 
-## Manual validation items pending (honestly not yet done)
+See [LAN_SYNC_SECURITY.md](LAN_SYNC_SECURITY.md).
 
-- Real screen-reader (NVDA) pass against the packaged EXE.
-- Real Windows display-scaling (125% / 150%) pass on external hardware.
-- Two-physical-machine LAN acceptance (automated crypto/replay/pairing tests
-  pass; two-machine field test pending).
+## Maps and external providers
+
+Core incident records remain local, but online map, terrain, and geocoding features can contact external providers. Offline behavior is intentionally more limited.
+
+Sensitive locations should be marked sensitive. Do not assume a third-party map provider has the same privacy guarantees as local storage.
+
+## Accessibility validation
+
+Keyboard and responsive behavior are covered by automated and manual checks, but the RC has not been exhaustively validated with every screen reader, Windows scaling combination, high-contrast configuration, or assistive technology setup.
+
+Accessibility problems should be reported as bugs.
+
+## Professional verification
+
+Professional role and verification fields are local context. The app does not operate a live authoritative credential-verification service. A role shown in the local workspace is not proof of licensure, authority, or organizational affiliation.
+
+## No emergency dispatch
+
+Wildlife Incident Handoff is not emergency dispatch, law enforcement dispatch, veterinary diagnosis, or treatment software.
+
+## Test data first
+
+External testers should use Test View or clearly fictional data until they are comfortable with export, backup, privacy, and deletion behavior.

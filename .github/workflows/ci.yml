@@ -1,38 +1,55 @@
 name: CI
+
 on:
-  push: { branches: [main] }
+  push:
+    branches: [main]
   pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
 jobs:
   frontend:
-    # Windows runner: several test fixtures use absolute Windows paths.
     runs-on: windows-latest
     steps:
-      # Full history: iconContract.test.ts verifies a tagged icon artifact.
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
+        with:
+          node-version: 22
+          cache: npm
       - run: npm ci
-      - run: npx tsc --noEmit
+      - run: npm run typecheck
       - run: npm test
+      - run: npm run build
+      - name: Production dependency audit
+        run: npm audit --omit=dev --audit-level=high
+
   rust-app:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-        with: { workspaces: src-tauri }
+        with:
+          workspaces: src-tauri
       - run: cargo test --manifest-path src-tauri/Cargo.toml
+
   rust-launcher:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-        with: { workspaces: launcher/src-tauri }
+        with:
+          workspaces: launcher/src-tauri
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm, cache-dependency-path: launcher/ui/package-lock.json }
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: launcher/ui/package-lock.json
       - run: npm ci --prefix launcher/ui
-      # Tauri codegen embeds ../ui/dist at compile time — build the UI first.
       - run: npm run --prefix launcher/ui build
       - run: cargo test --manifest-path launcher/src-tauri/Cargo.toml

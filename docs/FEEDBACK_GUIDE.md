@@ -1,52 +1,51 @@
-# FEEDBACK GUIDE — 0.3.0-rc.1
+# Feedback Guide
 
-You are the first external testers. Every report helps — including "this was
-confusing" and "it worked fine".
+Version: `0.3.0-rc.2`
 
-## What to include in a bug report
+Useful feedback does not need to sound technical. "I did not understand what this button would do" is a good report.
 
-1. **What you did** (e.g., "opened Map, clicked a row in the right-hand list").
-2. **What you expected** vs **what happened**.
-3. **Version info** — Settings → About → copy the diagnostics text and paste it
-   into your report. It contains version/build identity only.
-4. A screenshot if something looked broken.
+## For bugs
 
-There is no in-app submission (nothing is sent automatically). Send reports
-through the channel the project owner gave you, or file an issue in this
-project's repository using the bug template.
+Please include:
 
-## High-priority categories
+- app version
+- Windows version
+- display scaling if the problem is visual
+- what you clicked or typed
+- what you expected
+- what actually happened
+- whether it happens every time
+- a screenshot only if it uses fictional or redacted data
 
-- Anything that looks like **data loss** or a crash.
-- Anything where a **sensitive/approximate location seems to be revealed**.
-- The **map appearing blank** when you open it.
-- Anything that made you worry real data might be shared.
-- Broken layout at your display scaling.
+Use the bug form:
 
-## Feedback questions (answer any you like)
+https://github.com/amgedi/Wildlife-Incident-Handoff/issues/new?template=bug_report.yml
 
-- Could you tell what to do without instructions? Where did you get stuck?
-- Was anything confusing or mislabeled?
-- Did anything fail to respond when clicked?
-- Did the Map ever appear blank? Did Terrain 3D work?
-- Did you understand the location privacy levels (exact/approximate/sensitive)?
-- Were incident statuses easy to scan?
-- Did Test View feel realistic?
-- Did anything feel slow?
-- Did anything look broken at your display scaling?
-- Was there any point where you worried real data might be shared?
-- What would stop you from using this again?
+## For feature ideas
 
-## Suggested test missions
+Describe the problem first. A good feature request explains what you were trying to do and where the current workflow got in the way.
 
-1. **Reporter**: create a fictional report (unknown species is fine,
-   approximate location), add an observation and a photo, then update it.
-2. **Professional operations**: enable Test View, try Dashboard, Response
-   Flow, Incidents, Map, bookmarking, assignment/handoff, analytics.
-3. **Map**: try Streets / Satellite / Terrain, the incident side list,
-   single-click fly-to, bookmark, measure tool.
-4. **Privacy**: create exact/approximate/sensitive fictional records and
-   inspect the map + exports (see PRIVACY_TESTING_GUIDE.md).
-5. **Backup**: create a backup from Settings → Data and restore it.
-6. **Themes / accessibility**: try dark and light themes, Frosted and Solid
-   materials, reduced motion if you use it.
+Use the feature request form:
+
+https://github.com/amgedi/Wildlife-Incident-Handoff/issues/new?template=feature_request.yml
+
+## For tester impressions
+
+It is useful to report:
+
+- what felt easy
+- what felt slow
+- what felt intimidating
+- what looked unfinished
+- what you expected to find but could not
+- what you would remove
+- what you would rename
+- anything that made you hesitate before clicking
+
+## Privacy
+
+Do not post real sensitive wildlife locations, real reporter contact details, real private case notes, or screenshots containing that information.
+
+## Security
+
+Do not publish exploit details in a normal issue. Follow [SECURITY.md](../SECURITY.md) for private vulnerability reporting.
