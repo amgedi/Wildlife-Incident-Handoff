@@ -124,7 +124,7 @@ jobs:
           Set-Content -Path "$releaseDir/checksums.sha256" -Value $checksums -Encoding ascii
 
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           prerelease: ${{ contains(github.ref_name, '-rc.') }}
           generate_release_notes: true
