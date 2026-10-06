@@ -2,7 +2,7 @@
 
 A short public explainer is available here:
 
-https://scrimba.com/explain/guide0gf4t91a0?claim=vnojam3kphqdvj2n&fullscreen=1
+https://scrimba.com/explain/guide06etfn6rd?claim=hsfqpgtp7btovtjg&fullscreen=1
 
 It introduces the problem Wildlife Incident Handoff is trying to solve, the report-to-handoff flow, the treatment of unknown information, core workspace features, and the 15-minute RC testing path.
 
