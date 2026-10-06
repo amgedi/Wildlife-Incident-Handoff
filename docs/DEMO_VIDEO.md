@@ -1,10 +1,10 @@
-# Wildlife Incident Handoff explainer
+# Wildlife Incident Handoff demo
 
-A short public explainer is available here:
+A short public demo is stored directly in this repository:
 
-https://scrimba.com/explain/guide06etfn6rd?claim=hsfqpgtp7btovtjg&fullscreen=1
+[▶ Watch the Wildlife Incident Handoff demo](./wildlife-incident-handoff-demo.mp4)
 
-It introduces the problem Wildlife Incident Handoff is trying to solve, the report-to-handoff flow, the treatment of unknown information, core workspace features, and the 15-minute RC testing path.
+It introduces the problem Wildlife Incident Handoff is trying to solve, the report-to-handoff flow, the treatment of unknown information, core workspace features, and the RC testing path.
 
 ## Suggested uses
 
