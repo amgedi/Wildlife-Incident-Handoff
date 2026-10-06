@@ -1,14 +1,37 @@
 name: Feature request
-description: Suggest an idea for a future release.
+description: Suggest an improvement or a future capability.
 labels: ["enhancement"]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Start with the problem you are trying to solve. Please use fictional or redacted incident examples.
   - type: textarea
     id: problem
-    attributes: { label: The problem, description: "What are you trying to do, and what gets in the way?" }
-    validations: { required: true }
+    attributes:
+      label: What problem are you trying to solve?
+      description: "What were you trying to do, and what got in the way?"
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: What happens today?
+      description: "Describe the current workflow if one exists."
   - type: textarea
     id: proposal
-    attributes: { label: Proposed solution }
+    attributes:
+      label: What would make it better?
+      description: "Describe the outcome you want. A complete design is not required."
   - type: textarea
     id: alternatives
-    attributes: { label: Alternatives considered }
+    attributes:
+      label: Alternatives considered
+      description: "Optional. What workarounds or other approaches did you try?"
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Data check
+      options:
+        - label: I did not include real sensitive wildlife locations, private contact details, credentials, or private case notes.
+          required: true
