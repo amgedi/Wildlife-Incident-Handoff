@@ -1,151 +1,155 @@
 # How Wildlife Incident Handoff Works
 
-This is a plain-language tour of the current application architecture.
+Wildlife Incident Handoff is built around the part of wildlife response that is easy to lose: **context**.
 
-## Product shape
+A case may begin with one person seeing an animal and end with several different people involved in reporting, transport, rehabilitation, veterinary care, conservation work, or follow-up. The app gives that information one place to stay organized as responsibility changes.
 
-Wildlife Incident Handoff is a React and TypeScript application packaged as a Windows desktop app with Tauri 2.
+## 1. Start with what you actually know
 
-The same frontend can be built as a PWA for development and testing, but the public product is the desktop application.
+Create a new incident and record the situation as it is known now.
 
-Core incident records are local-first. The application does not require an account or a production cloud backend.
+You can capture things such as:
 
-## Main pieces
+- what was observed
+- approximate or precise location, depending on what is appropriate
+- hazards or immediate context
+- photos and attachments
+- relevant contacts
+- actions that have already happened
+- facts that are still unknown
 
-| Area | Purpose |
-| --- | --- |
-| `src/` | React application, workflows, maps, exports, settings, tutorials, and tests |
-| `src/storage/` | IndexedDB persistence, repositories, migrations, backups, and incident mutations |
-| `src/features/` | Product areas such as incidents, response operations, map, export, and network tools |
-| `src-tauri/` | Native Windows shell, dialogs, file access, updates, window behavior, and LAN sync |
-| `launcher/` | Separate companion launcher built with React, TypeScript, Vite, and Tauri |
-| `docs/` | Product, testing, security, and architecture documentation |
+The app does not require a guess just to make a form look complete.
 
-## Incident data
+## 2. Review before you submit
 
-Incident data uses a versioned schema and is stored locally in IndexedDB.
+The reporting flow includes a review step so obvious gaps, accidental details, and location sensitivity can be checked before the incident becomes part of the working record.
 
-The main data model keeps current state and history together:
+Drafts autosave during the process.
 
-- current values make the app quick to open and navigate
-- timeline events preserve important history
-- corrections record previous and new values instead of silently replacing the past
-- attachments are stored separately from the main incident record
-- drafts are autosaved independently
+## 3. Keep the incident alive over time
 
-## Unknown is a real state
+An incident is not a one-time form submission.
 
-Many descriptive fields allow `null` or an explicit unknown state. The interface should never force a user to guess species, age, sex, cause, diagnosis, or another fact that was not actually known.
+As the situation changes, the timeline can record:
 
-This product rule appears in both the data model and the interface.
+- new observations
+- corrections
+- status changes
+- attachments
+- notes
+- custody changes
+- handoffs
 
-## Incident workflow
+Corrections preserve what changed instead of silently rewriting the past.
 
-A typical record moves through these steps:
+## 4. Coordinate from the workspace
 
-1. create or recover a draft
-2. record what was observed
-3. add location context at the appropriate privacy level
-4. add hazards, actions, contacts, and attachments as needed
-5. review the record
-6. continue adding timeline events as the situation changes
-7. record custody or responsibility handoffs
-8. export a shareable or internal summary when needed
+The operational workspace brings active incidents together so users can see what needs attention without opening every record individually.
 
-The app is designed so a record can remain incomplete without becoming invalid.
+Depending on the workspace and local data, it can surface:
 
-## Timeline and corrections
+- active incidents
+- waiting incidents
+- handoffs
+- assignments
+- recent activity
+- response flow
+- map context
 
-Meaningful actions create timeline events.
+The goal is clarity, not productivity scoring or competition.
 
-A correction is not treated as erasing the old value. The correction stores enough context to show what changed and, when supplied, why it changed.
+## 5. Work from the map
 
-This is important because the current value and the historical record answer different questions.
+The map can show incidents spatially with tools for filtering, clustering, selecting records, measurement, and location privacy.
 
-## Handoffs
+Selecting an incident from the side list keeps the user on the map while opening useful incident context. A full record can still be opened when more detail is needed.
 
-Handoff records track changes in responsibility and context, including information such as:
+Map and geocoding features can contact external providers when those online features are used.
 
-- who or what organization context was involved
-- when the transfer occurred
+## 6. Hand responsibility to the next person clearly
+
+A handoff can record information such as:
+
+- who or what organization context is involved
+- when responsibility changed
 - condition at transfer
 - items that moved with the animal
-- notes needed by the next person
+- notes the next person needs
+- what is still pending or unknown
 
-The app does not treat a locally entered role as proof of professional authority or licensure.
+A locally entered role is not treated as proof of professional authority or licensure.
 
-## Privacy and exports
+## 7. Export only what should be shared
 
-Shareable exports are conservative by default.
+Shareable exports use conservative defaults.
 
-They can exclude:
+They can leave out:
 
 - precise coordinates
 - private contact details
 - private notes
-- other fields not needed by the recipient
+- other fields that are unnecessary for the recipient
 
-Internal exports can include more information only through an explicit user choice.
+Internal exports can include more information through an explicit user choice.
 
-Backups are different from shareable summaries. Backups are intended to preserve local application data and are validated before restore.
+Backups are separate from shareable summaries. Backups are for preserving local application data and are validated before restore.
 
-## Maps
+## 8. Practice with fictional incidents first
 
-The map uses MapLibre and can display online map, satellite, terrain, clustering, selection, measurement, and privacy-aware incident locations.
+**Test View** fills the application with fictional incidents so the workflow can be explored without entering real wildlife or contact information.
 
-Map and geocoding features can contact external providers. Local-first storage does not mean every map request is offline. See [NETWORK_ARCHITECTURE.md](NETWORK_ARCHITECTURE.md).
+This is the recommended place to start during the release-candidate testing period.
+
+## What happens when information is unknown?
+
+Unknown is a real state in Wildlife Incident Handoff.
+
+The interface should not force someone to guess species, age, sex, cause, diagnosis, ownership, or another fact that was not actually known.
+
+Missing information is not automatically interpreted as a negative answer.
+
+## What stays on the device?
+
+Core incident records are stored locally by default. The app does not require a Wildlife Incident Handoff account or production cloud backend for its main workflow.
+
+Network activity can still occur for specific features:
+
+- map tiles and geocoding
+- GitHub update checks
+- optional paired LAN sync
+
+There is no analytics or behavioral telemetry service in the current public release.
 
 ## Optional LAN sync
 
-Desktop builds can opt into experimental local-network sync with a paired device.
+Desktop builds can opt into local-network sync with a trusted paired device.
 
 The protocol uses explicit pairing, persistent device identities, authenticated encryption, replay counters, and trust revocation. It is not a cloud sync service.
 
-See [LAN_SYNC_SECURITY.md](LAN_SYNC_SECURITY.md).
+Read [LAN sync security](LAN_SYNC_SECURITY.md) before testing it with anything beyond fictional data.
 
-## Desktop shell
+## The companion launcher
 
-Tauri provides native Windows behavior such as:
+The launcher is the front door for the desktop build. It provides:
 
-- desktop window management
-- native file dialogs
-- safe file-system access exposed through configured capabilities
-- signed application updates
-- local network services for optional LAN sync
-- single-instance behavior
+- launch status
+- update state
+- repair and diagnostics tools
+- basic launcher settings
 
-The desktop shell has its own Rust tests in addition to the frontend test suite.
+Developer tools only appear when a source checkout is detected, so the normal launcher stays focused on using the application.
 
-## Companion launcher
+## Under the hood
 
-The launcher is a separate Tauri application. Normal mode focuses on launching, update state, diagnostics, and basic settings. Developer tools appear only when a source checkout is detected.
+For contributors, the main application uses **React, TypeScript, Vite, IndexedDB, and Tauri 2**. The companion launcher has its own React and TypeScript frontend with a Tauri backend.
 
-Generated launcher and application binaries are distributed through GitHub Releases instead of being committed to the source tree.
+Useful starting points in the source:
 
-## Network boundaries
-
-Network activity can occur for:
-
-- online map or geocoding providers
-- GitHub update checks
-- explicitly enabled LAN sync with a paired device
-
-There is no analytics or telemetry service in the current public release.
-
-## Testing
-
-The project uses:
-
-- Vitest for frontend and service tests
-- fake IndexedDB for isolated storage tests
-- Rust tests for the Tauri application and launcher
-- GitHub Actions for typecheck, builds, tests, dependency auditing, and CodeQL analysis
-
-## Good places to start reading
-
-1. `src/types/incident.ts` for the incident vocabulary
+1. `src/types/incident.ts` for incident vocabulary
 2. `src/storage/incidentService.ts` for mutation and history rules
 3. `src/features/incidents/` for incident workflows
 4. `src/features/network/` for operations, map, and sync-related UI
 5. `src-tauri/src/main.rs` for the desktop shell and updater bridge
 6. `src-tauri/src/lan_sync.rs` and `lan_crypto.rs` for the experimental LAN protocol
+
+For security boundaries, see [SECURITY.md](../SECURITY.md) and [NETWORK_ARCHITECTURE.md](NETWORK_ARCHITECTURE.md).
