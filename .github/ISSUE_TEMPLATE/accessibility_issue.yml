@@ -1,0 +1,56 @@
+name: Accessibility issue
+description: Report a keyboard, screen reader, low-vision, scaling, or motion problem.
+labels: ["accessibility", "bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Accessibility problems are product bugs. Use fictional or redacted data in screenshots.
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: "Example: 0.3.0-rc.2"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Windows and assistive technology
+      description: "Example: Windows 11, NVDA 2026.1, 150% scaling"
+  - type: dropdown
+    id: access_method
+    attributes:
+      label: How were you using the app?
+      multiple: true
+      options:
+        - Keyboard only
+        - Screen reader
+        - High contrast
+        - Increased display scaling or zoom
+        - Reduced motion
+        - Voice or switch access
+        - Other
+  - type: textarea
+    id: location
+    attributes:
+      label: Where did it happen?
+      description: "Name the page, dialog, button, field, or workflow."
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What went wrong?
+      description: "Examples: focus disappeared, a button had no useful name, content overlapped, status was only shown by color."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What would have worked better?
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or extra context
+      description: "Optional. Use fictional or redacted data only."

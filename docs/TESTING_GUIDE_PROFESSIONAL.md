@@ -1,44 +1,57 @@
-# Field Testing Guide — two devices, one network (10–15 min)
+# LAN Sync Field Testing Guide
 
-Fictional-data walkthrough that proves sync end to end. Requires two Windows
-computers (or one computer + one second Windows user profile) running the
-same app version, on the same network, LAN sync disabled to start.
+Estimated time: 10 to 15 minutes.
 
-## Setup (3 min)
-1. On Device A (call it "Dispatch"): Settings → LAN sync → enable.
-2. Note "Your address" and "Your pairing code".
-3. On Device B (call it "Field"): enable LAN sync, enter Dispatch's address
-   + code → Pair.
-4. Dispatch: approve the pairing request ("Trust device").
-5. Both devices: confirm each other appears under "Trusted devices".
+Use fictional incidents only. This guide requires two Windows app instances on the same trusted local network.
 
-## Scenario
-1. **Field**: Report wildlife → a gull entangled in fishing line at the boat
-   launch → create the report.
-2. **Dispatch**: within ~10 s the incident appears in the dashboard queue
-   (Response network → New). Verify the reference matches.
-3. **Dispatch**: open the incident → Accept (status: Responder assigned).
-4. **Field**: within ~10 s the status chip changes; the bell shows a
-   notification.
-5. **Field**: edit the animal's location description ("moved to the dock
-   pilings") via Update report.
-6. **Dispatch**: verify the update + timeline entry arrived.
-7. **Dispatch**: Transfer / hand off the case to "Rehab Front Desk".
-8. **Field**: verify the handoff event appears in the timeline.
-9. **Disconnect** one device from the network; edit the summary on each
-   device (different text). Reconnect → sync.
-10. Expected: a **SYNC CONFLICT** appears in Settings → LAN sync on at least
-    one device; nothing was silently overwritten. Resolve with
-    "Use this device's" on the device whose text should win; check the
-    timeline records "Sync conflict resolved".
-11. **Archive** the incident on one device → verify the other hides it from
-    Active (it stays findable under Archived).
-12. **Trash** it on the same device → verify it disappears from Active on
-    both; restore from Trash → verify it returns on both. No history lost.
+LAN sync is experimental in `0.3.0-rc.2`.
 
-## Feedback questions (short — answer in any words you like)
-- What confused you?
-- What did you expect to happen that did not?
-- What did you NOT trust?
-- What took too long?
-- What would you actually use this for?
+## Pairing
+
+1. On Device A, open Settings and enable LAN sync.
+2. Note the local address and temporary pairing code.
+3. On Device B, enable LAN sync and enter Device A's address and pairing code.
+4. Device A must explicitly approve the pairing request.
+5. Compare device fingerprints if you are testing on a network you do not fully trust.
+6. Confirm both devices show each other as trusted peers.
+
+## Fictional incident test
+
+1. On Device B, create a fictional incident.
+2. Wait for the incident to appear on Device A.
+3. On Device A, make a clear status or assignment change.
+4. Confirm that change appears on Device B.
+5. On Device B, add a new observation or edit a non-sensitive fictional field.
+6. Confirm the change and timeline event appear on Device A.
+7. Record a fictional handoff on Device A.
+8. Confirm the handoff appears on Device B.
+
+## Conflict test
+
+1. Disconnect the devices from each other.
+2. Change the same fictional field on both devices to different values.
+3. Reconnect and sync.
+4. Confirm the product surfaces a conflict instead of silently choosing a winner.
+5. Resolve the conflict deliberately and confirm the resolution is reflected in history.
+
+## Trust and revocation test
+
+1. Revoke Device B from Device A.
+2. Attempt another sync.
+3. Confirm the revoked peer cannot continue normal authenticated sync until it is paired again.
+
+## What to report
+
+Please report:
+
+- pairing that succeeds without explicit approval
+- an untrusted peer reading or changing incident data
+- a replayed update being accepted
+- unexplained trust changes after restart
+- a sync conflict being silently overwritten
+- private key or credential material appearing in diagnostics
+- crashes caused by malformed or unexpected network input
+
+Security-sensitive findings should follow [SECURITY.md](../SECURITY.md) instead of being posted with exploit details in a public issue.
+
+For ordinary usability feedback, use the [tester feedback form](https://github.com/amgedi/Wildlife-Incident-Handoff/issues/new?template=tester_feedback.yml).

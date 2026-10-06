@@ -1,53 +1,56 @@
-# PRIVACY TESTING GUIDE — 0.3.0-rc.1
+# Privacy Testing Guide
 
-Wildlife Incident Handoff is local-first: records stay on your device unless
-YOU deliberately use a feature that shares them. This guide explains what to
-test and what to expect.
+Applies to `0.3.0-rc.2`.
+
+Use fictional data for privacy testing.
 
 ## Location privacy levels
 
-Every incident has a location precision:
+Test all location modes with clearly fake incidents.
 
-- **Exact** — the real coordinate is used on your device.
-- **Approximate** — the map shows a ~1 km generalized position; the stored
-  exact coordinate is never shown or sent.
-- **Sensitive** — no precise point at all: area/generalized display only, and
-  nearest-place lookups are disabled entirely (nothing is sent to any
-  geocoder).
+### Exact
 
-## What to test (Scenario 4)
+The incident can use the precise coordinate locally. Online map or geocoding features may contact configured external providers when the user chooses those features.
 
-Create three fictional records, one at each precision, then check:
+### Approximate
 
-1. **Map markers** — approximate/sensitive incidents must never show a
-   pinpoint at the real location.
-2. **Map list fly-to** — clicking a list row moves the camera to the SAME
-   generalized position as the marker; the camera never reveals a hidden
-   coordinate.
-3. **Inspector** — "Technical details" hides exact coordinates for
-   approximate; sensitive never offers a nearest-place lookup.
-4. **Exports** — exported files respect the same precision.
-5. **Geocoder consent** — for an Exact incident, "Look up nearest road/place"
-   asks for consent first and names the provider; Approximate only ever sends
-   the generalized point; Sensitive offers no lookup at all.
-6. **Diagnostics** — Settings → About diagnostics contain version/build info
-   only: no coordinates, no keys, no contacts.
+The product should display and share a generalized position rather than exposing the precise incident point through normal map, inspection, or shareable export surfaces.
 
-## Network features that touch the internet (and only these)
+### Sensitive
 
-- **Map tiles** (OpenStreetMap / satellite / terrain) — tile requests go out
-  when an online basemap is visible. The offline basemap makes zero tile
-  requests.
-- **Reverse geocoding** — only on your explicit action, only per the rules
-  above, with consent for exact coordinates.
-- **LAN sync** — only between devices you have explicitly paired, encrypted,
-  with fingerprint approval. Nothing ever goes to a cloud server. There is no
-  telemetry.
+The product should avoid exposing a precise point and should disable workflows that would unnecessarily send a sensitive coordinate to a geocoding provider.
 
-## If you are worried
+## What to test
 
-The fastest honesty check: turn on the offline basemap (Settings → Map) and
-use airplane mode — every non-map feature still works, and nothing is sent.
+Create fictional incidents at each privacy level and check:
 
-Report any behavior that contradicts this guide as a **high-priority bug**
-(see FEEDBACK_GUIDE.md).
+1. map markers do not reveal a more precise point than the selected privacy level
+2. selecting an incident from the map list does not move the camera to a hidden precise location
+3. technical details respect the selected privacy level
+4. shareable exports do not leak precise coordinates, private contacts, or private notes
+5. geocoding actions explain when an external provider may receive location data
+6. diagnostics do not include incident coordinates, contacts, credentials, updater keys, or LAN private keys
+7. backups are clearly different from shareable exports and are treated as full local data copies
+
+## Network behavior to verify
+
+The current desktop app can make network requests for:
+
+- online map, satellite, and terrain tiles
+- geocoding when the user uses a geocoding feature
+- GitHub update checks when enabled
+- optional paired-device LAN sync
+
+There is no analytics or telemetry service in the current public release.
+
+## Offline check
+
+Disconnect the network and verify that core local incident workflows still work.
+
+Online maps, geocoding, update checks, and LAN communication may be unavailable when their required network path is unavailable. The app should fail clearly and safely instead of losing local incident data.
+
+## Reporting a privacy problem
+
+A privacy leak should be treated as a high-priority bug.
+
+Do not post the leaked real data publicly. Redact the example and follow [SECURITY.md](../SECURITY.md) if the issue exposes information that should have remained private.

@@ -1,47 +1,32 @@
-# SBOM — Software Bill of Materials (inventory + licenses)
+# Software Bill of Materials
 
-Regenerated each release by `scripts/license-inventory.mjs` (npm production dependencies) and reviewed together with the Rust/Cargo side (`src-tauri/Cargo.toml` + `Cargo.lock`) documented at the bottom of `THIRD_PARTY_LICENSES.md`. Format: simplified SPDX-style inventory (name, version, license).
+Wildlife Incident Handoff depends on both JavaScript packages and Rust crates.
 
-Generated 2026-10-04 (dev.19 pass) — application version 0.2.0-dev.18 → 0.2.0-dev.19.
-Application license: AGPL-3.0-only. Runtime dependencies:
+The authoritative version inventory lives in the committed lockfiles:
 
-| Package | Version | License |
-|---|---|---|
-| @floating-ui/dom | 1.8.0 | MIT |
-| @tauri-apps/api | 2.12.1 | Apache-2.0 OR MIT |
-| @tauri-apps/plugin-notification | 2.5.1 | MIT OR Apache-2.0 |
-| i18next | 26.4.2 | MIT |
-| idb | 8.0.3 | ISC |
-| libphonenumber-js | 1.13.14 | MIT |
-| maplibre-gl | 6.11.2 | BSD-3-Clause |
-| react | 18.3.1 | MIT |
-| react-dom | 18.3.1 | MIT |
-| react-i18next | 17.0.15 | MIT |
-| react-router-dom | 6.30.6 | MIT |
+- `package-lock.json`
+- `launcher/ui/package-lock.json`
+- `src-tauri/Cargo.lock`
+- `launcher/src-tauri/Cargo.lock`
 
-Transitive packages present in node_modules: 333.
+The repository also keeps [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for dependency-license review.
 
-Notable runtime components and their licenses:
-- React, React DOM — MIT
-- MapLibre GL JS — BSD-3-Clause
-- i18next, react-i18next — MIT
-- idb — ISC
-- libphonenumber-js — MIT
-- @tauri-apps/api — Apache-2.0 OR MIT
-- Floating UI (DOM) — MIT
+## Notable runtime components
 
-Desktop (Rust) runtime: Tauri (Apache-2.0 OR MIT), tiny_http (MIT/Apache-2.0), ureq (MIT/Apache-2.0), serde (MIT/Apache-2.0), serde_json (MIT/Apache-2.0).
+| Component | Purpose | License family |
+| --- | --- | --- |
+| React and React DOM | Interface | MIT |
+| React Router | Application routing | MIT |
+| IndexedDB helpers | Local persistence | ISC / permissive |
+| MapLibre GL JS | Interactive maps | BSD-3-Clause |
+| i18next and react-i18next | Localization | MIT |
+| Tauri 2 | Windows desktop shell | Apache-2.0 OR MIT |
+| P-256 / ECDH crates | LAN device identity and key agreement | MIT OR Apache-2.0 |
+| AES-GCM | LAN payload encryption | MIT OR Apache-2.0 |
+| HKDF / SHA-256 | LAN channel-key derivation | MIT OR Apache-2.0 |
 
-### Rust crates added in dev.19 (LAN sync protocol v3 — src-tauri)
+## Release expectation
 
-All from the RustCrypto ecosystem, dual-licensed MIT OR Apache-2.0:
+Dependency inventories should be regenerated and reviewed for a stable release rather than treating this overview as a frozen package list.
 
-| Crate | Version | Purpose | License |
-|---|---|---|---|
-| p256 (+ecdsa/elliptic-curve/ecdh deps) | 0.13.2 | P-256 device identity keypair + ECDH | MIT OR Apache-2.0 |
-| aes-gcm (+aead/cipher/poly1305) | 0.10.3 | AES-256-GCM envelope encryption | MIT OR Apache-2.0 |
-| hkdf (+hmac/sha2/digest) | 0.12.4 | HKDF-SHA256 channel-key derivation | MIT OR Apache-2.0 |
-| rand / rand_core / getrandom | 0.8.8 | OS CSPRNG (keys, nonces, pairing codes) | MIT OR Apache-2.0 |
-
-Full transitive Cargo inventory: see `src-tauri/Cargo.lock` (committed).
-
+The project license is `AGPL-3.0-only`. Third-party dependencies retain their own licenses.

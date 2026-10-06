@@ -1,14 +1,11 @@
-# Licensing strategy
+# Licensing Strategy
 
-- The project license is **AGPL-3.0-only** (SPDX: `AGPL-3.0-only`). Code
-  contributions are accepted under that license only (see CONTRIBUTING.md).
-- Goals: open availability, strong copyleft, improvements stay open when the
-  software is operated as a network service, and the owner retains the option
-  of a sustainable service/commercial model.
-- **Dual licensing note:** if a dual commercial license is ever adopted, a
-  proper Contributor License / Relicensing Agreement must be selected BEFORE
-  substantial third-party code is accepted. AGPL-3.0 itself does not grant
-  exclusive commercial rights and this document creates no legal guarantee.
-- The Wildlife Incident Handoff name and paw logo are project marks; their
-  ownership is separate from the code license. Nothing here implies endorsement
-  by any wildlife agency.
+- The project license is `AGPL-3.0-only`.
+- Code contributions are accepted under that license unless the project adopts a different contributor agreement in the future.
+- The goal is to keep the core software openly available under strong copyleft while preserving the option to build paid deployment, support, training, hosting, integration, or commercial licensing services where legally appropriate.
+- AGPL-3.0 does not give the project owner exclusive commercial rights over third-party contributions.
+- If the project later adopts dual commercial licensing, contributor and relicensing terms should be reviewed before substantial third-party code is relicensed.
+- Project names, logos, and other branding are separate from the software license where applicable.
+- Nothing in the license or branding implies endorsement by a wildlife agency, veterinary organization, government body, or emergency service.
+
+This file describes project intent and is not legal advice.

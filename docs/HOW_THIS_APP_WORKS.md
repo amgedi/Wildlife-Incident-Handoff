@@ -1,157 +1,151 @@
-# How This App Works
+# How Wildlife Incident Handoff Works
 
-A plain-English tour of Wildlife Incident Handoff for someone learning software development. No prior professional experience assumed.
+This is a plain-language tour of the current application architecture.
 
----
+## Product shape
 
-## 1. The big picture
+Wildlife Incident Handoff is a React and TypeScript application packaged as a Windows desktop app with Tauri 2.
 
-Wildlife Incident Handoff is a **web application that runs entirely in your browser**. There is no server, no database in the cloud, and no login. When you use it:
+The same frontend can be built as a PWA for development and testing, but the public product is the desktop application.
 
-1. Your browser downloads the application (HTML, CSS, JavaScript) — once.
-2. Everything you type is saved **inside your browser** using a browser feature called **IndexedDB**.
-3. Nothing ever leaves your device unless you explicitly export a file.
+Core incident records are local-first. The application does not require an account or a production cloud backend.
 
-The project is built with:
+## Main pieces
 
-| Tool | What it does |
+| Area | Purpose |
 | --- | --- |
-| **TypeScript** | JavaScript with types — catches mistakes before the app runs |
-| **React** | A library for building interfaces from small, reusable pieces called *components* |
-| **Vite** | The build tool: runs the dev server, bundles the app for production |
-| **IndexedDB** | The browser's built-in database — where incidents and photos are stored |
-| **Vitest** | The test runner — runs automated tests against the code |
-| **vite-plugin-pwa** | Adds the "installable app" + offline service worker |
+| `src/` | React application, workflows, maps, exports, settings, tutorials, and tests |
+| `src/storage/` | IndexedDB persistence, repositories, migrations, backups, and incident mutations |
+| `src/features/` | Product areas such as incidents, response operations, map, export, and network tools |
+| `src-tauri/` | Native Windows shell, dialogs, file access, updates, window behavior, and LAN sync |
+| `launcher/` | Separate companion launcher built with React, TypeScript, Vite, and Tauri |
+| `docs/` | Product, testing, security, and architecture documentation |
 
-## 2. Project folder structure
+## Incident data
 
-```
-wildlife-incident-handoff/
-├── index.html              The single HTML page the whole app lives in
-├── package.json            Project metadata, dependencies, and scripts
-├── vite.config.ts          Build + PWA + test configuration
-├── public/                 Static files copied as-is (favicon, PWA icons)
-├── screenshots/            Screenshots used by this README
-└── src/                    All source code
-    ├── main.tsx            Entry point: starts React, mounts the app
-    ├── App.tsx             The app shell: sidebar, routing, the product tour
-    ├── version.ts          The current version string
-    ├── app/                App-wide state (settings, toasts) shared by all screens
-    ├── components/         Reusable building blocks (buttons' styling helpers,
-    │                       dialogs, selects, icons, the brand mark)
-    ├── features/           The big functional areas, one folder each:
-    │   ├── onboarding/     First-run welcome + experience questions
-    │   ├── home/           The home screen
-    │   ├── incidents/      Creation wizard, list, detail workspace
-    │   │   └── detail/     One file per incident tab (Overview, Timeline, …)
-    │   ├── export/         Building handoff summaries (text/HTML/print)
-    │   ├── settings/       The settings page
-    │   └── tutorial/       Product tour, guided tutorial, demo data
-    ├── storage/            Everything that touches IndexedDB:
-    │   ├── db.ts           Opens the database and runs migrations
-    │   ├── repositories.ts Read/write functions (the ONLY code talking to IndexedDB)
-    │   ├── incidentService.ts  All incident mutations + timeline event creation
-    │   └── backupService.ts    Export/import of JSON backups
-    ├── types/              TypeScript descriptions of the data (Incident, Handoff, …)
-    ├── utils/              Small helpers: IDs, dates, text safety, validation
-    ├── styles/             Design tokens (colors, spacing, motion) and base CSS
-    └── i18n/               Interface text keyed by name, ready for translations
-```
+Incident data uses a versioned schema and is stored locally in IndexedDB.
 
-## 3. What a React component is
+The main data model keeps current state and history together:
 
-A **component** is a function that returns part of the user interface. For example, the status badge:
+- current values make the app quick to open and navigate
+- timeline events preserve important history
+- corrections record previous and new values instead of silently replacing the past
+- attachments are stored separately from the main incident record
+- drafts are autosaved independently
 
-```tsx
-export function StatusBadge({ status }: { status: IncidentStatus }) {
-  return <span className={`badge ${cls}`}>{STATUS_LABELS_BY_KEY[status]}</span>;
-}
-```
+## Unknown is a real state
 
-You can use it like an HTML tag: `<StatusBadge status={incident.status} />`. React re-runs the function when the data changes and updates the page. Screens like the home page are just bigger components made of smaller ones.
+Many descriptive fields allow `null` or an explicit unknown state. The interface should never force a user to guess species, age, sex, cause, diagnosis, or another fact that was not actually known.
 
-## 4. What TypeScript does
+This product rule appears in both the data model and the interface.
 
-TypeScript describes the *shape* of data. For example, in `src/types/incident.ts`:
+## Incident workflow
 
-```ts
-interface AnimalInfo {
-  group: AnimalGroup | null;   // null = not recorded
-  species: string | null;
-  count: number | null;
-  ...
-}
-```
+A typical record moves through these steps:
 
-If code tried to use `incident.animal.species` without checking for `null`, the compiler (`npm run typecheck`) would complain. That's how "Unknown is a valid answer" is enforced *by the type system*: almost every descriptive field is nullable, and the UI renders an explicit "Unknown" chip when it is.
+1. create or recover a draft
+2. record what was observed
+3. add location context at the appropriate privacy level
+4. add hazards, actions, contacts, and attachments as needed
+5. review the record
+6. continue adding timeline events as the situation changes
+7. record custody or responsibility handoffs
+8. export a shareable or internal summary when needed
 
-## 5. How the app starts
+The app is designed so a record can remain incomplete without becoming invalid.
 
-1. Vite serves `index.html`, which loads `src/main.tsx`.
-2. `main.tsx` renders `<App />` inside a router (chooses which screen for which URL) and an `AppProvider` (holds settings and toasts).
-3. `App.tsx` waits for settings to load from IndexedDB. If this is the first run, it shows **Onboarding**; otherwise it shows the main shell with a sidebar and routes:
-   - `/` home, `/incidents` list, `/incidents/new` wizard, `/incidents/:id` detail, `/examples`, `/tutorial`, `/settings`.
+## Timeline and corrections
 
-## 6. How incident data flows
+Meaningful actions create timeline events.
 
-The golden rule: **the user interface never writes to the database directly.** Every change goes through `src/storage/incidentService.ts`:
+A correction is not treated as erasing the old value. The correction stores enough context to show what changed and, when supplied, why it changed.
 
-```
-UI (e.g. ObservationsTab)
-   │  calls addObservation(incident, …)
-   ▼
-incidentService
-   │  1. builds the new Observation
-   │  2. builds a TimelineEvent describing what just happened
-   │  3. updates the incident: new state + appended event
-   ▼
-repositories.ts  →  IndexedDB (a single "put" saves the whole incident)
-```
+This is important because the current value and the historical record answer different questions.
 
-This is how "append, don't erase" is guaranteed: functions like `correctField()` never destroy the old value — they store it inside the correction event (`previousValue` / `newValue`) so the timeline always shows the original.
+## Handoffs
 
-**Current state + history.** The incident record holds the *current* values (status, observations, custody), so opening a screen is fast — no replaying thousands of events. The `timeline` array holds the *history*. Both are written together in one atomic save, so they can't drift apart.
+Handoff records track changes in responsibility and context, including information such as:
 
-## 7. How IndexedDB works (in this app)
+- who or what organization context was involved
+- when the transfer occurred
+- condition at transfer
+- items that moved with the animal
+- notes needed by the next person
 
-IndexedDB is the browser's database. `src/storage/db.ts` opens (or creates) a database named `wildlife-incident-handoff` with four "object stores" (tables):
+The app does not treat a locally entered role as proof of professional authority or licensure.
 
-- **incidents** — one record per incident (the whole incident, including its timeline)
-- **attachments** — photo blobs, stored *separately* from incident records so images never bloat the record itself
-- **drafts** — the autosaved creation wizard state
-- **settings** — a small key/value store for app settings
+## Privacy and exports
 
-The `upgrade` callback in `db.ts` is the **migration system**: it currently creates version 1, and future versions add `if (oldVersion < 2) { … }` blocks — so existing user data can be upgraded in place without loss.
+Shareable exports are conservative by default.
 
-## 8. How the timeline works
+They can exclude:
 
-Every meaningful action creates a `TimelineEvent` with: a unique `eventId`, a `timestamp`, an `eventType` (like `status_changed` or `handoff_completed`), a human-readable `summary`, optional `details`, and — for corrections — `metadata` holding the previous and new values. The Timeline tab simply sorts events by time and renders them; it can afford to be dumb because the service layer guarantees every event was created.
+- precise coordinates
+- private contact details
+- private notes
+- other fields not needed by the recipient
 
-## 9. How exports work
+Internal exports can include more information only through an explicit user choice.
 
-`src/features/export/exportService.ts` turns an incident into *sections* (Incident, Animal, Location, Observations, Hazards, Actions, Custody, Contacts, Timeline…). The same sections feed three formats:
+Backups are different from shareable summaries. Backups are intended to preserve local application data and are validated before restore.
 
-- **Print / PDF** — an HTML document opened in a print-friendly window
-- **Text** — a plain `.txt` handoff summary
-- **HTML** — a styled `.html` file
+## Maps
 
-Privacy is applied *before* rendering: the options object decides whether coordinates, personal contacts, or private notes are included at all. Shareable defaults exclude them; internal defaults include them. Backups (`backupService.ts`) are a different thing: a complete JSON snapshot of all incidents + attachments, validated on import, never overwriting existing IDs.
+The map uses MapLibre and can display online map, satellite, terrain, clustering, selection, measurement, and privacy-aware incident locations.
 
-## 10. How tests work
+Map and geocoding features can contact external providers. Local-first storage does not mean every map request is offline. See [NETWORK_ARCHITECTURE.md](NETWORK_ARCHITECTURE.md).
 
-`npm test` runs Vitest. Tests import the real service code and run against an in-memory IndexedDB (`fake-indexeddb`), so they're fast and isolated — each test gets a fresh database. Look at `src/storage/incidentService.test.ts`: it creates incidents, corrects fields, records handoffs, and then *asserts that history was preserved*. That's the heart of the app, tested automatically.
+## Optional LAN sync
 
-## 11. How the build works
+Desktop builds can opt into experimental local-network sync with a paired device.
 
-- `npm run dev` — Vite serves the source with instant reload. No files are written.
-- `npm run build` — `tsc` type-checks everything, then Vite bundles + minifies into `dist/`, and the PWA plugin generates the service worker (`sw.js`) that precaches every file.
-- `npm run preview` — serves `dist/` so you can verify the *production* build.
+The protocol uses explicit pairing, persistent device identities, authenticated encryption, replay counters, and trust revocation. It is not a cloud sync service.
 
-The service worker is what makes the app work offline: after the first visit, the browser serves the app files from its cache, and all data lives in IndexedDB — so a lost network connection changes nothing.
+See [LAN_SYNC_SECURITY.md](LAN_SYNC_SECURITY.md).
 
-## 12. Where to start reading
+## Desktop shell
 
-1. `src/types/incident.ts` — the vocabulary of the whole app
-2. `src/storage/incidentService.ts` — the rules of the app (history, custody, handoffs)
-3. `src/features/incidents/CreateIncidentPage.tsx` — how a record is born
-4. `src/features/incidents/detail/TimelineTab.tsx` — how history is shown
+Tauri provides native Windows behavior such as:
+
+- desktop window management
+- native file dialogs
+- safe file-system access exposed through configured capabilities
+- signed application updates
+- local network services for optional LAN sync
+- single-instance behavior
+
+The desktop shell has its own Rust tests in addition to the frontend test suite.
+
+## Companion launcher
+
+The launcher is a separate Tauri application. Normal mode focuses on launching, update state, diagnostics, and basic settings. Developer tools appear only when a source checkout is detected.
+
+Generated launcher and application binaries are distributed through GitHub Releases instead of being committed to the source tree.
+
+## Network boundaries
+
+Network activity can occur for:
+
+- online map or geocoding providers
+- GitHub update checks
+- explicitly enabled LAN sync with a paired device
+
+There is no analytics or telemetry service in the current public release.
+
+## Testing
+
+The project uses:
+
+- Vitest for frontend and service tests
+- fake IndexedDB for isolated storage tests
+- Rust tests for the Tauri application and launcher
+- GitHub Actions for typecheck, builds, tests, dependency auditing, and CodeQL analysis
+
+## Good places to start reading
+
+1. `src/types/incident.ts` for the incident vocabulary
+2. `src/storage/incidentService.ts` for mutation and history rules
+3. `src/features/incidents/` for incident workflows
+4. `src/features/network/` for operations, map, and sync-related UI
+5. `src-tauri/src/main.rs` for the desktop shell and updater bridge
+6. `src-tauri/src/lan_sync.rs` and `lan_crypto.rs` for the experimental LAN protocol
