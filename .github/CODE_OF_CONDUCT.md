@@ -1,31 +1,52 @@
 # Code of Conduct
 
-## Our standard
+Wildlife Incident Handoff welcomes contributors, testers, wildlife professionals, accessibility reviewers, researchers, and people who simply found something confusing or broken.
 
-Wildlife Incident Handoff should be a place where people can report bugs, test ideas, ask basic questions, and contribute without being mocked or harassed.
+The goal is a project space where people can disagree, ask basic questions, report mistakes, and improve the software without being treated poorly for doing so.
 
-Examples of welcome behavior include:
+## Expected behavior
 
-- being respectful when disagreeing
-- giving specific, useful feedback instead of attacking a person
-- making space for beginners and people from different professional backgrounds
-- treating accessibility, privacy, and safety concerns seriously
-- keeping discussions focused on the project and the problem being solved
+Please:
 
-Unacceptable behavior includes harassment, threats, discriminatory language, sexual harassment, doxxing, deliberate intimidation, repeated personal attacks, or publishing another person's private information without permission.
+- be respectful and specific when giving feedback
+- assume good faith unless there is a clear reason not to
+- make room for beginners and people from different technical backgrounds
+- keep criticism focused on ideas, code, behavior, or outcomes rather than the person
+- respect accessibility, privacy, safety, and uncertainty as real product requirements
+- use fictional or redacted wildlife incident data in public discussions, issues, screenshots, and test files
 
-## Wildlife and personal data
+## Unacceptable behavior
 
-Do not post real sensitive wildlife locations, private contact details, private case records, or other personal information in issues, pull requests, screenshots, or discussions. Use fictional or redacted data when demonstrating a problem.
+The following is not acceptable in project spaces:
 
-## Enforcement
+- harassment, threats, stalking, intimidation, or sustained personal attacks
+- discriminatory or demeaning language or conduct
+- sexual harassment or unwanted sexual attention
+- publishing private information about another person without permission
+- publishing sensitive wildlife locations, private case information, credentials, signing material, or other data that could create harm
+- deliberately disrupting discussions, issue tracking, reviews, or project infrastructure
+- impersonating wildlife organizations, professionals, maintainers, or other contributors
 
-Maintainers may edit, hide, lock, or remove content and may restrict participation when behavior violates this Code of Conduct.
+## Privacy and wildlife data
 
-If a conduct problem involves public repository content, use GitHub's built-in reporting and blocking tools where appropriate. If you need to contact the maintainer privately, use a private contact method listed on the maintainer's GitHub profile. Do not publish sensitive conduct reports as a public issue.
+Do not post real sensitive wildlife coordinates, private contact information, private case notes, credentials, API tokens, private keys, updater signing material, or other confidential information in public project spaces.
 
-Security vulnerabilities should follow [SECURITY.md](../SECURITY.md), not this conduct process.
+If a report needs sensitive security details, follow [SECURITY.md](../SECURITY.md) rather than posting those details publicly.
 
 ## Scope
 
-This Code of Conduct applies to this repository and project spaces controlled by the project maintainers.
+This Code of Conduct applies to repository discussions, issues, pull requests, reviews, project spaces, and other community spaces managed by the project.
+
+It also applies when someone is representing the project in a way that could reasonably be understood as official project participation.
+
+## Enforcement
+
+Maintainers may edit, hide, lock, or remove content that violates these expectations. Participation may also be limited when necessary to protect contributors, users, private information, or the project itself.
+
+Enforcement decisions should be based on the behavior and its impact, not on a person's level of experience or status in the project.
+
+If you need to raise a conduct concern privately and no dedicated contact method is listed, use the maintainer contact options available through the repository owner profile. Do not include exploit details or sensitive case data in a public issue.
+
+## A practical standard
+
+Be useful. Be kind. Protect private information. Leave space for people to learn.
