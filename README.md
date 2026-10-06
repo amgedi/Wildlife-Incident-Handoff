@@ -5,6 +5,7 @@
 <br/>
 
 [![Download RC2](https://img.shields.io/badge/Download-v0.3.0--rc.2-3C6E62?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/amgedi/Wildlife-Incident-Handoff/releases/tag/v0.3.0-rc.2)
+[![Watch Demo](https://img.shields.io/badge/Watch_Demo-Product_Tour-A18463?style=for-the-badge&logo=github&logoColor=white)](docs/DEMO_VIDEO.md)
 [![Tester Guide](https://img.shields.io/badge/Tester_Guide-Start_Here-58704F?style=for-the-badge)](docs/TESTER_README.md)
 [![Report a Bug](https://img.shields.io/badge/Report_a_Bug-Issues-876B52?style=for-the-badge&logo=github&logoColor=white)](https://github.com/amgedi/Wildlife-Incident-Handoff/issues/new?template=bug_report.yml)
 
@@ -144,9 +145,9 @@ If an animal or person is in immediate danger, use the appropriate local emergen
 Tester feedback is useful even if you are not a developer.
 
 [![Bug Report](https://img.shields.io/badge/Bug_Report-Open_Form-876B52?style=for-the-badge&logo=github)](https://github.com/amgedi/Wildlife-Incident-Handoff/issues/new?template=bug_report.yml)
-[![Tester Feedback](https://img.shields.io/badge/Tester_Feedback-Open_Form-58704F?style=for-the-badge&logo=github)](https://github.com/amgedi/Wildlife-Incident-Handoff/issues/new?template=tester_feedback.yml)
-[![Feature Request](https://img.shields.io/badge/Feature_Request-Suggest-6F875F?style=for-the-badge&logo=github)](https://github.com/amgedi/Wildlife-Incident-Handoff/issues/new?template=feature_request.yml)
-[![Accessibility](https://img.shields.io/badge/Accessibility-Report-507B68?style=for-the-badge&logo=github)](https://github.com/amgedi/Wildlife-Incident-Handoff/issues/new?template=accessibility_issue.yml)
+[![Tester Feedback](https://img.shields.io/badge/Tester_Feedback-Open_Form-58704F?style=for-the-badge)](https://github.com/amgedi/Wildlife-Incident-Handoff/issues/new?template=tester_feedback.yml)
+[![Feature Request](https://img.shields.io/badge/Feature_Request-Suggest-6F875F?style=for-the-badge)](https://github.com/amgedi/Wildlife-Incident-Handoff/issues/new?template=feature_request.yml)
+[![Accessibility](https://img.shields.io/badge/Accessibility-Report-507B68?style=for-the-badge)](https://github.com/amgedi/Wildlife-Incident-Handoff/issues/new?template=accessibility_issue.yml)
 
 Please use fictional or redacted information in public issues and screenshots. Do not post real sensitive wildlife coordinates, private contact information, or private case records.
 
@@ -154,6 +155,7 @@ Please use fictional or redacted information in public issues and screenshots. D
 
 | Document | What it covers |
 | --- | --- |
+| [Demo video](docs/DEMO_VIDEO.md) | Short public product tour hosted in this repository |
 | [How this app works](docs/HOW_THIS_APP_WORKS.md) | Plain-language product and workflow tour |
 | [Tester guide](docs/TESTER_README.md) | First external testing steps |
 | [Reporter testing guide](docs/TESTING_GUIDE_REPORTER.md) | Reporter-facing test flow |
