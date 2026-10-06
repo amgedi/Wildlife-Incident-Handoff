@@ -9,10 +9,12 @@
 [![License](https://img.shields.io/badge/License-AGPL--3.0--only-6F875F?style=for-the-badge)](LICENSE)
 [![Windows](https://img.shields.io/badge/Windows-Desktop-A18463?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/amgedi/Wildlife-Incident-Handoff/releases)
 
+[![Tester feedback](https://img.shields.io/badge/Tester_Feedback-Share-3C6E62?style=flat-square&logo=github)](https://github.com/amgedi/Wildlife-Incident-Handoff/issues/new?template=tester_feedback.yml)
 [![Report a bug](https://img.shields.io/badge/Report_a_Bug-Issues-263226?style=flat-square&logo=github)](https://github.com/amgedi/Wildlife-Incident-Handoff/issues/new?template=bug_report.yml)
+[![Accessibility](https://img.shields.io/badge/Accessibility-Report-263226?style=flat-square&logo=github)](https://github.com/amgedi/Wildlife-Incident-Handoff/issues/new?template=accessibility_issue.yml)
 [![Request a feature](https://img.shields.io/badge/Request_a_Feature-Issues-263226?style=flat-square&logo=github)](https://github.com/amgedi/Wildlife-Incident-Handoff/issues/new?template=feature_request.yml)
 [![Security](https://img.shields.io/badge/Security-Policy-263226?style=flat-square&logo=github)](SECURITY.md)
-[![How it works](https://img.shields.io/badge/How_it_Works-Docs-263226?style=flat-square&logo=readthedocs)](docs/HOW_THIS_APP_WORKS.md)
+[![Roadmap](https://img.shields.io/badge/Feature_List-Roadmap-263226?style=flat-square&logo=readthedocs)](docs/FEATURE_LIST_AND_ROADMAP.md)
 
 </div>
 
@@ -91,7 +93,7 @@ It is designed to help people record observations and move information more clea
 
 The app is built around keyboard access, visible focus, real form labels, non-color status cues, reduced motion support, and responsive layouts. Accessibility issues are treated as bugs.
 
-If something blocks you, please [report it](https://github.com/amgedi/Wildlife-Incident-Handoff/issues/new?template=bug_report.yml).
+If something blocks you, please use the [accessibility issue form](https://github.com/amgedi/Wildlife-Incident-Handoff/issues/new?template=accessibility_issue.yml).
 
 ## Documentation
 
