@@ -208,3 +208,9 @@ Support links are intentionally kept out of incident reporting and response work
 Wildlife Incident Handoff is licensed under [AGPL-3.0-only](LICENSE).
 
 Versions up to and including `v0.1.0` were released under MIT. Those historical copies remain under the license that accompanied them.
+
+<br/>
+
+<div align="center">
+  <img src="branding/readme-footer.svg" width="100%" alt="Clear information. Safer handoffs." />
+</div>
