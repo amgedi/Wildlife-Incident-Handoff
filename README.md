@@ -1,6 +1,10 @@
 <div align="center">
 
-<img src="branding/readme-banner.svg" width="100%" alt="Wildlife Incident Handoff. Clear information. Safer handoffs." />
+<img src="branding/wildlife-incident-handoff-emblem.png" alt="Wildlife Incident Handoff app emblem, a bear paw over a mountain forest" width="150" />
+
+<br/>
+
+<img src="branding/readme-banner.svg" width="100%" alt="From wildlife incident to safer handoff: finder, record, responder, handoff, and rehabilitation or veterinary follow-up." />
 
 <br/>
 
