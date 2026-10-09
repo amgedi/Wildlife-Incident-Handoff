@@ -63,9 +63,11 @@
       <path d="M-42 135 C164 79 346 153 548 110 C756 66 958 139 1170 99 C1293 76 1397 82 1488 69"/>
     </g>
 
-    <!-- header copy -->
-    <text x="70" y="58" fill="#f4f1e8" font-family="Segoe UI, Arial, sans-serif" font-size="30" font-weight="750" letter-spacing="1.4">FROM WILDLIFE INCIDENT TO SAFER HANDOFF</text>
-    <text x="72" y="88" fill="#cddbc6" font-family="Segoe UI, Arial, sans-serif" font-size="15" letter-spacing=".55">Observation, location, custody and context stay together as responsibility moves from person to person.</text>
+    <!-- centered product header, deliberately distinct from the profile banner -->
+    <g text-anchor="middle">
+      <text x="700" y="56" fill="#f4f1e8" font-family="Georgia, 'Times New Roman', serif" font-size="31" font-weight="700" letter-spacing=".7">WILDLIFE INCIDENT HANDOFF</text>
+      <text x="700" y="87" fill="#cddbc6" font-family="Trebuchet MS, Segoe UI, Arial, sans-serif" font-size="14.5" letter-spacing=".35">From field observation to safer handoff, with location, custody and context kept together.</text>
+    </g>
 
     <!-- route -->
     <use href="#caseRoute" fill="none" stroke="#dce7d5" stroke-opacity=".16" stroke-width="8" stroke-linecap="round"/>
