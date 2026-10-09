@@ -89,7 +89,7 @@ At every step, **unknown stays unknown until somebody actually knows it**.
 </tr>
 <tr>
 <td width="50%" valign="top"><img src="screenshots/current/rc2-app-sidebar-800x600.png" alt="Wildlife Incident Handoff in a compact desktop window" /></td>
-<td width="50%" valign="top"><img src="screenshots/current/rc2-launcher-new-home.png" alt="Wildlife Incident Handoff launcher" /></td>
+<td width="50%" valign="top"><img src="screenshots/current/rc2-launcher-new-home.webp" alt="Wildlife Incident Handoff launcher" /></td>
 </tr>
 <tr>
 <td align="center"><b>Responsive desktop layout</b><br/><sub>Usable when the app is not maximized.</sub></td>
